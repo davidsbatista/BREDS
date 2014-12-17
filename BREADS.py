@@ -1,17 +1,43 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import fileinput
+import sys
+import BREADSConfig
+from Sentence import Sentence
+from Tuple import Tuple
 
 __author__ = 'dsbatista'
 
 
-class Breads(object):
+class BREADS(object):
 
-    @staticmethod
-    def generate_tuples(sentences_file):
+    def __init__(self, config_file):
+        self.tuples = list()
+        self.config = BREADSConfig(config_file)
+
+    def generate_tuples(self, sentences_file):
         """
-        Generate tuples instances from a txt file with sentences
+        Generate tuples instances from a text file with sentences
+        where named entities are already tagged
         """
+        #TODO: apenas tuplos da relação de interesse: ORG-LOC, ou PER-ORG
         for line in fileinput.input(sentences_file):
-            print line
+            sentence = Sentence(line.strip())
+            for rel in sentence.relationships:
+                """
+                print rel.sentence
+                print rel.ent1, rel.arg1type
+                print rel.ent2, rel.arg2type
+                print rel.before
+                print rel.between
+                print rel.after
+                print "\n"
+                """
+                t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after)
+                self.tuples.append(t)
+
+        fileinput.close()
 
     @staticmethod
     def calculate_tuple_confidence(self):
@@ -39,19 +65,29 @@ class Breads(object):
         pass
 
     @staticmethod
-    def iteration(self):
-        """
-        starts a bootstrap iteration
-        """
-
-    @staticmethod
     def match_seeds_tuples(self):
         """
         checks if an extracted tuple matches seeds tuples
         """
 
     @staticmethod
-    def  pattern_drifts(self):
+    def pattern_drifts(self):
         """
         detects if the patterns drift
         """
+
+    @staticmethod
+    def iteration(self):
+        """
+        starts a bootstrap iteration
+        """
+
+
+def main(senteces_file):
+
+    breads = BREADS()
+    breads.generate_tuples(senteces_file)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
