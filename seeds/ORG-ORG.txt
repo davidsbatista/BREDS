@@ -1,0 +1,7 @@
+e1:ORG
+e2:ORG
+
+Pfizer;Warner-Lambert Co.
+ABSA Group;NBC
+Walt Disney;ABC
+Google;Youtube

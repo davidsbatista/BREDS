@@ -1,0 +1,11 @@
+e1:LOC
+e2:LOC
+
+#capitals
+Italy;Rome
+Hungary;Budapest
+Spain;Madrid
+
+# others
+#Valenciennes;France
+#Badajoz;Spain

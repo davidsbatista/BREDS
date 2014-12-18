@@ -1,0 +1,9 @@
+e1:PER
+e2:PER
+
+Ahmadinejad;Obama
+Al Gore;George W. Bush
+George W. Bush;Al Gore
+Alexander Lukashenko;Alexander Milinkevich
+Ariel Sharon;Arafat
+Chavez;Bush
