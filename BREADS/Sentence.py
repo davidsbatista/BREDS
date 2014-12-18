@@ -67,21 +67,19 @@ class Sentence:
 
                 before = self.sentence[start:matches[x].start()]
                 between = self.sentence[matches[x].end():matches[x + 1].start()]
+                after = self.sentence[matches[x + 1].end(): end]
 
                 # only consider relationships where the distance between the two entities
                 # is less than 8 tokens
-                if len(PunktWordTokenizer().tokenize(between)) > 8:
-                    continue
-
-                after = self.sentence[matches[x + 1].end(): end]
-                ent1 = matches[x].group()
-                ent2 = matches[x + 1].group()
-                arg1match = re.match("<[A-Z]+>", ent1)
-                arg2match = re.match("<[A-Z]+>", ent2)
-                arg1type = arg1match.group()[1:-1]
-                arg2type = arg2match.group()[1:-1]
-
-                rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None,
-                                   _id=None)
-
-                self.relationships.add(rel)
+                if not len(PunktWordTokenizer().tokenize(between)) > 8:
+                    ent1 = matches[x].group()
+                    ent2 = matches[x + 1].group()
+                    arg1match = re.match("<[A-Z]+>", ent1)
+                    arg2match = re.match("<[A-Z]+>", ent2)
+                    ent1 = re.sub("</?[A-Z]+>", "", ent1, count=2, flags=0)
+                    ent2 = re.sub("</?[A-Z]+>", "", ent2, count=2, flags=0)
+                    arg1type = arg1match.group()[1:-1]
+                    arg2type = arg2match.group()[1:-1]
+                    rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None,
+                                       _id=None)
+                    self.relationships.add(rel)

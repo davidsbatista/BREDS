@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from BREADS import Seed
 
 __author__ = 'dsbatista'
 
 import fileinput
 from gensim.models import Word2Vec
+from Seed import Seed
 
 
 class Config(object):

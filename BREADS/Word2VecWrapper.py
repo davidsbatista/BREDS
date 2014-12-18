@@ -12,11 +12,11 @@ class Word2VecWrapper(object):
         which can be ReVerb patterns or the words around the entities
         """
         # sum each word
+        pattern_vector = np.zeros(config.vec_dim)
         if len(tokens) > 0:
-            pattern_vector = np.zeros(config.vec_dim)
             for t in tokens:
                 try:
-                    vector = config.word2vec[t.strip()]
+                    vector = config.word2vec[t[0].strip()]
                     pattern_vector += vector
                 except KeyError:
                     continue

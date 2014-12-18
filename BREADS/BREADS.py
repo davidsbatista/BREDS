@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+__author__ = 'dsbatista'
+
 import fileinput
 import sys
-from gensim.models.word2vec import Word2Vec
 
-from BREADS import Config
-from BREADS.Pattern import Pattern
 from Sentence import Sentence
+from Pattern import Pattern
+from Config import Config
 from Tuple import Tuple
-
-
-__author__ = 'dsbatista'
 
 
 class BREADS(object):
@@ -20,6 +18,7 @@ class BREADS(object):
         self.processed_tuples = list()
         self.config = Config(config_file, seeds_file)
 
+    @staticmethod
     def generate_tuples(self, sentences_file):
         """
         Generate tuples instances from a text file with sentences
@@ -37,8 +36,6 @@ class BREADS(object):
 
         print len(self.processed_tuples), "tuples generated"
 
-
-
     @staticmethod
     def calculate_tuple_confidence(self):
         """
@@ -54,35 +51,46 @@ class BREADS(object):
         """
         pass
 
-
-
-
     @staticmethod
-    def iteration(self):
+    def start(self):
         """
         starts a bootstrap iteration
         """
-        self.iteration = 0
         self.patterns = list()
-        while iter <= self.config.number_iterations:
+        self.instances = list()
+        i = 0
+        print "\nStarting", self.config.number_iterations, "iterations"
+        while i <= self.config.number_iterations:
+            print "Looking for seed matches:"
+            for s in self.config.seed_tuples:
+                print s.e1, '\t', s.e2
 
             # Looks for sentences macthing the seed instances
-            matched_tuples = self.match_seeds_tuples()
+            count_matches, matched_tuples = self.match_seeds_tuples(self)
 
-            # Cluster the matched instances to generate patterns
-            self.cluster_tuples(matched_tuples)
+            if len(matched_tuples) == 0:
+                print "\nNo seed matches found"
+                sys.exit(0)
 
-            # Eliminate patterns supported by less than 'min_pattern_support' tuples
+            else:
+                print "\nMatches found"
+                for t in count_matches.keys():
+                    print t.e1, '\t', t.e2, '\t', count_matches[t]
 
-            # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
-            # Measure the similarity of each sentence(Tuple) with each Pattern
-            # Matching Tuple objects are used to score a Pattern confidence, based
-            # on having extracted a relationship which part of the seed set
+                # Cluster the matched instances to generate patterns
+                self.cluster_tuples(self, matched_tuples)
 
-            # Update Tuple confidence based on patterns confidence
+                # Eliminate patterns supported by less than 'min_pattern_support' tuples
 
-            # Calculate a new seed set of tuples to use in next iteration, such that:
-            # seeds = { T | Conf(T) > min_tuple_confidence }
+                # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
+                # Measure the similarity of each sentence(Tuple) with each Pattern
+                # Matching Tuple objects are used to score a Pattern confidence, based
+                # on having extracted a relationship which part of the seed set
+
+                # Update Tuple confidence based on patterns confidence
+
+                # Calculate a new seed set of tuples to use in next iteration, such that:
+                # seeds = { T | Conf(T) > min_tuple_confidence }
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
@@ -129,13 +137,18 @@ class BREADS(object):
         """
         checks if an extracted tuple matches seeds tuples
         """
-        matched_tuples = set()
+        matched_tuples = list()
+        count_matches = dict()
         for t in self.processed_tuples:
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
-                    matched_tuples.add(tuple)
+                    matched_tuples.append(t)
+                    try:
+                        count_matches[t] += 1
+                    except KeyError:
+                        count_matches[t] = 1
 
-        return matched_tuples
+        return count_matches, matched_tuples
 
 
 def similarity_sum(sentence_vector, extraction_pattern):
@@ -158,6 +171,7 @@ def main():
     seeds_file = sys.argv[3]
     breads = BREADS(configuration, seeds_file)
     breads.generate_tuples(senteces_file)
+    breads.start()
 
 
 if __name__ == "__main__":

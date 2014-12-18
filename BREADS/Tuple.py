@@ -1,7 +1,8 @@
-from BREADS import Word2VecWrapper
+# -*- coding: utf-8 -*-
 
 __author__ = 'dsbatista'
 
+from Word2VecWrapper import Word2VecWrapper
 from reverb.ReVerb import Reverb
 
 
@@ -26,21 +27,9 @@ class Tuple(object):
             Extract ReVerb patterns and construct Word2Vec representations
             If no ReVerb patterns are found extract word from context
             """
-            #patterns_bef = Reverb.extract_reverb_patterns(self.bef)
-            patterns_bet = Reverb.extract_reverb_patterns(self.bet)
-            #patterns_aft = Reverb.extract_reverb_patterns(self.aft)
-
-            """
-            if len(patterns_bef[0]) > 0:
-                pattern_vector_bef = Word2VecWrapper.pattern2vector(patterns_bef[0], config)
-                print pattern_vector_bef
-            """
-            for p in patterns_bet:
-                self.patterns_words.append(p)
-                pattern_vector_bet = Word2VecWrapper.pattern2vector(p, config)
+            patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns(self.bet)
+            if len(patterns_bet) > 0:
+                self.patterns_words = patterns_bet
+                # TODO: só estou a usar o primeiro ReVerb pattern
+                pattern_vector_bet = Word2VecWrapper.pattern2vector(patterns_bet_tags[0], config)
                 self.pattern_vectors.append(pattern_vector_bet)
-            """
-            if len(patterns_aft[0]) > 0:
-                pattern_vector_aft = Word2VecWrapper.pattern2vector(patterns_aft[0], config)
-                print pattern_vector_aft
-            """
