@@ -1,4 +1,5 @@
 import re
+from nltk import PunktWordTokenizer
 
 regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
@@ -66,6 +67,12 @@ class Sentence:
 
                 before = self.sentence[start:matches[x].start()]
                 between = self.sentence[matches[x].end():matches[x + 1].start()]
+
+                # only consider relationships where the distance between the two entities
+                # is less than 8 tokens
+                if len(PunktWordTokenizer().tokenize(between)) > 8:
+                    continue
+
                 after = self.sentence[matches[x + 1].end(): end]
                 ent1 = matches[x].group()
                 ent2 = matches[x + 1].group()

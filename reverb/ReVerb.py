@@ -48,11 +48,17 @@ class Reverb(object):
         # split text into tokens
         text_tokens = PunktWordTokenizer().tokenize(text)
 
+        text_tokens_utf8 = list()
+
+        for token in text_tokens:
+            text_tokens_utf8.append(token.decode("utf8"))
+
         # tag the sentence, using the default NTLK English tagger
         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-        tags_ptb = pos_tag(text_tokens)
+        tags_ptb = pos_tag(text_tokens_utf8)
 
-        # convert the tags to reduced tagset
+        # convert the tags to reduced tagset (Petrov et al. 2012)
+        # http://arxiv.org/pdf/1104.2086.pdf
         tags = []
         for t in tags_ptb:
             tag = map_tag('en-ptb', 'universal', t[1])
@@ -108,7 +114,8 @@ class Reverb(object):
             text_tokens = word_tokenize(re.sub(r"</?e[1-2]>|\"", "", line))
             tagged = pos_tag(text_tokens)
 
-            # convert the tags to reduced tagset
+            # convert the tags to reduced tagset (Petrov et al. 2012)
+            # http://arxiv.org/pdf/1104.2086.pdf
             tags = []
             for t in tagged:
                 tag = map_tag('en-ptb', 'universal', t[1])

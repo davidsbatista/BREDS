@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import fileinput
-import sys
-from Sentence import Sentence
-from Tuple import Tuple
-from Word2VecWrapper import Word2VecWrapper
+from BREADS import Seed
 
 __author__ = 'dsbatista'
 
+import fileinput
+from gensim.models import Word2Vec
 
-class BREADSConfig(object):
 
-    def __init__(self, config_file):
+class Config(object):
 
-        self.seed_tuples = list()
+    def __init__(self, config_file, seeds_file):
+
+        self.seed_tuples = set()
+        self.vec_dim = 0
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -41,36 +40,39 @@ class BREADSConfig(object):
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
 
-            if line.startsWith("threshold_similarity"):
+            if line.startswith("threshold_similarity"):
                 self.threshold_similarity = float(line.split("=")[1])
 
-            if line.startsWith("instance_confidance"):
+            if line.startswith("instance_confidance"):
                 self.instance_confidance = float(line.split("=")[1])
 
-            if line.startsWith("single_vector"):
+            if line.startswith("single_vector"):
                 self.single_vector = line.split("=")[1]
 
-            if line.startsWith("similarity"):
+            if line.startswith("similarity"):
                 self.similarity = line.split("=")[1]
 
-            if line.startsWith("word2vec_path"):
-                self.Word2VecModelPath = line.split("=")[1]
+            if line.startswith("word2vec_path"):
+                self.word2vecmodelpath = line.split("=")[1].strip()
 
-        self.word2vec = Word2VecWrapper(self.Word2VecModelPath)
+        print "Loading word2vec model ...\n"
+        self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
+        self.vec_dim = 200
+        self.read_seeds(self, seeds_file)
         fileinput.close()
 
     @staticmethod
     def read_seeds(self, seeds_file):
-        for line in fileinput.input((seeds_file)):
-            if line.startswith("#") or len(line)==1:
+        for line in fileinput.input(seeds_file):
+            if line.startswith("#") or len(line) == 1:
                 continue
-            if line.startsWith("e1"):
-                self.e1_type = line.split(":")[1]
-            elif line.startsWith("e2"):
-                self.e2_type = line.split(":")[1]
+            if line.startswith("e1"):
+                self.e1_type = line.split(":")[1].strip()
+            elif line.startswith("e2"):
+                self.e2_type = line.split(":")[1].strip()
             else:
-                e1 = line.split(";")[0]
-                e2 = line.split(";")[1]
-                seed = new Seed(e1, e2)
-                seedTuples.add(seed)
-
+                e1 = line.split(";")[0].strip()
+                e2 = line.split(";")[1].strip()
+                seed = Seed(e1, e2)
+                self.seed_tuples.add(seed)
+        print len(self.seed_tuples), "seeds instances loaded"
