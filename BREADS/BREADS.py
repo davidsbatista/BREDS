@@ -15,10 +15,11 @@ from Tuple import Tuple
 class BREADS(object):
 
     def __init__(self, config_file, seeds_file):
+        self.patterns = list()
+        self.instances = list()
         self.processed_tuples = list()
         self.config = Config(config_file, seeds_file)
 
-    @staticmethod
     def generate_tuples(self, sentences_file):
         """
         Generate tuples instances from a text file with sentences
@@ -51,13 +52,10 @@ class BREADS(object):
         """
         pass
 
-    @staticmethod
     def start(self):
         """
         starts a bootstrap iteration
         """
-        self.patterns = list()
-        self.instances = list()
         i = 0
         print "\nStarting", self.config.number_iterations, "iterations"
         while i <= self.config.number_iterations:
@@ -77,7 +75,7 @@ class BREADS(object):
                 for t in count_matches.keys():
                     print t.e1, '\t', t.e2, '\t', count_matches[t]
 
-                # Cluster the matched instances to generate patterns
+                # Cluster the matched instances: generate patterns/update patterns
                 self.cluster_tuples(self, matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
@@ -91,42 +89,42 @@ class BREADS(object):
 
                 # Calculate a new seed set of tuples to use in next iteration, such that:
                 # seeds = { T | Conf(T) > min_tuple_confidence }
+                i += 1
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
         """
         single-pass clustering
         """
-
-        # Initialize: first tuple goes to first cluster
+        # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
             c1 = Pattern(matched_tuples[0])
-            self.patterns.add(c1)
+            self.patterns.append(c1)
 
-            # Compute the similarity between an instance with each pattern
-            # go through all tuples
-            for t in matched_tuples:
-                max_similarity = 0
-                max_similarity_cluster_index = 0
+        # Compute the similarity between an instance with each pattern
+        # go through all tuples
+        for t in matched_tuples:
+            max_similarity = 0
+            max_similarity_cluster_index = 0
 
-                # go through all patterns
-                for i in range(0, len(self.patterns), 1):
-                    extraction_pattern = self.patterns[i]
-                    similarity = 0
+            # go through all patterns
+            for i in range(0, len(self.patterns), 1):
+                extraction_pattern = self.patterns[i]
+                similarity = 0
 
-                    # each pattern has one or more vectors representing ReVerb patterns
-                    # compute the similarity between the instance vector and each vector from a pattern
-                    # in two different ways:
-                    #      1 - when then extraction pattern is represented as single vector, sum of all vectors
-                    #      2 - compare each vector from the extraction pattern with the tuple vector
+                # each pattern has one or more vectors representing ReVerb patterns
+                # compute the similarity between the instance vector and each vector from a pattern
+                # in two different ways:
+                #      1 - when then extraction pattern is represented as single vector, sum of all vectors
+                #      2 - compare each vector from the extraction pattern with the tuple vector
 
-                    # 1- similarity calculate with just one vector
-                    if self.config.similarity == "single-vector":
-                        # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
-                        score = similarity(t.pattern_vectors[0], extraction_pattern)
+                # 1- similarity calculate with just one vector
+                if self.config.similarity == "single-vector":
+                    # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
+                    score = similarity(t.pattern_vectors[0], extraction_pattern)
 
-                    elif self.config.similarity == "all":
-                        score = similarity(t.pattern_vectors[0], extraction_pattern)
+                elif self.config.similarity == "all":
+                    score = similarity(t.pattern_vectors[0], extraction_pattern)
 
 
 
