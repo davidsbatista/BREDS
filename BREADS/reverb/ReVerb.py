@@ -47,9 +47,7 @@ class Reverb(object):
 
         # split text into tokens
         text_tokens = PunktWordTokenizer().tokenize(text)
-
         text_tokens_utf8 = list()
-
         for token in text_tokens:
             text_tokens_utf8.append(token.decode("utf8"))
 
