@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -8,22 +7,25 @@ __email__ = "dsbatista@inesc-id.pt"
 import pickle
 import fileinput
 import sys
+import os
 
 from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
 from Word2VecWrapper import Word2VecWrapper
+
 from numpy import dot
 from gensim import matutils
+from collections import defaultdict
 
 
 class BREADS(object):
 
     def __init__(self, config_file, seeds_file):
         self.patterns = list()
-        self.instances = list()
         self.processed_tuples = list()
+        self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file)
 
     def generate_tuples(self, sentences_file):
@@ -90,9 +92,35 @@ class BREADS(object):
                 print self.patterns
 
                 # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
-                # Measure the similarity of each sentence(Tuple) with each Pattern
-                # Matching Tuple objects are used to score a Pattern confidence, based
-                # on having extracted a relationship which part of the seed set
+                # This was already collect and its stored in: self.processed_tuples
+                #
+                # Measure the similarity of each occurrence with each extraction pattern
+                # and store each pattern that has a similarity higher than a given threshold
+                #
+                # Each candidate tuple will then have a number of patterns that helped generate it,
+                # each with an associated de gree of match. Snowball uses this infor
+                for t in self.processed_tuples:
+                    sim_best = 0
+                    for extraction_pattern in self.patterns:
+                        print extraction_pattern, t
+                        if self.config.similarity == "all":
+                            # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
+                            accept, score = similarity_all(t, extraction_pattern, self.config)
+                            if accept is True:
+                                extraction_pattern.update_selectivity(t, self.config)
+                                if score > sim_best:
+                                    sim_best = score
+                                    pattern_best = extraction_pattern
+
+                    if sim_best >= self.config.threshold_similarity:
+                        # TODO: e se o tuple foi extraido anteriormente por este mesmo extraction pattern ?
+                        # antes de adicionar verificar se existe, nao adicionar repetidos à lista
+                        self.candidate_tuples[t].append(pattern_best, sim_best)
+
+                    # update extraction pattern confidence
+                    if iter > 0:
+                        extraction_pattern.confidence_old = extraction_pattern.confidence
+                        extraction_pattern.confidence()
 
                 # Update Tuple confidence based on patterns confidence
 
@@ -120,23 +148,17 @@ class BREADS(object):
             # highest similarity score
             for i in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[i]
-                similarity = 0
 
                 # each pattern has one or more vectors representing ReVerb patterns
                 # compute the similarity between the instance vector and each vector from a pattern
                 # in two different ways:
-                #   1 - compare each vector from the extraction pattern with the tuple vector
-                #   2 - when then extraction pattern is represented as single vector, sum of all vectors
-                #
-
-                # 1 - compara similarity with all vectors, if majority is above threshold
+                # 1 - compare similarity with all vectors, if majority is above threshold
                 #     assume
                 if self.config.similarity == "all":
                     # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
                     accept, score = similarity_all(t, extraction_pattern, self.config)
-                    if accept is True and similarity > max_similarity:
-                        print "entrei"
-                        max_similarity = similarity
+                    if accept is True and score > max_similarity:
+                        max_similarity = score
                         max_similarity_cluster_index = i
 
                     """
@@ -146,20 +168,21 @@ class BREADS(object):
                     print "\n"
                     """
 
-                # 2 - similarity calculate with just one vector
+                # 2 - similarity calculate with just one vector, representd by the sum of all
+                #     tuple's vectors in a pattern/cluster
                 elif self.config.similarity == "single-vector":
                     # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
-                    score = similarity(t.pattern_vectors[0], extraction_pattern)
+                    score = similarity_sum(t.pattern_vectors[0], extraction_pattern)
                     if score > max_similarity:
-                        max_similarity = similarity
+                        max_similarity = score
                         max_similarity_cluster_index = i
 
-            # If max_similarity < min_degree_match create a new cluster having this tuple as the centroid
+            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:
                 c = Pattern(t)
                 self.patterns.append(c)
 
-            # If max_similarity >= min_degree_match add to the cluster with the highest similarity
+            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
 
@@ -197,7 +220,7 @@ class BREADS(object):
         pass
 
 
-def similarity_sum(sentence_vector, extraction_pattern, config):
+def similarity_sum(sentence_vector, extraction_pattern):
     """
     Cosine similarity between a Cluster/Extraction Pattern represented as a single vector
     and the vector of a ReVerb pattern extracted from a sentence

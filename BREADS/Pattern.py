@@ -9,6 +9,8 @@ class Pattern(object):
 
     def __init__(self, t=None):
         self.single_vector = zeros(200)
+        self.positive = 0
+        self.negative = 0
         self.confidence = 0
         self.tuples = set()
         self.patterns_words = set()
@@ -32,3 +34,11 @@ class Pattern(object):
             vector_p = Word2VecWrapper.pattern2vector(p, 200)
             pattern_vector += vector_p
         self.single_vector = pattern_vector
+
+    def update_selectivity(self, t, config):
+        for s in config.seeds:
+            if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
+                if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
+                    self.positive += 1
+                else:
+                    self.negative += 1
