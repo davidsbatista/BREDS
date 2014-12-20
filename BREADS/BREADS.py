@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import codecs
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import pickle
-import fileinput
 import sys
 import os
 
@@ -37,20 +37,20 @@ class BREADS(object):
         try:
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
-            print "Loading processed tuples from disk..."
+            print "\nLoading processed tuples from disk..."
             self.processed_tuples = pickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
-        except Exception, e:
-            print e
-            print "Generating relationship instances from sentences..."
-            for line in fileinput.input(sentences_file):
+        except IOError:
+            print "\nGenerating relationship instances from sentences..."
+            f_sentences = codecs.open(sentences_file, encoding='utf-8')
+            for line in f_sentences:
                 sentence = Sentence(line.strip())
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                         self.processed_tuples.append(t)
-            fileinput.close()
+            f_sentences.close()
 
             print len(self.processed_tuples), "tuples generated"
 
@@ -63,8 +63,8 @@ class BREADS(object):
         starts a bootstrap iteration
         """
         i = 0
-        print "\nStarting", self.config.number_iterations, "iterations"
         while i <= self.config.number_iterations:
+            print "\nStarting iteration", i
             print "Looking for seed matches:"
             for s in self.config.seed_tuples:
                 print s.e1, '\t', s.e2
@@ -102,10 +102,13 @@ class BREADS(object):
                 for t in self.processed_tuples:
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        print extraction_pattern, t
                         if self.config.similarity == "all":
                             # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
                             accept, score = similarity_all(t, extraction_pattern, self.config)
+                            if score > 0:
+                                print "Tuple:", t
+                                print "Extraction Pattern:", extraction_pattern
+                                print "Score:", score
                             if accept is True:
                                 extraction_pattern.update_selectivity(t, self.config)
                                 if score > sim_best:
@@ -120,7 +123,7 @@ class BREADS(object):
                         # associate it with this Pattern and similarity score
                         # add it to the list of candidate Tuples
 
-                        self.candidate_tuples[t].append(pattern_best, sim_best)
+                        self.candidate_tuples[t].append((pattern_best, sim_best))
 
                         # If the tuple was already extracted:
                         # associate this Pattern and similarity score with the Tuple
@@ -128,7 +131,8 @@ class BREADS(object):
                     # update extraction pattern confidence
                     if iter > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
-                        extraction_pattern.confidence()
+                        extraction_pattern.update_confidence()
+                    print "\n"
 
                 # update tuple confidence based on patterns confidence
                 print "Calculating tuples confidence"
@@ -136,7 +140,7 @@ class BREADS(object):
                     confidence = 1
                     t.confidence_old = t.confidence
                     for p in self.candidate_tuples.get(t):
-                        confidence *= 1 - (p[0].confidence() * p[1])
+                        confidence *= 1 - (p[0].confidence * p[1])
                     t.confidence = 1 - confidence
 
                     # use past confidence values to calculate new confidence
@@ -147,7 +151,7 @@ class BREADS(object):
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
-                print "Adding tuples to seed with confidence =>" + self.config.instance_confidance
+                print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
                 for t in self.candidate_tuples.keys():
                     if t.confidence >= self.config.instance_confidance:
                         self.config.seed_tuples.add(t)
@@ -182,10 +186,18 @@ class BREADS(object):
                 #     assume
                 if self.config.similarity == "all":
                     # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
-                    accept, score = similarity_all(t, extraction_pattern, self.config)
-                    if accept is True and score > max_similarity:
-                        max_similarity = score
-                        max_similarity_cluster_index = i
+                    try:
+                        accept, score = similarity_all(t, extraction_pattern, self.config)
+                        if accept is True and score > max_similarity:
+                            max_similarity = score
+                            max_similarity_cluster_index = i
+                    except Exception, e:
+                        # TODO: t e extraction_pattern nao podem ser vazios
+                        # ver pq isto estah a acontecer
+                        print e
+                        print t
+                        print extraction_pattern
+                        sys.exit(0)
 
                     """
                     print "tuple words:", t.patterns_words[0]

@@ -23,9 +23,8 @@ class Tuple(object):
             self.patterns_words = list()
             self.extract_patterns(self, config)
 
-        def __repr__(self):
-            #TODO
-            pass
+        def __str__(self):
+            return " | ".join([p for p in self.patterns_words]).encode("utf8")
 
         @staticmethod
         def extract_patterns(self, config):
@@ -41,13 +40,10 @@ class Tuple(object):
 
                 # split text into tokens
                 text_tokens = PunktWordTokenizer().tokenize(self.bet)
-                text_tokens_utf8 = list()
-                for token in text_tokens:
-                    text_tokens_utf8.append(token.decode("utf8"))
 
                 # tag the sentence, using the default NTLK English tagger
                 # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-                tags_ptb = pos_tag(text_tokens_utf8)
+                tags_ptb = pos_tag(text_tokens)
 
                 # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
                 # select everything except stopwords and ADJ, ADV
@@ -56,14 +52,3 @@ class Tuple(object):
                 patterns_vector_bet = Word2VecWrapper.pattern2vector(pattern, config)
                 self.patterns_vectors.append(patterns_vector_bet)
                 self.patterns_words = pattern
-
-
-
-
-
-
-
-
-
-
-

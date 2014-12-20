@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -45,13 +46,10 @@ class Reverb(object):
 
         # split text into tokens
         text_tokens = PunktWordTokenizer().tokenize(text)
-        text_tokens_utf8 = list()
-        for token in text_tokens:
-            text_tokens_utf8.append(token.decode("utf8"))
 
         # tag the sentence, using the default NTLK English tagger
         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-        tags_ptb = pos_tag(text_tokens_utf8)
+        tags_ptb = pos_tag(text_tokens)
 
         # convert the tags to reduced tagset (Petrov et al. 2012)
         # http://arxiv.org/pdf/1104.2086.pdf

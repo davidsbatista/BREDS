@@ -95,4 +95,3 @@ class Config(object):
                 e2 = line.split(";")[1].strip()
                 seed = Seed(e1, e2)
                 self.seed_tuples.add(seed)
-        print len(self.seed_tuples), "seeds instances loaded"
