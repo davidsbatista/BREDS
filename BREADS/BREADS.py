@@ -114,18 +114,44 @@ class BREADS(object):
 
                     if sim_best >= self.config.threshold_similarity:
                         # TODO: e se o tuple foi extraido anteriormente por este mesmo extraction pattern ?
-                        # antes de adicionar verificar se existe, nao adicionar repetidos à lista
+                        # TODO: antes de adicionar verificar se existe, nao adicionar repetidos à lista
+
+                        # If the tuple was not seen before:
+                        # associate it with this Pattern and similarity score
+                        # add it to the list of candidate Tuples
+
                         self.candidate_tuples[t].append(pattern_best, sim_best)
+
+                        # If the tuple was already extracted:
+                        # associate this Pattern and similarity score with the Tuple
 
                     # update extraction pattern confidence
                     if iter > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.confidence()
 
-                # Update Tuple confidence based on patterns confidence
+                # update tuple confidence based on patterns confidence
+                print "Calculating tuples confidence"
+                for t in self.candidate_tuples.keys():
+                    confidence = 1
+                    t.confidence_old = t.confidence
+                    for p in self.candidate_tuples.get(t):
+                        confidence *= 1 - (p[0].confidence() * p[1])
+                    t.confidence = 1 - confidence
 
-                # Calculate a new seed set of tuples to use in next iteration, such that:
+                    # use past confidence values to calculate new confidence
+                    # If parameter Wupdt < 0.5 then the system in effect trusts new examples less on each iteration,
+                    # which will lead to more conservative patterns and have a damping effect.
+                    if iter > 0:
+                        t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
+
+                # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
+                print "Adding tuples to seed with confidence =>" + self.config.instance_confidance
+                for t in self.candidate_tuples.keys():
+                    if t.confidence >= self.config.instance_confidance:
+                        self.config.seed_tuples.add(t)
+                # increment the number of iterations
                 i += 1
 
     @staticmethod
@@ -203,21 +229,6 @@ class BREADS(object):
                         count_matches[t] = 1
 
         return count_matches, matched_tuples
-
-    @staticmethod
-    def calculate_tuple_confidence(self):
-        """
-        Calculates the confidence of a tuple is: Conf(P_i) * DegreeMatch(P_i)
-        """
-        pass
-
-    @staticmethod
-    def compare_pattern_tuples(self):
-        """
-        Compute similarity of a tuple with all the extraction patterns
-        Compare the relational words from the sentence with every extraction pattern
-        """
-        pass
 
 
 def similarity_sum(sentence_vector, extraction_pattern):

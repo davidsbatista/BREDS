@@ -8,8 +8,6 @@ import fileinput
 import re
 import StringIO
 
-# nltk
-import nltk
 from nltk import pos_tag
 from nltk import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
