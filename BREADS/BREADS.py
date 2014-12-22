@@ -15,10 +15,10 @@ from gensim import matutils
 from nltk import PunktWordTokenizer
 from collections import defaultdict
 
-from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
+from Sentence import Sentence
 from Word2VecWrapper import Word2VecWrapper
 
 
@@ -79,13 +79,11 @@ class BREADS(object):
                 sys.exit(0)
 
             else:
-                """
                 print "\nNumber of seed matches found"
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
 
                 for t in sorted_counts:
-                    print t[0].e1, '\t', t[0].e2, t[1]
-                """
+                    print t[0][0], '\t', t[0][1], t[1]
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
@@ -120,15 +118,20 @@ class BREADS(object):
                                     pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
-                        # TODO: e se o tuple foi extraido anteriormente por este mesmo extraction pattern ?
-                        # TODO: antes de adicionar verificar se existe, nao adicionar repetidos à lista
-                        # If the tuple was not seen before:
-                        # associate it with this Pattern and similarity score
-                        # add it to the list of candidate Tuples
-                        self.candidate_tuples[t].append((pattern_best, sim_best))
+                        # if this tuple was already extracted, check if this extraction pattern is already associated
+                        # with it. if not associate this pattern with it and similarity score
+                        patterns = self.candidate_tuples[t]
+                        if patterns is not None:
+                            # patterns          : list<(Pattern,float)>
+                            # extraction_pattern: Pattern
+                            print patterns, extraction_pattern, type(patterns), type(extraction_pattern)
+                            if extraction_pattern not in patterns:
+                                self.candidate_tuples[t].append((pattern_best, sim_best))
 
-                        # If the tuple was already extracted:
-                        # associate this Pattern and similarity score with the Tuple
+                        # If this tuple was not extracted before, associate this pattern with the instance
+                        # and the similarity score
+                        else:
+                            self.candidate_tuples[t].append((pattern_best, sim_best))
 
                     # update extraction pattern confidence
                     if iter > 0:
@@ -254,9 +257,9 @@ class BREADS(object):
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
                     try:
-                        count_matches[t] += 1
+                        count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
-                        count_matches[t] = 1
+                        count_matches[(t.e1, t.e2)] = 1
 
         return count_matches, matched_tuples
 
@@ -279,12 +282,10 @@ def similarity_all(t, extraction_pattern, config):
     good = 0
     bad = 0
     max_similarity = 0
-
     for p in list(extraction_pattern.patterns_words):
         tokens = PunktWordTokenizer().tokenize(p)
         vector = Word2VecWrapper.pattern2vector(tokens, config)
         score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
-
         if score > max_similarity:
             max_similarity = score
         if score >= config.threshold_similarity:

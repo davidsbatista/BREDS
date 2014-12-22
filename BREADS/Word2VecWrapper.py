@@ -1,7 +1,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-from numpy import dot, zeros
+from numpy import zeros
 
 
 class Word2VecWrapper(object):

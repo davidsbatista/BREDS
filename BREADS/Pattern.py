@@ -19,6 +19,14 @@ class Pattern(object):
             for p in t.patterns_words:
                 self.patterns_words.add(p)
 
+    def __hash__(self):
+        return hash((self.patterns_words, self.tuples))
+
+    def __eq__(self, other):
+        print type(self)
+        print type(other)
+        return (self.tuples, self.patterns_words) == (other.tuples, other.pattern_words)
+
     def __str__(self):
         return " | ".join([p for p in self.patterns_words]).encode("utf8")
 
