@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import codecs
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -8,16 +7,19 @@ __email__ = "dsbatista@inesc-id.pt"
 import pickle
 import sys
 import os
+import codecs
+import operator
+
+from numpy import dot
+from gensim import matutils
+from nltk import PunktWordTokenizer
+from collections import defaultdict
 
 from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
 from Word2VecWrapper import Word2VecWrapper
-
-from numpy import dot
-from gensim import matutils
-from collections import defaultdict
 
 
 class BREADS(object):
@@ -33,7 +35,6 @@ class BREADS(object):
         Generate tuples instances from a text file with sentences
         where named entities are already tagged
         """
-
         try:
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
@@ -49,7 +50,8 @@ class BREADS(object):
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
+                        if len(t.patterns_vectors) >= 1:
+                            self.processed_tuples.append(t)
             f_sentences.close()
 
             print len(self.processed_tuples), "tuples generated"
@@ -65,7 +67,7 @@ class BREADS(object):
         i = 0
         while i <= self.config.number_iterations:
             print "\nStarting iteration", i
-            print "Looking for seed matches:"
+            print "\nLooking for seed matches of:"
             for s in self.config.seed_tuples:
                 print s.e1, '\t', s.e2
 
@@ -77,9 +79,13 @@ class BREADS(object):
                 sys.exit(0)
 
             else:
-                print "\nMatches found"
-                for t in count_matches.keys():
-                    print t.e1, '\t', t.e2, '\t', count_matches[t]
+                """
+                print "\nNumber of seed matches found"
+                sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
+
+                for t in sorted_counts:
+                    print t[0].e1, '\t', t[0].e2, t[1]
+                """
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
@@ -88,8 +94,10 @@ class BREADS(object):
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
                 self.patterns = new_patterns
-                print "Patterns generated"
-                print self.patterns
+                print "\n", len(self.patterns), "patterns generated"
+                if i == 0 and len(self.patterns) == 0:
+                    print "No patterns generated"
+                    sys.exit(0)
 
                 # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
                 # This was already collect and its stored in: self.processed_tuples
@@ -99,16 +107,12 @@ class BREADS(object):
                 #
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
+                print "\nCollecting instances based on extraction patterns"
                 for t in self.processed_tuples:
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         if self.config.similarity == "all":
-                            # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
                             accept, score = similarity_all(t, extraction_pattern, self.config)
-                            if score > 0:
-                                print "Tuple:", t
-                                print "Extraction Pattern:", extraction_pattern
-                                print "Score:", score
                             if accept is True:
                                 extraction_pattern.update_selectivity(t, self.config)
                                 if score > sim_best:
@@ -118,11 +122,9 @@ class BREADS(object):
                     if sim_best >= self.config.threshold_similarity:
                         # TODO: e se o tuple foi extraido anteriormente por este mesmo extraction pattern ?
                         # TODO: antes de adicionar verificar se existe, nao adicionar repetidos à lista
-
                         # If the tuple was not seen before:
                         # associate it with this Pattern and similarity score
                         # add it to the list of candidate Tuples
-
                         self.candidate_tuples[t].append((pattern_best, sim_best))
 
                         # If the tuple was already extracted:
@@ -132,10 +134,14 @@ class BREADS(object):
                     if iter > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
-                    print "\n"
+
+                print "\nExtraction patterns confidence:"
+                tmp = sorted(self.patterns)
+                for p in tmp:
+                    print p, '\t', len(p.patterns_words), '\t', p.confidence
 
                 # update tuple confidence based on patterns confidence
-                print "Calculating tuples confidence"
+                print "\nCalculating tuples confidence"
                 for t in self.candidate_tuples.keys():
                     confidence = 1
                     t.confidence_old = t.confidence
@@ -144,19 +150,38 @@ class BREADS(object):
                     t.confidence = 1 - confidence
 
                     # use past confidence values to calculate new confidence
-                    # If parameter Wupdt < 0.5 then the system in effect trusts new examples less on each iteration,
+                    # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
                     if iter > 0:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
-                print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
-                for t in self.candidate_tuples.keys():
-                    if t.confidence >= self.config.instance_confidance:
-                        self.config.seed_tuples.add(t)
+                if i+1 < self.config.number_iterations:
+                    print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
+                    for t in self.candidate_tuples.keys():
+                        if t.confidence >= self.config.instance_confidance:
+                            self.config.seed_tuples.add(t)
+
                 # increment the number of iterations
                 i += 1
+
+        print "\nWriting extracted relationships to disk"
+        f_output = open("relationships.txt", "w")
+        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
+        for t in tmp:
+            f_output.write("instance: "+t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
+            f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
+            f_output.write("pattern : "+t.patterns_words[0]+'\n')
+            f_output.write("\n")
+        f_output.close()
+
+        print "Writing generated patterns to disk"
+        f_output = open("patterns.txt", "w")
+        tmp = sorted(self.patterns, reverse=True)
+        for p in tmp:
+            f_output.write(str(p.patterns_words)+'\t'+str(p.confidence)+'\n')
+        f_output.close()
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
@@ -185,7 +210,6 @@ class BREADS(object):
                 # 1 - compare similarity with all vectors, if majority is above threshold
                 #     assume
                 if self.config.similarity == "all":
-                    # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
                     try:
                         accept, score = similarity_all(t, extraction_pattern, self.config)
                         if accept is True and score > max_similarity:
@@ -195,21 +219,15 @@ class BREADS(object):
                         # TODO: t e extraction_pattern nao podem ser vazios
                         # ver pq isto estah a acontecer
                         print e
-                        print t
+                        print "tuple"
+                        print t.sentence
+                        print t.e1, '\t', t.e2
                         print extraction_pattern
                         sys.exit(0)
-
-                    """
-                    print "tuple words:", t.patterns_words[0]
-                    print "pattern    :", extraction_pattern.patterns_words
-                    print score
-                    print "\n"
-                    """
 
                 # 2 - similarity calculate with just one vector, representd by the sum of all
                 #     tuple's vectors in a pattern/cluster
                 elif self.config.similarity == "single-vector":
-                    # TODO: só estou a usar o primeiro pattern, a frase pode ter mais
                     score = similarity_sum(t.pattern_vectors[0], extraction_pattern)
                     if score > max_similarity:
                         max_similarity = score
@@ -261,17 +279,18 @@ def similarity_all(t, extraction_pattern, config):
     good = 0
     bad = 0
     max_similarity = 0
-    for p in extraction_pattern.patterns_words:
-        vector = Word2VecWrapper.pattern2vector(p, config)
+
+    for p in list(extraction_pattern.patterns_words):
+        tokens = PunktWordTokenizer().tokenize(p)
+        vector = Word2VecWrapper.pattern2vector(tokens, config)
         score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
-        #print t.patterns_words[0], p, score
+
         if score > max_similarity:
             max_similarity = score
         if score >= config.threshold_similarity:
             good += 1
         else:
             bad += 1
-
         if good >= bad:
             return True, max_similarity
         else:
@@ -285,7 +304,6 @@ def main():
     breads = BREADS(configuration, seeds_file)
     breads.generate_tuples(senteces_file)
     breads.start()
-
 
 if __name__ == "__main__":
     main()

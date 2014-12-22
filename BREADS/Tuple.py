@@ -24,31 +24,45 @@ class Tuple(object):
             self.extract_patterns(self, config)
 
         def __str__(self):
-            return " | ".join([p for p in self.patterns_words]).encode("utf8")
+            return str(self.patterns_words).encode("utf8")
+
+        def __cmp__(self, other):
+            if other.confidence > self.confidence:
+                return -1
+            elif other.confidence < self.confidence:
+                return 1
+            else:
+                return 0
 
         @staticmethod
         def extract_patterns(self, config):
+
+            # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
+            # select everything except stopwords and ADJ, ADV
+            filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
+
             """ Extract ReVerb patterns and construct Word2Vec representations"""
             patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns(self.bet)
+
             if len(patterns_bet) > 0:
                 self.patterns_words = patterns_bet
-                # TODO: só estou a usar o primeiro ReVerb pattern
-                pattern_vector_bet = Word2VecWrapper.pattern2vector(patterns_bet_tags[0], config)
-                self.patterns_vectors.append(pattern_vector_bet)
-            else:
-                """ If no ReVerb patterns are found extract word from context """
+                pattern = [t[0] for t in patterns_bet_tags[0] if t[0].lower() not in config.stopwords and t[1] not in filter_pos]
+                if len(pattern) >= 1:
+                    pattern_vector_bet = Word2VecWrapper.pattern2vector(pattern, config)
+                    self.patterns_vectors.append(pattern_vector_bet)
 
+            else:
+                """ If no ReVerb patterns are found extract words from context """
                 # split text into tokens
                 text_tokens = PunktWordTokenizer().tokenize(self.bet)
-
                 # tag the sentence, using the default NTLK English tagger
                 # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
                 tags_ptb = pos_tag(text_tokens)
-
-                # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-                # select everything except stopwords and ADJ, ADV
-                filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
                 pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in filter_pos]
-                patterns_vector_bet = Word2VecWrapper.pattern2vector(pattern, config)
-                self.patterns_vectors.append(patterns_vector_bet)
-                self.patterns_words = pattern
+                if len(pattern) >= 1:
+                    pattern_vector_bet = Word2VecWrapper.pattern2vector(pattern, config)
+                    self.patterns_vectors.append(pattern_vector_bet)
+                    self.patterns_words = pattern
+
+
+

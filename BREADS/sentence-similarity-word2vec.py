@@ -53,7 +53,7 @@ class Relationship:
         self.rel_type = _type
         self.arg1 = _arg1
         self.arg2 = _arg2
-        
+
         if (_e1_type is not None):
             self.e1_type = _e1_type
         if (_e2_type is not None):
@@ -62,27 +62,27 @@ class Relationship:
             self.offset_e1 = _offset_e1
         if (_offset_e2 is not None):
             self.offset_e2 = _offset_e2
-        
+
         self.before = ''
         self.between = ''
         self.after = ''
-                
+
         self.tf_idf_BEF = None
         self.tf_idf_BET = None
         self.tf_idf_AFT = None
-        
+
         # contexts with assocaited PoS-tags
         self.before_tags  = []
         self.between_tags = []
         self.after_tags   = []
-        
+
         self.good_patterns = []
-        
+
         # ReVerb patterns
         self.patterns_bef = []
         self.patterns_bet = []
         self.patterns_aft = []
-        
+
         # ReVerb patterns normalized
         self.patterns_bef_norm = []
         self.patterns_bet_norm = []
@@ -93,7 +93,7 @@ class Relationship:
         self.patterns_bef_tags = []
         self.patterns_bet_tags = []
         self.patterns_aft_tags = []
-        
+
         # word2vec vectors
         self.patterns_bef_vectors = []
         self.patterns_bet_vectors = []
