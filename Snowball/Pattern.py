@@ -9,9 +9,9 @@ class Pattern(object):
         self.negative = 0
         self.confidence = 0
         self.tuples = set()
-        self.centroid_bef = None
-        self.centroid_bet = None
-        self.centroid_aft = None
+        self.centroid_bef = list()
+        self.centroid_bet = list()
+        self.centroid_aft = list()
         if tuple is not None:
             self.tuples.add(t)
             self.centroid_bef = t.bef_vector
@@ -58,10 +58,19 @@ class Pattern(object):
             self.centroid_bet = t.bet_vector
             self.centroid_aft = t.aft_vector
         else:
-            print "Calculate centroid"
             # TODO: calculate this centroid"
+            print "Calculate centroid"
             for t in self.tuples:
-                print t
+                current_words = [e[0] for e in self.centroid_bef]
+                for word in t.bef_vector:
+                    if word[0] in current_words:
+                        pass
+                        # somar valor to tf-idf
+                        # actualizar o tuplo (w,tf-idf) com este novo valor
+                    else:
+                        self.centroid_bef.append(word)
+            # dividir o tf-idif de cada (w,tf-idf), pelo numero de tuples
+
 
 
 
