@@ -124,8 +124,8 @@ class BREADS(object):
                         if patterns is not None:
                             # patterns          : list<(Pattern,float)>
                             # extraction_pattern: Pattern
-                            print patterns, extraction_pattern, type(patterns), type(extraction_pattern)
-                            if extraction_pattern not in patterns:
+                            #print patterns, extraction_pattern, type(patterns), type(extraction_pattern)
+                            if extraction_pattern not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
 
                         # If this tuple was not extracted before, associate this pattern with the instance

@@ -392,24 +392,6 @@ def extractReVerbPatterns(tagged_text):
 
     return patterns,patterns_tags
 
-
-def testReVerbPatternsExtraction(sentences):
-    for line in fileinput.input(sentences):
-        #s = line.split('sentence:')[1].strip()
-        text_tokens = word_tokenize(re.sub(r"</?e[1-2]>|\"", "", line))
-        tagged = pos_tag(text_tokens)
-
-        # convert the tags to reduced tagset
-        tags = []
-        for t in tagged:
-           tag = map_tag('en-ptb', 'universal', t[1])
-           tags.append((t[0],tag))
-
-        #r = Relationship(None, s, None, None, None)
-        #extractRelationalWords(r)
-        print tags
-
-
 """
 - PoS-taggs a sentence
 - Extract ReVerB patterns
