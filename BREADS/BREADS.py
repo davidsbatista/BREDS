@@ -4,7 +4,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-import pickle
+import cPickle
 import sys
 import os
 import codecs
@@ -39,7 +39,7 @@ class BREADS(object):
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
             print "\nLoading processed tuples from disk..."
-            self.processed_tuples = pickle.load(f)
+            self.processed_tuples = cPickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
         except IOError:
@@ -57,7 +57,7 @@ class BREADS(object):
             print len(self.processed_tuples), "tuples generated"
 
             f = open("processed_tuples.pkl", "wb")
-            pickle.dump(self.processed_tuples, f)
+            cPickle.dump(self.processed_tuples, f)
             f.close()
 
     def start(self):
@@ -122,9 +122,6 @@ class BREADS(object):
                         # with it. if not associate this pattern with it and similarity score
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
-                            # patterns          : list<(Pattern,float)>
-                            # extraction_pattern: Pattern
-                            #print patterns, extraction_pattern, type(patterns), type(extraction_pattern)
                             if extraction_pattern not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
 
@@ -173,7 +170,7 @@ class BREADS(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
         for t in tmp:
-            f_output.write("instance: "+t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
+            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
             f_output.write("pattern : "+t.patterns_words[0]+'\n')
             f_output.write("\n")
