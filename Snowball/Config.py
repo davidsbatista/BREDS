@@ -5,18 +5,24 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
+import os
+import pickle
+
+
 from nltk.corpus import stopwords
 from Seed import Seed
+from VectorSpaceModel import VectorSpaceModel
 
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file):
+    def __init__(self, config_file, seeds_file, sentences_file):
 
         self.seed_tuples = set()
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words('english')
+        self.tf_idf = None
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -48,6 +54,20 @@ class Config(object):
 
             if line.startswith("instance_confidance"):
                 self.instance_confidance = float(line.split("=")[1])
+
+        try:
+            os.path.isfile("tf_idf.pkl")
+            f = open("tf_idf.pkl", "r")
+            print "\nLoading tf-idf model from disk..."
+            self.vsm = pickle.load(f)
+            f.close()
+
+        except IOError:
+            print "\nGenerating tf-idf model from sentences..."
+            self.vsm = VectorSpaceModel(sentences_file, stopwords)
+            f = open("tf_idf.pkl", "wb")
+            pickle.dump(self.tf_idf, f)
+            f.close()
 
         self.read_seeds(seeds_file)
         fileinput.close()

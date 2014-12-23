@@ -8,7 +8,6 @@ import pickle
 import sys
 import os
 import codecs
-import TFIDF
 
 from collections import defaultdict
 from Sentence import Sentence
@@ -19,27 +18,11 @@ from Tuple import Tuple
 
 class Snowball(object):
 
-    def __init__(self, config_file, seeds_file):
-        self.tf_idf = None
+    def __init__(self, config_file, seeds_file, sentences_file):
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file)
-
-    def generate_vsm_model(self, sentences_file):
-        try:
-            os.path.isfile("tf_idf.pkl")
-            f = open("tf_idf.pkl", "r")
-            print "\nLoading tf-idf model from disk..."
-            self.processed_tuples = pickle.load(f)
-            f.close()
-            print len(self.processed_tuples), "tuples loaded"
-
-        except IOError:
-            print "\nGenerating tf-idf model from sentences..."
-            self.tf_idf = TFIDF.tf_idf(sentences_file)
-            print self.tf_idf
-            sys.exit(0)
+        self.config = Config(config_file, seeds_file, sentences_file)
 
     def generate_tuples(self, sentences_file):
         """
@@ -61,8 +44,7 @@ class Snowball(object):
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        if len(t.patterns_vectors) >= 1:
-                            self.processed_tuples.append(t)
+                        self.processed_tuples.append(t)
             f_sentences.close()
 
             print len(self.processed_tuples), "tuples generated"
@@ -256,8 +238,7 @@ def main():
     configuration = sys.argv[1]
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
-    snowball = Snowball(configuration, seeds_file)
-    snowball.generate_vsm_model(sentences_file)
+    snowball = Snowball(configuration, seeds_file, sentences_file)
     snowball.generate_tuples(sentences_file)
     snowball.start()
 
