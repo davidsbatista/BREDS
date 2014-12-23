@@ -6,8 +6,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
 import os
-import pickle
-
+import cPickle
 
 from nltk.corpus import stopwords
 from Seed import Seed
@@ -22,7 +21,6 @@ class Config(object):
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words('english')
-        self.tf_idf = None
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -55,35 +53,48 @@ class Config(object):
             if line.startswith("instance_confidance"):
                 self.instance_confidance = float(line.split("=")[1])
 
+            if line.startswith("alpha"):
+                self.alpha = float(line.split("=")[1])
+
+            if line.startswith("beta"):
+                self.beta = float(line.split("=")[1])
+
+            if line.startswith("gamma"):
+                self.gamma = float(line.split("=")[1])
+
         try:
-            os.path.isfile("tf_idf.pkl")
-            f = open("tf_idf.pkl", "r")
+            os.path.isfile("vsm.pkl")
+            f = open("vsm.pkl", "r")
             print "\nLoading tf-idf model from disk..."
-            self.vsm = pickle.load(f)
+            self.vsm = cPickle.load(f)
             f.close()
 
         except IOError:
             print "\nGenerating tf-idf model from sentences..."
-            self.vsm = VectorSpaceModel(sentences_file, stopwords)
-            f = open("tf_idf.pkl", "wb")
-            pickle.dump(self.tf_idf, f)
+            self.vsm = VectorSpaceModel(sentences_file, self.stopwords)
+            f = open("vsm.pkl", "wb")
+            cPickle.dump(self.vsm, f)
             f.close()
 
         self.read_seeds(seeds_file)
         fileinput.close()
 
-        print "Configuration parameters"
+        print "\nConfiguration parameters"
         print "========================"
         print "e1 type:", self.e1_type
         print "e2 type:", self.e2_type
         print "instance confience:", self.instance_confidance
         print "min_pattern_support", self.min_pattern_support
+        print "alpha: ", self.alpha
+        print "beta : ", self.beta
+        print "gamma: ", self.gamma
         print "iterations: ", self.number_iterations
         print "threshold_similarity: ", self.threshold_similarity
         print "iteration wUpdt:", self.wUpdt
         print "context window:", self.context_window_size
         print "max tokens away:", self.max_tokens_away
         print "min tokens away:", self.min_tokens_away
+
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):

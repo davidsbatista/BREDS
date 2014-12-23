@@ -4,12 +4,14 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-import pickle
+import cPickle
 import sys
 import os
 import codecs
+import operator
 
 from collections import defaultdict
+from gensim.matutils import cossim
 from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
@@ -33,9 +35,10 @@ class Snowball(object):
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
             print "\nLoading processed tuples from disk..."
-            self.processed_tuples = pickle.load(f)
+            self.processed_tuples = cPickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
+
         except IOError:
             print "\nGenerating relationship instances from sentences..."
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
@@ -50,7 +53,7 @@ class Snowball(object):
             print len(self.processed_tuples), "tuples generated"
 
             f = open("processed_tuples.pkl", "wb")
-            pickle.dump(self.processed_tuples, f)
+            cPickle.dump(self.processed_tuples, f)
             f.close()
 
     def start(self):
@@ -72,13 +75,11 @@ class Snowball(object):
                 sys.exit(0)
 
             else:
-                """
                 print "\nNumber of seed matches found"
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
 
                 for t in sorted_counts:
-                    print t[0].e1, '\t', t[0].e2, t[1]
-                """
+                    print t[0][0], '\t', t[0][1], t[1]
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
@@ -104,21 +105,26 @@ class Snowball(object):
                 for t in self.processed_tuples:
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        if self.config.similarity == "all":
-                            score = similarity(t, extraction_pattern)
-                            if score > sim_best:
-                                sim_best = score
-                                pattern_best = extraction_pattern
+                        score = self.similarity(self, t, extraction_pattern)
+                        print "tuple     :", t
+                        print "extraction:", extraction_pattern
+                        print "score     :", score
+                        print "\n"
+                        if score > sim_best:
+                            sim_best = score
+                            pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
-                        # If this instance was not seen before, associate this pattern with the instance
-                        # and the similarity score
-                        self.candidate_tuples[t].append((pattern_best, sim_best))
-
-                        # if this tuple was already extracted, check it this pattern is already associated with it
-                        # associate this Pattern and similarity score with the Tuple
+                        # if this tuple was already extracted, check if this extraction pattern is already associated
+                        # with it. if not associate this pattern with it and similarity score
                         patterns = self.candidate_tuples[t]
-                        if not extraction_pattern in patterns:
+                        if patterns is not None:
+                            if extraction_pattern not in [x[0] for x in patterns]:
+                                self.candidate_tuples[t].append((pattern_best, sim_best))
+
+                        # If this tuple was not extracted before, associate this pattern with the instance
+                        # and the similarity score
+                        else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
 
                     # update extraction pattern confidence
@@ -129,7 +135,7 @@ class Snowball(object):
                 print "\nExtraction patterns confidence:"
                 tmp = sorted(self.patterns)
                 for p in tmp:
-                    print p, '\t', len(p.patterns_words), '\t', p.confidence
+                    print p, '\t', len(p.tuples), '\t', p.confidence
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -163,7 +169,8 @@ class Snowball(object):
         for t in tmp:
             f_output.write("instance: "+t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern : "+t.patterns_words[0]+'\n')
+            # TODO: imprimir os padroes que extrairem este tuplo
+            #f_output.write("pattern : "+t.patterns_words[0]+'\n')
             f_output.write("\n")
         f_output.close()
 
@@ -171,8 +178,20 @@ class Snowball(object):
         f_output = open("patterns.txt", "w")
         tmp = sorted(self.patterns, reverse=True)
         for p in tmp:
-            f_output.write(str(p.patterns_words)+'\t'+str(p.confidence)+'\n')
+            # TODO: imprimir os tuplos parte deste padrao
+            f_output.write(str(len(p.tuples))+'\t'+str(p.confidence)+'\n')
         f_output.close()
+
+    @staticmethod
+    def similarity(self, t, extraction_pattern):
+        (bef, bet, aft) = (0, 0, 0)
+        if t.bef_vector is not None:
+            bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
+        if t.bet_vector is not None:
+            bet = cossim(t.bet_vector, extraction_pattern.centroid_bet)
+        if t.aft_vector is not None:
+            aft = cossim(t.aft_vector, extraction_pattern.centroid_aft)
+        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
@@ -192,11 +211,15 @@ class Snowball(object):
 
             # go through all patterns(clusters of tuples) and find the one with the
             # highest similarity score
+            # TODO: vou estar a acrescentar novos patterns, à medida que faço as iterações, verificar que "
+            # TODO: novos patterns adicionados são tidos em consideração"
             for i in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[i]
-
-                # TODO: aplicar a formula do Snowball
-                score = similarity(t, extraction_pattern)
+                score = self.similarity(self, t, extraction_pattern)
+                print "tuple     :", t
+                print "extraction:", extraction_pattern
+                print "score     :", score
+                print "\n"
                 if score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = i
@@ -222,16 +245,11 @@ class Snowball(object):
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
                     try:
-                        count_matches[t] += 1
+                        count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
-                        count_matches[t] = 1
+                        count_matches[(t.e1, t.e2)] = 1
 
         return count_matches, matched_tuples
-
-
-def similarity(t, extraction_pattern):
-    return 0
-    pass
 
 
 def main():

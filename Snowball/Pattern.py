@@ -9,14 +9,14 @@ class Pattern(object):
         self.negative = 0
         self.confidence = 0
         self.tuples = set()
-        self.patterns_words = set()
+        self.centroid_bef = None
+        self.centroid_bet = None
+        self.centroid_aft = None
         if tuple is not None:
             self.tuples.add(t)
-            for p in t.patterns_words:
-                self.patterns_words.add(p)
-
-    def __str__(self):
-        return " | ".join([p for p in self.patterns_words]).encode("utf8")
+            self.centroid_bef = t.bef_vector
+            self.centroid_bet = t.bet_vector
+            self.centroid_aft = t.aft_vector
 
     def __cmp__(self, other):
         if other.confidence > self.confidence:
@@ -26,12 +26,19 @@ class Pattern(object):
         else:
             return 0
 
+    def __str__(self):
+        output = ''
+        for t in self.tuples:
+            output += str(t)+'\n'
+        return output
+
     def update_confidence(self):
         if self.positive or self.negative > 0:
             self.confidence = float(self.positive) / float(self.positive + self.negative)
 
     def add_tuple(self, t):
         self.tuples.add(t)
+        self.centroid(self)
 
     def update_selectivity(self, t, config):
         for s in config.seed_tuples:
@@ -41,3 +48,42 @@ class Pattern(object):
                 else:
                     self.negative += 1
         self.update_confidence()
+
+    @staticmethod
+    def centroid(self):
+        print "tuples in cluster", len(self.tuples)
+        if len(self.tuples) == 1:
+            t = next(iter(self.tuples))
+            self.centroid_bef = t.bef_vector
+            self.centroid_bet = t.bet_vector
+            self.centroid_aft = t.aft_vector
+        else:
+            print "Calculate centroid"
+            # TODO: calculate this centroid"
+            for t in self.tuples:
+                print t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

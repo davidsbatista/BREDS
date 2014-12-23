@@ -69,8 +69,16 @@ class Sentence:
                 between = self.sentence[matches[x].end():matches[x + 1].start()]
                 after = self.sentence[matches[x + 1].end(): end]
 
+                # select only a few tokens from left and right context
+                # TODO: read the context values from parameters.cfg
+                before = PunktWordTokenizer().tokenize(before)[:2]
+                after = PunktWordTokenizer().tokenize(after)[:2]
+                before = ' '.join(before)
+                after = ' '.join(after)
+
                 # only consider relationships where the distance between the two entities
                 # is less than 8 tokens
+                # TODO: read the context window size from parameters.cfg
                 if not len(PunktWordTokenizer().tokenize(between)) > 8:
                     ent1 = matches[x].group()
                     ent2 = matches[x + 1].group()
