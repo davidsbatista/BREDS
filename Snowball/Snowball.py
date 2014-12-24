@@ -77,7 +77,6 @@ class Snowball(object):
             else:
                 print "\nNumber of seed matches found"
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
-
                 for t in sorted_counts:
                     print t[0][0], '\t', t[0][1], t[1]
 
@@ -106,10 +105,12 @@ class Snowball(object):
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         score = self.similarity(self, t, extraction_pattern)
+                        """
                         print "tuple     :", t
                         print "extraction:", extraction_pattern
                         print "score     :", score
                         print "\n"
+                        """
                         if score > sim_best:
                             sim_best = score
                             pattern_best = extraction_pattern
@@ -135,7 +136,7 @@ class Snowball(object):
                 print "\nExtraction patterns confidence:"
                 tmp = sorted(self.patterns)
                 for p in tmp:
-                    print p, '\t', len(p.tuples), '\t', p.confidence
+                    print p, '\t', p.confidence
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -198,14 +199,17 @@ class Snowball(object):
         """
         single-pass clustering
         """
+        start = 0
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
             c1 = Pattern(matched_tuples[0])
             self.patterns.append(c1)
+            start = 1
 
         # Compute the similarity between an instance with each pattern
         # go through all tuples
-        for t in matched_tuples:
+        for i in range(start, len(matched_tuples), 1):
+            t = matched_tuples[i]
             max_similarity = 0
             max_similarity_cluster_index = 0
 
@@ -213,16 +217,19 @@ class Snowball(object):
             # highest similarity score
             # TODO: vou estar a acrescentar novos patterns, à medida que faço as iterações, verificar que "
             # TODO: novos patterns adicionados são tidos em consideração"
-            for i in range(0, len(self.patterns), 1):
-                extraction_pattern = self.patterns[i]
+            for w in range(0, len(self.patterns), 1):
+                extraction_pattern = self.patterns[w]
                 score = self.similarity(self, t, extraction_pattern)
-                print "tuple     :", t
-                print "extraction:", extraction_pattern
+                print "\ntuple     :\n"
+                print t
+                print t.e1, '\t', t.e2
+                print t.sentence
+                print "\nextraction:\n", extraction_pattern
                 print "score     :", score
                 print "\n"
                 if score > max_similarity:
                     max_similarity = score
-                    max_similarity_cluster_index = i
+                    max_similarity_cluster_index = w
 
             # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:

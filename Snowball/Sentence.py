@@ -71,7 +71,7 @@ class Sentence:
 
                 # select only a few tokens from left and right context
                 # TODO: read the context values from parameters.cfg
-                before = PunktWordTokenizer().tokenize(before)[:2]
+                before = PunktWordTokenizer().tokenize(before)[-2:]
                 after = PunktWordTokenizer().tokenize(after)[:2]
                 before = ' '.join(before)
                 after = ' '.join(after)
