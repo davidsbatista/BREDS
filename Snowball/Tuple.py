@@ -3,6 +3,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import sys
 from nltk import PunktWordTokenizer
 
 
@@ -21,6 +22,17 @@ class Tuple(object):
             self.bef_vector = self.create_vector(self.bef_words)
             self.bet_vector = self.create_vector(self.bet_words)
             self.aft_vector = self.create_vector(self.aft_words)
+
+        def get_vector(self, context):
+            if context == "bef":
+                return self.bef_vector
+            elif context == "bet":
+                return self.bet_vector
+            elif context == "aft":
+                return self.aft_vector
+            else:
+                print "Error, vector must be 'bef', 'bet' or 'aft'"
+                sys.exit(0)
 
         def create_vector(self, text):
             vect_ids = self.config.vsm.dictionary.doc2bow(self.tokenize(text))

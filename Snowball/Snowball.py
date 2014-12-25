@@ -133,10 +133,12 @@ class Snowball(object):
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
 
+                """
                 print "\nExtraction patterns confidence:"
                 tmp = sorted(self.patterns)
                 for p in tmp:
                     print p, '\t', p.confidence
+                """
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -170,8 +172,6 @@ class Snowball(object):
         for t in tmp:
             f_output.write("instance: "+t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            # TODO: imprimir os padroes que extrairem este tuplo
-            #f_output.write("pattern : "+t.patterns_words[0]+'\n')
             f_output.write("\n")
         f_output.close()
 
@@ -179,8 +179,7 @@ class Snowball(object):
         f_output = open("patterns.txt", "w")
         tmp = sorted(self.patterns, reverse=True)
         for p in tmp:
-            # TODO: imprimir os tuplos parte deste padrao
-            f_output.write(str(len(p.tuples))+'\t'+str(p.confidence)+'\n')
+            f_output.write(str(p.tuples)+'\t'+str(p.confidence)+'\n')
         f_output.close()
 
     @staticmethod
@@ -215,11 +214,14 @@ class Snowball(object):
 
             # go through all patterns(clusters of tuples) and find the one with the
             # highest similarity score
+
             # TODO: vou estar a acrescentar novos patterns, à medida que faço as iterações, verificar que "
             # TODO: novos patterns adicionados são tidos em consideração"
+
             for w in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[w]
                 score = self.similarity(self, t, extraction_pattern)
+                """
                 print "\ntuple     :\n"
                 print t
                 print t.e1, '\t', t.e2
@@ -227,6 +229,7 @@ class Snowball(object):
                 print "\nextraction:\n", extraction_pattern
                 print "score     :", score
                 print "\n"
+                """
                 if score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = w

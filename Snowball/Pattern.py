@@ -1,5 +1,9 @@
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
+
+import sys
+from copy import deepcopy
 
 
 class Pattern(object):
@@ -54,49 +58,51 @@ class Pattern(object):
         # it there just one tuple associated with this pattern
         # centroid is the tuple
         if len(self.tuples) == 1:
-            t = next(iter(self.tuples))
+            t = self.tuples[0]
             self.centroid_bef = t.bef_vector
             self.centroid_bet = t.bet_vector
             self.centroid_aft = t.aft_vector
         else:
             # if there are more tuples associated, calculate the average over all vectors
-            print "Calculating centroid"
-            print "Tuples in cluster", len(self.tuples)
-            for t in self.tuples:
-                print t, t.bet_vector
-            print "\n"
+            self.centroid_bef = self.calculate_centroid(self, "bef")
+            self.centroid_bet = self.calculate_centroid(self, "bet")
+            self.centroid_aft = self.calculate_centroid(self, "aft")
 
-            # set first tuple as centroid
-            self.centroid_bet = self.tuples[0].bet_vector
+    @staticmethod
+    def calculate_centroid(self, context):
+        centroid = deepcopy(self.tuples[0].get_vector(context))
+        # add all other words from other tuples
+        for t in range(1, len(self.tuples), 1):
+            current_words = [e[0] for e in centroid]
+            for word in self.tuples[t].get_vector(context):
+                # if word already exists in centroid, update its tf-idf
+                if word[0] in current_words:
+                    # get the current tf-idf for this word in the centroid
+                    for i in range(0, len(centroid), 1):
+                        if centroid[i][0] == word[0]:
+                            current_tf_idf = centroid[i][1]
+                            # sum the tf-idf from the tuple to the current tf_idf
+                            current_tf_idf += word[1]
+                            # update (w,tf-idf) in the centroid
+                            w_new = list(centroid[i])
+                            w_new[1] = current_tf_idf
+                            centroid[i] = tuple(w_new)
+                            break
+                # if it is not in the centroid, added it with the associated tf-idf score
+                else:
+                    centroid.append(word)
 
-            # add all other words from other tuples
-            for t in range(1, len(self.tuples), 1):
-                current_words = [e[0] for e in self.centroid_bet]
-                print "current words:", current_words
-                for word in self.tuples[t].bet_vector:
-                    # if word already exists in centroid, update its tf-idf
-                    if word[0] in current_words:
-                        print "word already seen"
-                        # get the current tf-idf for this word in the centroid
-                        for i in range(0, len(self.centroid_bet), 1):
-                            if self.centroid_bet[i][0] == word[0]:
-                                current_tf_idf = self.centroid_bet[i][1]
-                                # sum the tf-idf from the tuple to the current tf_idf
-                                current_tf_idf += word[1]
-                                # update (w,tf-idf) in the centroid
-                                w_new = list(self.centroid_bet[i])
-                                w_new[1] = current_tf_idf
-                                self.centroid_bet[i] = tuple(w_new)
-                                break
-                    # if it is not in the centroid, added it with the associated tf-idf score
-                    else:
-                        self.centroid_bet.append(word)
+        # dividir o tf-idf de cada tuple (w,tf-idf), pelo numero de vectores
+        for i in range(0, len(centroid), 1):
+            tmp = list(centroid[i])
+            tmp[1] /= len(self.tuples)
+            # assure that the tf-idf values are still normalized
+            try:
+                assert tmp[1] <= 1.0
+                assert tmp[1] >= 0.0
+            except AssertionError:
+                "Error calculating extraction pattern centroid"
+                sys.exit(0)
+            centroid[i] = tuple(tmp)
 
-            # dividir o tf-idf de cada tuple (w,tf-idf), pelo numero de vectores
-            for i in range(0, len(self.centroid_bet), 1):
-                tmp = list(self.centroid_bet[i])
-                tmp[1] /= len(self.tuples)
-                self.centroid_bet[i] = tuple(tmp)
-
-            print "centroid updated"
-            print self.centroid_bet
+        return centroid
