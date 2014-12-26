@@ -19,9 +19,12 @@ class Tuple(object):
             self.bet_words = _between
             self.aft_words = _after
             self.config = config
-            self.bef_vector = self.create_vector(self.bef_words)
-            self.bet_vector = self.create_vector(self.bet_words)
-            self.aft_vector = self.create_vector(self.aft_words)
+            self.bef_vector = None
+            self.bet_vector = None
+            self.aft_vector = None
+            #self.bef_vector = self.create_vector(self.bef_words)
+            #self.bet_vector = self.create_vector(self.bet_words)
+            #self.aft_vector = self.create_vector(self.aft_words)
 
         def get_vector(self, context):
             if context == "bef":

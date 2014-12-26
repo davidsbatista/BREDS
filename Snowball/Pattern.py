@@ -22,19 +22,17 @@ class Pattern(object):
             self.centroid_bet = t.bet_vector
             self.centroid_aft = t.aft_vector
 
-    def __cmp__(self, other):
-        if other.confidence > self.confidence:
-            return -1
-        elif other.confidence < self.confidence:
-            return 1
-        else:
-            return 0
-
     def __str__(self):
         output = ''
         for t in self.tuples:
             output += str(t)+'|'
         return output
+
+    def __eq__(self, other):
+        if self.tuples == other.tuples:
+            return True
+        else:
+            return False
 
     def update_confidence(self):
         if self.positive or self.negative > 0:

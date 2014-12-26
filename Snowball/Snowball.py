@@ -62,6 +62,7 @@ class Snowball(object):
         """
         i = 0
         while i <= self.config.number_iterations:
+            print "\n============================================="
             print "\nStarting iteration", i
             print "\nLooking for seed matches of:"
             for s in self.config.seed_tuples:
@@ -105,40 +106,32 @@ class Snowball(object):
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         score = self.similarity(self, t, extraction_pattern)
-                        """
-                        print "tuple     :", t
-                        print "extraction:", extraction_pattern
-                        print "score     :", score
-                        print "\n"
-                        """
                         if score > sim_best:
                             sim_best = score
                             pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
-                        # if this tuple was already extracted, check if this extraction pattern is already associated
-                        # with it. if not associate this pattern with it and similarity score
+                        # if this instance was already extracted, check if it was by this extraction pattern
+                        # if it was not extracted by this pattern, associated this pattern with it along with the
+                        # similarity score
+                        extraction_pattern.update_selectivity(t, self.config)
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
                             if extraction_pattern not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
+                                print t
+                                for x in self.candidate_tuples[t]:
+                                    print x[0], id(x[0]), x[1]
+                                print "\n"
 
-                        # If this tuple was not extracted before, associate this pattern with the instance
+                        # If this instance was not extracted before, associate theisextraciton pattern with the instance
                         # and the similarity score
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
 
                     # update extraction pattern confidence
-                    if iter > 0:
-                        extraction_pattern.confidence_old = extraction_pattern.confidence
-                        extraction_pattern.update_confidence()
-
-                """
-                print "\nExtraction patterns confidence:"
-                tmp = sorted(self.patterns)
-                for p in tmp:
-                    print p, '\t', p.confidence
-                """
+                    extraction_pattern.confidence_old = extraction_pattern.confidence
+                    extraction_pattern.update_confidence()
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -152,7 +145,7 @@ class Snowball(object):
                     # use past confidence values to calculate new confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
-                    if iter > 0:
+                    if i > 0:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # update seed set of tuples to use in next iteration
@@ -162,6 +155,7 @@ class Snowball(object):
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
                             self.config.seed_tuples.add(t)
+                            print t.e1, '\t', t.e2
 
                 # increment the number of iterations
                 i += 1
@@ -170,7 +164,7 @@ class Snowball(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
         for t in tmp:
-            f_output.write("instance: "+t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
+            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
             f_output.write("\n")
         f_output.close()
