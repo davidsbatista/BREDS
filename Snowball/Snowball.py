@@ -117,6 +117,7 @@ class Snowball(object):
                         extraction_pattern.update_selectivity(t, self.config)
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
+                            # TODO: make sure no repeated patterns are added
                             if extraction_pattern not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
                                 print t
