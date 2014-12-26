@@ -117,13 +117,12 @@ class Snowball(object):
                         extraction_pattern.update_selectivity(t, self.config)
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
-                            # TODO: make sure no repeated patterns are added
-                            if extraction_pattern not in [x[0] for x in patterns]:
+                            if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
-                                print t
-                                for x in self.candidate_tuples[t]:
-                                    print x[0], id(x[0]), x[1]
-                                print "\n"
+                                if i > 0:
+                                    for x in self.candidate_tuples[t]:
+                                        print x[0], id(x[0]), x[1]
+                                    print "\n"
 
                         # If this instance was not extracted before, associate theisextraciton pattern with the instance
                         # and the similarity score
