@@ -34,6 +34,11 @@ class Tuple(object):
             else:
                 return 0
 
+        def __eq__(self, other):
+            print "chamai o __eq__ do Tuple"
+            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
+                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
+
         @staticmethod
         def extract_patterns(self, config):
 

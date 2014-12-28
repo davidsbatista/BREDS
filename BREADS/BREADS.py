@@ -122,7 +122,7 @@ class BREADS(object):
                         # with it. if not associate this pattern with it and similarity score
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
-                            if extraction_pattern not in [x[0] for x in patterns]:
+                            if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
 
                         # If this tuple was not extracted before, associate this pattern with the instance

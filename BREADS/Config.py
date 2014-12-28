@@ -62,7 +62,7 @@ class Config(object):
 
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
-        self.vec_dim = 200
+        self.vec_dim = self.word2vec.layer1_size
         self.read_seeds(seeds_file)
         fileinput.close()
 
