@@ -119,10 +119,13 @@ class Snowball(object):
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
+                                """
                                 if i > 0:
+                                    print t.e1, '\t', t.e2, '\t', t.sentence
                                     for x in self.candidate_tuples[t]:
-                                        print x[0], id(x[0]), x[1]
+                                        print x[0], x[1]
                                     print "\n"
+                                """
 
                         # If this instance was not extracted before, associate theisextraciton pattern with the instance
                         # and the similarity score
@@ -162,7 +165,7 @@ class Snowball(object):
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
+        tmp = sorted(self.candidate_tuples.items(), key=lambda x: x[1][1])
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')

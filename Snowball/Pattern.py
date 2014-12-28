@@ -30,17 +30,9 @@ class Pattern(object):
 
     def __eq__(self, other):
         print "chamei o __eq__ do Pattern()"
-
-        print "self"
-
-        for t in self.tuples:
-            print t
-        print "other"
-
-        for t in other.tuples:
-            print t
-
-        if self.tuples == other.tuples:
+        print self.tuples
+        print other.tuples
+        if set(self.tuples) == set(other.tuples):
             print "true"
             return True
         else:
