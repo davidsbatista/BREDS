@@ -10,6 +10,7 @@ import os
 import codecs
 import operator
 
+from nltk import PunktWordTokenizer
 from collections import defaultdict
 from gensim.matutils import cossim
 from Sentence import Sentence
@@ -46,7 +47,11 @@ class Snowball(object):
                 sentence = Sentence(line.strip())
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                        bef_tokens = self.tokenize(self, rel.before)
+                        bet_tokens = self.tokenize(self, rel.between)
+                        aft_tokens = self.tokenize(self, rel.after)
+                        if not (bef_tokens == 0 and bet_tokens == 0 and aft_tokens == 0):
+                            t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                         self.processed_tuples.append(t)
             f_sentences.close()
 
@@ -165,7 +170,7 @@ class Snowball(object):
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples.items(), key=lambda x: x[1][1])
+        tmp = sorted(self.candidate_tuples, key=lambda tuple: tuple.confidence, reverse=True)
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
@@ -176,18 +181,22 @@ class Snowball(object):
         f_output = open("patterns.txt", "w")
         tmp = sorted(self.patterns, reverse=True)
         for p in tmp:
-            f_output.write(str(p.tuples)+'\t'+str(p.confidence)+'\n')
+            f_output.write(str([str(t) for t in p.tuples])+'\t'+str(p.confidence)+'\n')
         f_output.close()
 
     @staticmethod
     def similarity(self, t, extraction_pattern):
         (bef, bet, aft) = (0, 0, 0)
+
         if t.bef_vector is not None:
             bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
+
         if t.bet_vector is not None:
             bet = cossim(t.bet_vector, extraction_pattern.centroid_bet)
+
         if t.aft_vector is not None:
             aft = cossim(t.aft_vector, extraction_pattern.centroid_aft)
+
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
     @staticmethod
@@ -219,7 +228,7 @@ class Snowball(object):
                 extraction_pattern = self.patterns[w]
                 score = self.similarity(self, t, extraction_pattern)
                 """
-                print "\ntuple     :\n"
+                print "\ntuple     :"
                 print t
                 print t.e1, '\t', t.e2
                 print t.sentence
@@ -239,6 +248,10 @@ class Snowball(object):
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
+
+    @staticmethod
+    def tokenize(self, text):
+        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in self.config.stopwords]
 
     @staticmethod
     def match_seeds_tuples(self):

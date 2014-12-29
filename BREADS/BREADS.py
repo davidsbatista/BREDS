@@ -135,10 +135,12 @@ class BREADS(object):
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
 
+                """
                 print "\nExtraction patterns confidence:"
                 tmp = sorted(self.patterns)
                 for p in tmp:
                     print p, '\t', len(p.patterns_words), '\t', p.confidence
+                """
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
