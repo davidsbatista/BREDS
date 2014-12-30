@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import os
+import sys
 
 from whoosh.analysis import RegexTokenizer
 from whoosh.fields import Schema, TEXT
 from whoosh.index import create_in
 from whoosh.query import *
-from whoosh.qparser import QueryParser
+from Sentence import Sentence
 
 
 def create_index():
@@ -17,26 +19,27 @@ def create_index():
                     entity2=TEXT(stored=True),
                     sentence=TEXT(stored=True, analyzer=tokenizer))
 
-
     if not os.path.exists("index"):
         os.mkdir("index")
     ix = create_in("index", schema)
-    #ix = open_dir("index")
+
+    return ix
+
+
+def index(idx, document):
 
     """
-    An analyzer is a function or callable class (a class with a __call__ method) that takes a unicode string
-    and returns a generator of tokens.
-    """
-
-    # NOTE: Indexed text fields must be passed a unicode value!
     writer = ix.writer()
     writer.add_document(entity1=u"Bush", entity2=u"Reagen", sentence=u"Bush agains Reagen <LOC>tem isto</LOC>")
     writer.add_document(entity1=u"Microsoft", entity2=u"Redmond", sentence=u"<ORG>Microsoft</ORG> in the past had the headquarters in <LOC>Redmond</LOC>")
     writer.add_document(entity1=u"Joe", entity2=u"Lisboa", sentence=u"Joe está em Lisbon")
     writer.commit()
-
     #searcher = ix.searcher()
+    """
 
+
+def query(idx,query):
+    """
     with ix.searcher() as searcher:
         #myquery = Or([Term("sentence", u"Microsoft"), Term("sentence", u"Redmond")])
         #myquery = Or([Term("sentence", u"<LOC>tem isto</LOC>")])
@@ -50,34 +53,20 @@ def create_index():
             print hit['entity1']
             print hit['entity2']
             print hit['sentence']
-
+    """
 
 
 def main():
-    create_index()
-    """
-    #regex = re.compile('<[A-Z]+>([^<]+)</[A-Z]+>', re.U)
-    #self.TOKENIZER= r'\,|\(|\)|\w+(?:-\w+)+|\d+(?:[:|/]\d+)+|\d+(?:[.]?[oaºª°])+|\w+\'\w+|\d+(?:[,|.]\d+)*\%?|[\w+\.-]+@[\w\.-]+|https?://[^\s]+|\w+'
-
-    regex = re.compile('\w+|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
-
+    #idx = create_index()
     for l in sys.stdin:
-        matches = []
-        # before indexing documents, change spaces withing entities to "_", e.g.:
-        # In <LOC>Bonn</LOC> , the head of the <ORG>German Social Democratic Party</ORG>
-        # becomes:
-        # In <LOC>Bonn</LOC> , the head of the <ORG>German_Social_Democratic_Party</ORG>
-
-        print re.findall(regex, l)
-
-        for m in re.finditer(regex, l):
-            matches.append(m)
-            for x in range(0, len(matches)):
-                new = re.sub(r'\s', "_", matches[x].group())
-                l = l.replace(matches[x].group(), new)
-
-        print l
-    """
+        s = Sentence(l.strip())
+        for r in s.relationships:
+            print r.ent1, '\t', r.ent2
+            print r.sentence
+            print r.before
+            print r.between
+            print r.after
+            print "======================"
 
 if __name__ == "__main__":
     main()
