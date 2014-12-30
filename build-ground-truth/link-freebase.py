@@ -82,8 +82,6 @@ def collect_afp_sentences(sentences, freebase_relations, entities):
                         # get synsets for all words
 
 
-
-
 def main():
     relationships = collect_entities(sys.argv[1])
     print len(relationships), "relationships loaded"
