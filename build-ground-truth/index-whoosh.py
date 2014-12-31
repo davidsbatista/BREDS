@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import functools
 import os
 import sys
+import time
 
 from whoosh.analysis import RegexTokenizer
 from whoosh.fields import Schema, TEXT
@@ -11,62 +13,50 @@ from whoosh.query import *
 from Sentence import Sentence
 
 
+def timecall(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kw):
+        start = time.time()
+        result = f(*args, **kw)
+        end = time.time()
+        print "%s %.2f seconds" % (f.__name__, end - start)
+        return result
+    return wrapper
+
+
+@timecall
 def create_index():
     regex_tokenize = re.compile('\w+|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
-
     schema = Schema(entity1=TEXT(stored=True),
                     entity2=TEXT(stored=True),
                     sentence=TEXT(stored=True, analyzer=tokenizer))
-
-    if not os.path.exists("index"):
-        os.mkdir("index")
-    ix = create_in("index", schema)
-
-    return ix
+    if not os.path.exists("index_full"):
+        os.mkdir("index_full")
+    idx = create_in("index_full", schema)
+    return idx
 
 
-def index(idx, document):
-
-    """
-    writer = ix.writer()
-    writer.add_document(entity1=u"Bush", entity2=u"Reagen", sentence=u"Bush agains Reagen <LOC>tem isto</LOC>")
-    writer.add_document(entity1=u"Microsoft", entity2=u"Redmond", sentence=u"<ORG>Microsoft</ORG> in the past had the headquarters in <LOC>Redmond</LOC>")
-    writer.add_document(entity1=u"Joe", entity2=u"Lisboa", sentence=u"Joe está em Lisbon")
-    writer.commit()
-    #searcher = ix.searcher()
-    """
-
-
-def query(idx,query):
-    """
-    with ix.searcher() as searcher:
-        #myquery = Or([Term("sentence", u"Microsoft"), Term("sentence", u"Redmond")])
-        #myquery = Or([Term("sentence", u"<LOC>tem isto</LOC>")])
-        parser = QueryParser("sentence", ix.schema)
-        #myquery = parser.parse(""whoosh library"~5")
-        myquery = parser.parse('"<ORG>Microsoft</ORG> ~headquarters"~6')
-        print myquery
-        results = searcher.search(myquery)
-        print(len(results))
-        for hit in results:
-            print hit['entity1']
-            print hit['entity2']
-            print hit['sentence']
-    """
-
-
-def main():
-    #idx = create_index()
+@timecall
+def index_sentences(writer):
+    #total: 26.729.482
+    count = 0
     for l in sys.stdin:
         s = Sentence(l.strip())
         for r in s.relationships:
-            print r.ent1, '\t', r.ent2
-            print r.sentence
-            print r.before
-            print r.between
-            print r.after
-            print "======================"
+            writer.add_document(entity1=unicode(r.ent1), entity2=unicode(r.ent2), sentence=unicode(r.sentence))
+        count += 1
+        if count % 50000 == 0:
+            print count, "lines processed"
+    writer.commit()
+
+
+def main():
+    idx = create_index()
+    writer = idx.writer(limitmb=2048, procs=8, multisegment=True)
+    index_sentences(writer)
+    idx.close()
+
 
 if __name__ == "__main__":
     main()
