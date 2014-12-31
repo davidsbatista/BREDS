@@ -5,6 +5,7 @@ import functools
 import os
 import sys
 import time
+import codecs
 
 from whoosh.analysis import RegexTokenizer
 from whoosh.fields import Schema, TEXT
@@ -41,19 +42,30 @@ def create_index():
 def index_sentences(writer):
     #total: 26.729.482
     count = 0
-    for l in sys.stdin:
+    f = codecs.open(sys.argv[1], "r", "utf-8")
+    for l in f:
         s = Sentence(l.strip())
         for r in s.relationships:
-            writer.add_document(entity1=unicode(r.ent1), entity2=unicode(r.ent2), sentence=unicode(r.sentence))
+            if r.between == " ) , " or r.between == " ( ":
+                continue
+            try:
+                writer.add_document(entity1=r.ent1, entity2=r.ent2, sentence=r.sentence)
+            except UnicodeDecodeError, e:
+                print e
+                print r.ent1, '\t', r.ent2
+                print r.sentence
+                sys.exit(0)
+
         count += 1
         if count % 50000 == 0:
             print count, "lines processed"
+    f.close()
     writer.commit()
 
 
 def main():
     idx = create_index()
-    writer = idx.writer(limitmb=2048, procs=8, multisegment=True)
+    writer = idx.writer(limitmb=2048, procs=4, multisegment=True)
     index_sentences(writer)
     idx.close()
 
