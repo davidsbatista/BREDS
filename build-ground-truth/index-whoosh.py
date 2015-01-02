@@ -29,9 +29,7 @@ def timecall(f):
 def create_index():
     regex_tokenize = re.compile('\w+|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
-    schema = Schema(entity1=TEXT(stored=True),
-                    entity2=TEXT(stored=True),
-                    sentence=TEXT(stored=True, analyzer=tokenizer))
+    schema = Schema(sentence=TEXT(stored=True, analyzer=tokenizer))
     if not os.path.exists("index_full"):
         os.mkdir("index_full")
     idx = create_in("index_full", schema)
@@ -49,7 +47,7 @@ def index_sentences(writer):
             if r.between == " ) , " or r.between == " ( ":
                 continue
             try:
-                writer.add_document(entity1=r.ent1, entity2=r.ent2, sentence=r.sentence)
+                writer.add_document(sentence=r.sentence)
             except UnicodeDecodeError, e:
                 print e
                 print r.ent1, '\t', r.ent2

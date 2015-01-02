@@ -11,7 +11,7 @@ from collections import defaultdict
 from Sentence import Sentence
 
 
-def collect_entities(data):
+def collect_relationships(data, r_filter):
     #######################
     # Weak entity linking #
     #######################
@@ -28,13 +28,15 @@ def collect_entities(data):
 
     try:
         os.path.isfile("relationships.txt")
-        print "\nLoading relationships from disk..."
+        print "\nLoading freebase relationships from disk..."
         for line in fileinput.input("relationships.txt"):
             e1, r, e2 = line.split('\t')
-            relationships[(e1, e2.strip())].append(r)
+            if r in r_filter:
+                relationships[(e1, e2.strip())].append(r)
         fileinput.close()
 
     except IOError:
+        # TODO: limpar/remover () das entidades do freebase, ex: Sam Smith (Man) #11
         count = 0
         for line in fileinput.input(data):
             if count % 50000 == 0:
@@ -47,7 +49,6 @@ def collect_entities(data):
         fileinput.close()
 
         print "Writing collected relationships to disk"
-
         f_entities = open("relationships.txt", "w")
         for r in relationships.keys():
             for e in relationships[r]:
@@ -76,14 +77,14 @@ def collect_afp_sentences(sentences, freebase_relations, entities):
                         print "aft", r.after
                         print "\n"
 
-                        # mapear relações
+                        # TODO: mapear relações
                         # 1 - string igual?
                         # 2 - usar wordnet e JC
                         # get synsets for all words
 
 
 def main():
-    relationships = collect_entities(sys.argv[1])
+    relationships = collect_relationships(sys.argv[1])
     print len(relationships), "relationships loaded"
     entities = set()
     for r in relationships.keys():

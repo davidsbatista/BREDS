@@ -20,14 +20,37 @@ def timecall(f):
         return result
     return wrapper
 
-@timecall
-def main():
+
+def calculate_pmi(e1, e2, r):
+    # NOTE: this queries an index build over the whole AFT corpus
+    """
+    # sentences with tagged entities are indexed in whoosh, perform the following query
     # ent1 NEAR:X r NEAR:X ent2
     # X is the maximum number of words between the query elements.
-    # X = 5
-    # myquery = whoosh.query.Every()
-
+    #
+    """
     idx = open_dir("index")
+    t1 = query.Term("sentence", e1)
+    t2 = query.Term("sentence", r)
+    t3 = query.Term("sentence", e2)
+    q1 = spans.SpanNear2([t1, t2, t3], slop=5, ordered=False)
+    q2 = spans.SpanNear2([t1, t3], slop=5, ordered=False)
+
+    with idx.searcher() as searcher:
+        entities_r = searcher.search(q1)
+        entities = searcher.search(q2)
+        print len(entities_r)
+        print len(entities)
+        pmi = float(len(entities_r)) / float(len(entities))
+
+    idx.close()
+    return pmi
+
+
+@timecall
+def main():
+    pmi = calculate_pmi('<ORG>Microsoft</ORG>', '<LOC>Seattle</LOC>', "headquarters")
+    print pmi
 
     # To find documents where “<ORG>Microsoft</ORG>” occurs at most X positions before “headquarters”:
     # q1t1 = query.Term("sentence", "<ORG>Microsoft</ORG>")
@@ -41,6 +64,7 @@ def main():
     # near = spans.SpanNear(t1, t2, slop=2)
     # q = spans.SpanContains(near, query.Term("sentence", "founder"))
 
+    """
     t1 = query.Term("sentence", "<ORG>Microsoft</ORG>")
     t2 = query.Term("sentence", 'headquarters')
     t3 = query.Term("sentence", "<LOC>Seattle</LOC>")
@@ -51,11 +75,10 @@ def main():
     with idx.searcher() as searcher:
         results = searcher.search(q)
         for hit in results:
-            print "ent1:", hit['entity1']
-            print "ent2:", hit['entity2']
-            print "s:   ", hit['sentence']
+            print hit['sentence']
             print "\n"
         print len(results)
+    """
 
     idx.close()
 
