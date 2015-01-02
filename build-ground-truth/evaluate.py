@@ -167,12 +167,22 @@ def main():
 
     # G' super set with correct facts and wrongly generated facts
     #
-    # Estimate G \in D = |b| + |c|, looking for relationships in G' that match a relationship in D
+    # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #
-    # By applying the PMI of the facts no in the database (i.e., G' \in D) we determine |G \ D|, we
+    # By applying the PMI of the facts not in the database (i.e., G' \in D) we determine |G \ D|, we
     # can estimate |d| = |G \ D| - |a|
 
+    # TODO:
+    #  to gerneate |c|:
+    #
+    #  1 - generate a super set G', with valid and invalid relationships
+    #      consider only entities from the same sentence
+    #  2 - generate G \intersected D, look for rel in G' that also occur in D
+    #
+    #  to gerneate |d|:
+    #
+    #  1 - determine facts not in the database
 
     """
     print "Precision: ", float(len(a) + len(b)) / float(len(relationships))
