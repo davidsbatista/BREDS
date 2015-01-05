@@ -10,6 +10,7 @@ import freebase
 from whoosh.index import open_dir
 from whoosh.query import spans
 from whoosh import query
+from Sentence import Sentence
 
 
 class ExtractedFact(object):
@@ -33,7 +34,7 @@ def timecall(f):
     return wrapper
 
 
-def calculate_a(output,e1_type, e2_type):
+def calculate_a(output, e1_type, e2_type):
     # NOTE: this queries an index build over the whole AFT corpus
     """
     # sentences with tagged entities are indexed in whoosh, perform the following query
@@ -50,21 +51,24 @@ def calculate_a(output,e1_type, e2_type):
         t1 = query.Term("sentence", entity1)
         t2 = query.Term("sentence", r.patterns)
         t3 = query.Term("sentence", entity2)
-        q1 = spans.SpanNear2([t1, t2, t3], slop=5, ordered=False)
-        q2 = spans.SpanNear2([t1, t3], slop=5, ordered=False)
+        q1 = spans.SpanNear2([t1, t2, t3], slop=5, ordered=True)
+        q2 = spans.SpanNear2([t1, t3], slop=5, ordered=True)
 
         with idx.searcher() as searcher:
             entities_r = searcher.search(q1)
             entities = searcher.search(q2)
+            #TODO: fazer stemming ou normalização da palavra
             """
             print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
             print entity1, '\t', entity2, len(entities)
+            print len(entities_r), len(entities)
+            print "\n"
             """
             if len(entities) > 0:
                 pmi = float(len(entities_r)) / float(len(entities))
                 # TODO: ver como calcular o threshold
                 if pmi >= 0.5:
-                    print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
+                    print entity1, '\t', r.patterns, '\t', entity2, pmi
                     a.add(r)
 
     idx.close()
@@ -83,29 +87,91 @@ def calculate_b(output, database):
 
     b = set()
     for system_r in output:
-
         if len(database[(system_r.e1, system_r.e2)]) > 0:
             #print database[(system_r.ent1, system_r.ent2)]
             for relation in database[(system_r.e1, system_r.e2)]:
-                """
-                print "Output  :", system_r.e1, '\t', system_r.e2, system_r.patterns
-                print "Freebase:", relation
-                """
+                #print "Output  :", system_r.e1, '\t', system_r.e2, system_r.patterns
+                #print "Freebase:", relation
+                # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
                 b.add(system_r)
     return b
 
 
-def calculate_c(data):
+def calculate_c(corpus, database, b):
     # contains the database facts described in the corpus but not extracted by the system
-    # TODO:
-    # 1 - recolher todas as relações do um tipo (e.g., founder)
-    # 2 - fazer um match entre pares de entities em frases o corpus usado para a extracção de relações e o Freebase
-    return 0
+    #
+    # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
+    # for now, all relationships from a sentence
+    g_dash = set()
+    for line in fileinput.input(corpus):
+        s = Sentence(line.strip())
+        for r in s.relationships:
+            g_dash.add(r)
+    fileinput.close()
+
+    # estimate G \in D, look for facts in G' that a match a fact in the database
+    g_intersect_d = set()
+    for r in g_dash:
+        if len(database[(r.ent1, r.ent2)]) > 0:
+            for relation in database[(r.ent1, r.ent2)]:
+                # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
+                # TODO: está hard-coded para relação: founder
+                if relation == 'Organization founded':
+                    g_intersect_d.add(r)
+
+    # having b and g_intersect_d => |c| = g_intersect_d - b
+    # TODO: testar o difference
+    c = g_intersect_d.difference(b)
+    return c, g_dash
 
 
-def calculate_d(data):
+def calculate_d(g_dash, database, a, e1_type, e2_type):
     # contains facts described in the corpus that are not in the system output nor in the database
-    return 0
+    #
+    # by applying the PMI of the facts not in the database (i.e., G' \in D)
+    # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
+    #
+    # |G \ D|
+    # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
+    g_minus_d = set()
+    idx = open_dir("index")
+    with idx.searcher() as searcher:
+        # precorrer o g_dash, e para cada par que não está na base de dados
+        # calcular o PMI, se o PMI for alto, considerar um true fact
+        print len(g_dash)
+        c = 0
+        cache = set()
+        for r in g_dash:
+            c += 1
+            if c % 25000 == 0:
+                print c, len(cache)
+
+            if len(database[(r.ent1, r.ent2)]) == 0:
+                # PMI
+                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
+                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                t1 = query.Term("sentence", entity1)
+                t2 = query.Term("sentence", r.between)  # TODO: remover stopwords do r.between
+                t3 = query.Term("sentence", entity2)
+                if (t1, t2, t3) not in cache:
+                    q1 = spans.SpanNear2([t1, t2, t3], slop=5, ordered=True)
+                    q2 = spans.SpanNear2([t1, t3], slop=5, ordered=True)
+                    entities_r = searcher.search(q1)
+                    entities = searcher.search(q2)
+                    """
+                    print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
+                    print entity1, '\t', entity2, len(entities)
+                    """
+                    if len(entities) > 0:
+                        pmi = float(len(entities_r)) / float(len(entities))
+                        # TODO: ver como calcular o threshold
+                        if pmi >= 0.5:
+                            print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
+                            g_minus_d.add(r)
+
+                    cache.add((t1, t2, t3))
+
+    return g_minus_d.difference(a)
 
 
 def process_output(data):
@@ -124,7 +190,7 @@ def process_output(data):
             patterns = line.split("pattern :")[1].strip()
 
         if line.startswith('\n'):
-            r = ExtractedFact(e2, e1, score, patterns, sentence)
+            r = ExtractedFact(e1, e2, score, patterns, sentence)
             system_output.append(r)
 
     fileinput.close()
@@ -151,44 +217,40 @@ def main():
     print len(system_output), "system output relationships loaded"
 
     # load freebase relationships as the database
-    database = freebase.collect_relationships(sys.argv[2],'Organization founded')
+    database = freebase.collect_relationships(sys.argv[2], 'Organization founded')
     print len(database.keys()), "freebase relationships loaded"
+
+    # corpus from which the system extracted relationships
+    corpus = sys.argv[3]
 
     e1_type = "ORG"
     e2_type = "PER"
 
-    print "\nCalculating proximity PMI"
+    print "\nCalculating |a| (proximity PMI)"
     a = calculate_a(system_output, e1_type, e2_type)
-    print "|a| = ", len(a)
 
+    print "Calculating |b|"
     b = calculate_b(system_output, database)
-    print "|b| = ", len(b)
 
-
-    # G' super set with correct facts and wrongly generated facts
-    #
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
-    #
-    # By applying the PMI of the facts not in the database (i.e., G' \in D) we determine |G \ D|, we
-    # can estimate |d| = |G \ D| - |a|
+    #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
+    print "Calculating |c|"
+    c, g_dash = calculate_c(corpus, database, b)
 
-    # TODO:
-    #  to gerneate |c|:
-    #
-    #  1 - generate a super set G', with valid and invalid relationships
-    #      consider only entities from the same sentence
-    #  2 - generate G \intersected D, look for rel in G' that also occur in D
-    #
-    #  to gerneate |d|:
-    #
-    #  1 - determine facts not in the database
+    # By applying the PMI of the facts not in the database (i.e., G' \in D)
+    # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
+    print "Calculating |d|"
+    d = calculate_d(g_dash, database, a, e1_type, e2_type)
 
-    """
-    print "Precision: ", float(len(a) + len(b)) / float(len(relationships))
-    print "Recall   : ", float(len(a) + len(b)) / float( len(a) + len(b) + len(c) + len(d))
-    """
+    print "|a| =", len(a)
+    print "|b| =", len(b)
+    print "|c| =", len(c)
+    print "|d| =", len(d)
 
+    print "\nPrecision: ", float(len(a) + len(b)) / float(len(system_output))
+    print "Recall   : ", float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
+    print "\n"
 
 if __name__ == "__main__":
     main()
