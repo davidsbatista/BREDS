@@ -3,8 +3,11 @@
 
 import fileinput
 import functools
+import multiprocessing
+import re
 import time
 import sys
+from whoosh.analysis import RegexTokenizer, StopFilter
 import freebase
 
 from whoosh.index import open_dir
@@ -34,8 +37,10 @@ def timecall(f):
     return wrapper
 
 
+@timecall
 def calculate_a(output, e1_type, e2_type):
-    # NOTE: this queries an index build over the whole AFT corpus
+    # NOTE: this queries an index build over the whole AFP corpus
+    # TODO: paralalizar
     """
     # sentences with tagged entities are indexed in whoosh, perform the following query
     # ent1 NEAR:X r NEAR:X ent2
@@ -75,6 +80,7 @@ def calculate_a(output, e1_type, e2_type):
     return a
 
 
+@timecall
 def calculate_b(output, database):
     # intersection between the system output and the database (i.e., freebase),
     # it is assumed that every fact in this region is correct
@@ -87,21 +93,44 @@ def calculate_b(output, database):
 
     b = set()
     for system_r in output:
-        if len(database[(system_r.e1, system_r.e2)]) > 0:
-            #print database[(system_r.ent1, system_r.ent2)]
-            for relation in database[(system_r.e1, system_r.e2)]:
-                #print "Output  :", system_r.e1, '\t', system_r.e2, system_r.patterns
-                #print "Freebase:", relation
-                # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
-                b.add(system_r)
+        """
+        Freebase has the founder-of relationship has:
+        PER 'Organization founder' ORG
+        swap the entities order, since they were extracted from the news articles in the other direction, i.e.:
+        ORG founded-by PER
+        """
+        for k in database.keys():
+            # TODO: usar string matching entre as entidades: https://www.cs.cmu.edu/~pradeepr/papers/ijcai03.pdf
+            # ver biblioteca de python jellyfish
+            if system_r.e1.decode("utf8") == k[1].decode("utf8") and system_r.e2.decode("utf8") == k[0].decode("utf8"):
+
+                print (k[1].encode("utf8"), k[0].encode("utf8"))
+                print database[(k[0].encode("utf8"), k[1].encode("utf8"))]
+                print "\n"
+
+                for relation in database[(k[0].encode("utf8"), k[1].encode("utf8"))]:
+                    print "Output  :", system_r.e1, '\t', system_r.e2, system_r.patterns
+                    print "Freebase:", relation
+                    # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
+                    print system_r
+                    b.add(system_r)
     return b
 
 
+@timecall
 def calculate_c(corpus, database, b):
     # contains the database facts described in the corpus but not extracted by the system
     #
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     # for now, all relationships from a sentence
+    print "Building G', a superset of G"
+    # TODO: paralelizar
+    """
+    # Read whole corpus file into queue
+    # have each thread generate a Sentence object from each sentence
+    with open(filename) as f:
+        data = f.readlines()
+    """
     g_dash = set()
     for line in fileinput.input(corpus):
         s = Sentence(line.strip())
@@ -110,6 +139,7 @@ def calculate_c(corpus, database, b):
     fileinput.close()
 
     # estimate G \in D, look for facts in G' that a match a fact in the database
+    print "Estimating G intersection with D"
     g_intersect_d = set()
     for r in g_dash:
         if len(database[(r.ent1, r.ent2)]) > 0:
@@ -125,6 +155,7 @@ def calculate_c(corpus, database, b):
     return c, g_dash
 
 
+@timecall
 def calculate_d(g_dash, database, a, e1_type, e2_type):
     # contains facts described in the corpus that are not in the system output nor in the database
     #
@@ -133,45 +164,100 @@ def calculate_d(g_dash, database, a, e1_type, e2_type):
     #
     # |G \ D|
     # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
-    g_minus_d = set()
-    idx = open_dir("index")
+
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    g_minus_d = manager.list()
+    num_cpus = multiprocessing.cpu_count()
+
+    print len(g_dash)
+    c = 0
+    cache = set()
+    for r in g_dash:
+        c += 1
+        if c % 25000 == 0:
+            print c, len(cache)
+        queue.put(r)
+
+    print "queue size", queue.qsize()
+
+    # calculate PMI for r not in database
+    processes = [multiprocessing.Process(target=query_thread, args=(queue, database, g_minus_d, e1_type, e2_type, )) for i in range(num_cpus)]
+    for proc in processes:
+        proc.start()
+
+    for proc in processes:
+        proc.join()
+
+    print "Relationships with high PMI", len(g_minus_d)
+    g_minus_d_set = set(g_minus_d)
+    return g_minus_d_set.difference(a)
+
+
+def query_thread(queue, database, g_minus_d, e1_type, e2_type):
+    idx = open_dir("index_test")
+    regex_tokenize = re.compile('\w+|-|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+    tokenizer = RegexTokenizer(regex_tokenize)
+    stopper = StopFilter()
+    count = 0
+
     with idx.searcher() as searcher:
-        # precorrer o g_dash, e para cada par que não está na base de dados
-        # calcular o PMI, se o PMI for alto, considerar um true fact
-        print len(g_dash)
-        c = 0
-        cache = set()
-        for r in g_dash:
-            c += 1
-            if c % 25000 == 0:
-                print c, len(cache)
+        while True:
+            r = queue.get_nowait()
+            count += 1
+            if count % 25000 == 0:
+                print multiprocessing.current_process(), count, queue.qsize()
 
             if len(database[(r.ent1, r.ent2)]) == 0:
-                # PMI
+                # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                terms = list()
+                for token in stopper(tokenizer((r.between.decode("utf8")), renumber=True)):
+                    terms.append(query.Term("sentence", token.text))
+
+                #print terms
                 t1 = query.Term("sentence", entity1)
-                t2 = query.Term("sentence", r.between)  # TODO: remover stopwords do r.between
+                #t2 = query.Term("sentence", r.between)  # TODO: remover stopwords do r.between
                 t3 = query.Term("sentence", entity2)
-                if (t1, t2, t3) not in cache:
-                    q1 = spans.SpanNear2([t1, t2, t3], slop=5, ordered=True)
-                    q2 = spans.SpanNear2([t1, t3], slop=5, ordered=True)
-                    entities_r = searcher.search(q1)
-                    entities = searcher.search(q2)
-                    """
-                    print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
-                    print entity1, '\t', entity2, len(entities)
-                    """
-                    if len(entities) > 0:
-                        pmi = float(len(entities_r)) / float(len(entities))
-                        # TODO: ver como calcular o threshold
-                        if pmi >= 0.5:
-                            print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
-                            g_minus_d.add(r)
 
-                    cache.add((t1, t2, t3))
+                query_terms = list()
+                query_terms.append(t1)
+                for t in terms:
+                    query_terms.append(t)
+                query_terms.append(t3)
 
-    return g_minus_d.difference(a)
+                q1 = spans.SpanNear2(query_terms, slop=2, ordered=True)
+                q2 = spans.SpanNear2([t1, t3], slop=8, ordered=True)
+                entities_r = searcher.search(q1)
+                entities = searcher.search(q2)
+
+                """
+                print query_terms, len(entities_r)
+                print [t1, t3], len(entities)
+                print "\n"
+                """
+
+                #print entity1, '\t', r.between, '\t', entity2, len(entities_r), len(entities)
+
+                try:
+                    assert not len(entities_r) > len(entities)
+                except AssertionError, e:
+                    print e
+                    print r.sentence
+                    print r.ent1
+                    print r.ent2
+                    print query_terms
+                    print [t1, t3]
+
+                if len(entities) > 0:
+                    pmi = float(len(entities_r)) / float(len(entities))
+                    if pmi >= 0.5:
+                        print entity1, '\t', r.between, '\t', entity2, pmi
+                        g_minus_d.append(r)
+
+                if queue.empty() is True:
+                    break
 
 
 def process_output(data):
@@ -217,6 +303,7 @@ def main():
     print len(system_output), "system output relationships loaded"
 
     # load freebase relationships as the database
+    # TODO: limpar as entidades ao carregar: vírgulas, parentesis, etc.
     database = freebase.collect_relationships(sys.argv[2], 'Organization founded')
     print len(database.keys()), "freebase relationships loaded"
 
@@ -226,12 +313,16 @@ def main():
     e1_type = "ORG"
     e2_type = "PER"
 
+    """
     print "\nCalculating |a| (proximity PMI)"
     a = calculate_a(system_output, e1_type, e2_type)
+    """
 
     print "Calculating |b|"
     b = calculate_b(system_output, database)
+    print len(b)
 
+    """
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
@@ -251,6 +342,7 @@ def main():
     print "\nPrecision: ", float(len(a) + len(b)) / float(len(system_output))
     print "Recall   : ", float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
     print "\n"
+    """
 
 if __name__ == "__main__":
     main()
