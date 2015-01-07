@@ -38,7 +38,7 @@ def timecall(f):
 
 
 @timecall
-def calculate_a(output, e1_type, e2_type):
+def calculate_a(output, e1_type, e2_type, index):
     # NOTE: this queries an index build over the whole AFP corpus
     """
     # sentences with tagged entities are indexed in whoosh, perform the following query
@@ -58,7 +58,7 @@ def calculate_a(output, e1_type, e2_type):
 
     # passar output e 'a' a thread
     print "num_cpus", num_cpus
-    processes = [multiprocessing.Process(target=query_a, args=(queue, list_a, e1_type, e2_type)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=query_a, args=(queue, list_a, e1_type, e2_type, index)) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
 
@@ -70,8 +70,8 @@ def calculate_a(output, e1_type, e2_type):
     return a_set
 
 
-def query_a(queue, list_a, e1_type, e2_type):
-    idx = open_dir("index")
+def query_a(queue, list_a, e1_type, e2_type, index):
+    idx = open_dir(index)
     while True:
         r = queue.get_nowait()
         entity1 = "<"+e1_type+">"+r.e1+"</"+e1_type+">"
@@ -90,7 +90,7 @@ def query_a(queue, list_a, e1_type, e2_type):
                 pmi = float(len(entities_r)) / float(len(entities))
                 # TODO: qual o melhor valor de threshold ?
                 if pmi >= 0.5:
-                    print entity1, '\t', r.patterns, '\t', entity2, pmi
+                    #print entity1, '\t', r.patterns, '\t', entity2, pmi
                     list_a.append(r)
 
         if queue.empty is True:
@@ -146,7 +146,7 @@ def calculate_c(corpus, database, b):
         for l in data:
             queue.put(l)
 
-    processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, )) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash)) for i in range(num_cpus)]
     print "Running", len(processes), "threads to query the index"
 
     for proc in processes:
@@ -170,6 +170,7 @@ def calculate_c(corpus, database, b):
                     g_intersect_d.add(r)
 
     # having b and g_intersect_d => |c| = g_intersect_d - b
+    # TODO: só para uma relação pode-se fazer um dump e evitar andar sempre a calcular
     # TODO: testar o difference
     c = g_intersect_d.difference(b)
     return c, g_dash_set
@@ -186,7 +187,7 @@ def process_corpus(queue, g_dash):
 
 
 @timecall
-def calculate_d(g_dash, database, a, e1_type, e2_type):
+def calculate_d(g_dash, database, a, e1_type, e2_type, index):
     # contains facts described in the corpus that are not in the system output nor in the database
     #
     # by applying the PMI of the facts not in the database (i.e., G' \in D)
@@ -212,7 +213,7 @@ def calculate_d(g_dash, database, a, e1_type, e2_type):
     print "queue size", queue.qsize()
 
     # calculate PMI for r not in database
-    processes = [multiprocessing.Process(target=query_thread, args=(queue, database, g_minus_d, e1_type, e2_type, )) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=query_thread, args=(queue, database, g_minus_d, e1_type, e2_type, index)) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
 
@@ -224,8 +225,8 @@ def calculate_d(g_dash, database, a, e1_type, e2_type):
     return g_minus_d_set.difference(a)
 
 
-def query_thread(queue, database, g_minus_d, e1_type, e2_type):
-    idx = open_dir("index")
+def query_thread(queue, database, g_minus_d, e1_type, e2_type, index):
+    idx = open_dir(index)
     regex_tokenize = re.compile('\w+|-|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
     stopper = StopFilter()
@@ -308,7 +309,7 @@ def process_output(data):
             sentence = line.split("sentence:")[1].strip()
 
         if line.startswith('pattern'):
-            patterns = line.split("pattern :")[1].strip()
+            patterns = line.split("pattern:")[1].strip()
 
         if line.startswith('\n'):
             r = ExtractedFact(e1, e2, score, patterns, sentence)
@@ -319,9 +320,13 @@ def process_output(data):
 
 
 def main():
-    # S - system output
-    # D - database (freebase)
-    # G - will be the resulting ground truth
+    # Implements the paper: "Automatic Evaluation of Relation Extraction Systems on Large-scale"
+    # https://akbcwekex2012.files.wordpress.com/2012/05/8_paper.pdf
+    #
+    # S  - system output
+    # D  - database (freebase)
+    # G  - will be the resulting ground truth
+    # G' - superset, contains true facts, and wrong facts
     #
     # a - contains correct facts from the system output
     # b - intersection between the system output and the database (i.e., freebase),
@@ -345,25 +350,32 @@ def main():
     # corpus from which the system extracted relationships
     corpus = sys.argv[3]
 
+    # index to be used to estimate proximity PMI
+    index = sys.argv[4]
+
     e1_type = "ORG"
     e2_type = "PER"
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
-    a = calculate_a(system_output, e1_type, e2_type)
+    a = calculate_a(system_output, e1_type, e2_type, index)
+    assert len(a) > 0
 
     print "\nCalculating set B: intersection between system output and database (direct string matching)"
     b = calculate_b(system_output, database)
+    assert len(b) > 0
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
     c, g_dash = calculate_c(corpus, database, b)
+    assert len(c) > 0
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
-    d = calculate_d(g_dash, database, a, e1_type, e2_type)
+    d = calculate_d(g_dash, database, a, e1_type, e2_type, index)
+    assert len(d) > 0
 
     print "|a| =", len(a)
     print "|b| =", len(b)
