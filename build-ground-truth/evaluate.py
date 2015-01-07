@@ -7,9 +7,9 @@ import multiprocessing
 import re
 import time
 import sys
-from whoosh.analysis import RegexTokenizer, StopFilter
 import freebase
 
+from whoosh.analysis import RegexTokenizer, StopFilter
 from whoosh.index import open_dir
 from whoosh.query import spans
 from whoosh import query
@@ -40,17 +40,40 @@ def timecall(f):
 @timecall
 def calculate_a(output, e1_type, e2_type):
     # NOTE: this queries an index build over the whole AFP corpus
-    # TODO: paralalizar
     """
     # sentences with tagged entities are indexed in whoosh, perform the following query
     # ent1 NEAR:X r NEAR:X ent2
     # X is the maximum number of words between the query elements.
-    #
     """
-    a = set()
-    idx = open_dir("index")
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    list_a = manager.list()
+    num_cpus = multiprocessing.cpu_count()
 
+    # construir queue com output
     for r in output:
+        queue.put(r)
+
+    print "queue size", queue.qsize()
+
+    # passar output e 'a' a thread
+    print "num_cpus", num_cpus
+    processes = [multiprocessing.Process(target=query_a, args=(queue, list_a, e1_type, e2_type)) for i in range(num_cpus)]
+    for proc in processes:
+        proc.start()
+
+    for proc in processes:
+        proc.join()
+
+    # recolher a para um set
+    a_set = set(list_a)
+    return a_set
+
+
+def query_a(queue, list_a, e1_type, e2_type):
+    idx = open_dir("index")
+    while True:
+        r = queue.get_nowait()
         entity1 = "<"+e1_type+">"+r.e1+"</"+e1_type+">"
         entity2 = "<"+e2_type+">"+r.e2+"</"+e2_type+">"
         t1 = query.Term("sentence", entity1)
@@ -62,29 +85,22 @@ def calculate_a(output, e1_type, e2_type):
         with idx.searcher() as searcher:
             entities_r = searcher.search(q1)
             entities = searcher.search(q2)
-            #TODO: fazer stemming ou normalização da palavra
-            """
-            print entity1, '\t', r.patterns, '\t', entity2, len(entities_r)
-            print entity1, '\t', entity2, len(entities)
-            print len(entities_r), len(entities)
-            print "\n"
-            """
+            # TODO: fazer stemming ou normalização da palavra a usar no query
             if len(entities) > 0:
                 pmi = float(len(entities_r)) / float(len(entities))
-                # TODO: ver como calcular o threshold
+                # TODO: qual o melhor valor de threshold ?
                 if pmi >= 0.5:
                     print entity1, '\t', r.patterns, '\t', entity2, pmi
-                    a.add(r)
+                    list_a.append(r)
 
-    idx.close()
-    return a
+        if queue.empty is True:
+            break
 
 
 @timecall
 def calculate_b(output, database):
     # intersection between the system output and the database (i.e., freebase),
     # it is assumed that every fact in this region is correct
-
     # relationships in database are in the form of
     # (e1,e2) is a tuple
     # database is a dictionary of lists
@@ -93,27 +109,21 @@ def calculate_b(output, database):
 
     b = set()
     for system_r in output:
-        """
-        Freebase has the founder-of relationship has:
-        PER 'Organization founder' ORG
-        swap the entities order, since they were extracted from the news articles in the other direction, i.e.:
-        ORG founded-by PER
-        """
         for k in database.keys():
+            """
+            Freebase represents the 'founder-of' relationship has:
+            PER 'Organization founder' ORG
+            The system extracted in a different order: ORG founded-by PER
+            Swap the entities order, in comparision
+            """
             # TODO: usar string matching entre as entidades: https://www.cs.cmu.edu/~pradeepr/papers/ijcai03.pdf
             # ver biblioteca de python jellyfish
             if system_r.e1.decode("utf8") == k[1].decode("utf8") and system_r.e2.decode("utf8") == k[0].decode("utf8"):
-
-                print (k[1].encode("utf8"), k[0].encode("utf8"))
-                print database[(k[0].encode("utf8"), k[1].encode("utf8"))]
-                print "\n"
-
-                for relation in database[(k[0].encode("utf8"), k[1].encode("utf8"))]:
-                    print "Output  :", system_r.e1, '\t', system_r.e2, system_r.patterns
-                    print "Freebase:", relation
-                    # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
-                    print system_r
+                if len(database[(k[0].encode("utf8"), k[1].encode("utf8"))]) == 1:
                     b.add(system_r)
+                else:
+                    for r in database[(k[0].encode("utf8"), k[1].encode("utf8"))]:
+                        print r
     return b
 
 
@@ -124,35 +134,55 @@ def calculate_c(corpus, database, b):
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     # for now, all relationships from a sentence
     print "Building G', a superset of G"
-    # TODO: paralelizar
-    """
-    # Read whole corpus file into queue
-    # have each thread generate a Sentence object from each sentence
-    with open(filename) as f:
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    g_dash = manager.list()
+    num_cpus = multiprocessing.cpu_count()
+
+    with open(corpus) as f:
+        print "Reading corpus into memory"
         data = f.readlines()
-    """
-    g_dash = set()
-    for line in fileinput.input(corpus):
-        s = Sentence(line.strip())
-        for r in s.relationships:
-            g_dash.add(r)
-    fileinput.close()
+        print "Storing in shared Queue"
+        for l in data:
+            queue.put(l)
+
+    processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, )) for i in range(num_cpus)]
+    print "Running", len(processes), "threads to query the index"
+
+    for proc in processes:
+        proc.start()
+    for proc in processes:
+        proc.join()
+
+    print len(g_dash), "relationships built"
+    g_dash_set = set(g_dash)
+    print len(g_dash_set), "unique relationships"
 
     # estimate G \in D, look for facts in G' that a match a fact in the database
     print "Estimating G intersection with D"
     g_intersect_d = set()
-    for r in g_dash:
+    for r in g_dash_set:
         if len(database[(r.ent1, r.ent2)]) > 0:
             for relation in database[(r.ent1, r.ent2)]:
-                # TODO: aplicar uma medida de similaridade entre entre a palvra da na frase e a relação do freebase
-                # TODO: está hard-coded para relação: founder
+                # TODO: está hard-coded para relação: founder, para outros casos, aplicar uma medida de similaridade
+                # entre, entre a palvra da na frase e a relação do freebase
                 if relation == 'Organization founded':
                     g_intersect_d.add(r)
 
     # having b and g_intersect_d => |c| = g_intersect_d - b
     # TODO: testar o difference
     c = g_intersect_d.difference(b)
-    return c, g_dash
+    return c, g_dash_set
+
+
+def process_corpus(queue, g_dash):
+    while True:
+        line = queue.get_nowait()
+        s = Sentence(line.strip())
+        for r in s.relationships:
+            g_dash.append(r)
+        if queue.empty() is True:
+            break
 
 
 @timecall
@@ -172,11 +202,11 @@ def calculate_d(g_dash, database, a, e1_type, e2_type):
 
     print len(g_dash)
     c = 0
-    cache = set()
+    print "Storing g_dash in a shared Queue"
     for r in g_dash:
         c += 1
         if c % 25000 == 0:
-            print c, len(cache)
+            print c
         queue.put(r)
 
     print "queue size", queue.qsize()
@@ -195,7 +225,7 @@ def calculate_d(g_dash, database, a, e1_type, e2_type):
 
 
 def query_thread(queue, database, g_minus_d, e1_type, e2_type):
-    idx = open_dir("index_test")
+    idx = open_dir("index")
     regex_tokenize = re.compile('\w+|-|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
     stopper = StopFilter()
@@ -218,7 +248,6 @@ def query_thread(queue, database, g_minus_d, e1_type, e2_type):
 
                 #print terms
                 t1 = query.Term("sentence", entity1)
-                #t2 = query.Term("sentence", r.between)  # TODO: remover stopwords do r.between
                 t3 = query.Term("sentence", entity2)
 
                 query_terms = list()
@@ -253,7 +282,7 @@ def query_thread(queue, database, g_minus_d, e1_type, e2_type):
                 if len(entities) > 0:
                     pmi = float(len(entities_r)) / float(len(entities))
                     if pmi >= 0.5:
-                        print entity1, '\t', r.between, '\t', entity2, pmi
+                        #print entity1, '\t', r.between, '\t', entity2, pmi
                         g_minus_d.append(r)
 
                 if queue.empty() is True:
@@ -261,7 +290,13 @@ def query_thread(queue, database, g_minus_d, e1_type, e2_type):
 
 
 def process_output(data):
-    # process the relationships extracted by the system
+    """
+    parses the file with the relationships extracted by the system
+    each relationship is transformed into a ExtracteFact class
+    :param data:
+    :return:
+    """
+
     system_output = list()
     for line in fileinput.input(data):
 
@@ -313,25 +348,21 @@ def main():
     e1_type = "ORG"
     e2_type = "PER"
 
-    """
-    print "\nCalculating |a| (proximity PMI)"
+    print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
     a = calculate_a(system_output, e1_type, e2_type)
-    """
 
-    print "Calculating |b|"
+    print "\nCalculating set B: intersection between system output and database (direct string matching)"
     b = calculate_b(system_output, database)
-    print len(b)
 
-    """
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
-    print "Calculating |c|"
+    print "\nCalculating set C: database facts in the corpus but not extracted by the system"
     c, g_dash = calculate_c(corpus, database, b)
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
-    print "Calculating |d|"
+    print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
     d = calculate_d(g_dash, database, a, e1_type, e2_type)
 
     print "|a| =", len(a)
@@ -342,9 +373,6 @@ def main():
     print "\nPrecision: ", float(len(a) + len(b)) / float(len(system_output))
     print "Recall   : ", float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
     print "\n"
-    """
 
 if __name__ == "__main__":
     main()
-
-
