@@ -13,6 +13,7 @@ class Pattern(object):
         self.negative = 0
         self.confidence = 0
         self.tuples = list()
+        self.tuple_patterns = set()
         self.centroid_bef = list()
         self.centroid_bet = list()
         self.centroid_aft = list()
@@ -55,6 +56,10 @@ class Pattern(object):
                 else:
                     self.negative += 1
         self.update_confidence()
+
+    def merge_tuple_patterns(self):
+        for t in self.tuples:
+            self.tuple_patterns.add(t.bet_words)
 
     @staticmethod
     def centroid(self):

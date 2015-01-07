@@ -132,7 +132,7 @@ class Snowball(object):
                                     print "\n"
                                 """
 
-                        # If this instance was not extracted before, associate theisextraciton pattern with the instance
+                        # if this instance was not extracted before, associate theisextraciton pattern with the instance
                         # and the similarity score
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
@@ -174,6 +174,15 @@ class Snowball(object):
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
+
+            # writer patterns that extracted this tuple
+            patterns = set()
+            for pattern in self.candidate_tuples[t]:
+                patterns.add(pattern[0])
+            for p in patterns:
+                p.merge_tuple_patterns()
+                f_output.write("pattern: " + ', '.join(p.tuple_patterns))
+
             f_output.write("\n")
         f_output.close()
 

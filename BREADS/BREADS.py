@@ -174,7 +174,7 @@ class BREADS(object):
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern : "+t.patterns_words[0]+'\n')
+            f_output.write("pattern: "+t.patterns_words[0]+'\n')
             f_output.write("\n")
         f_output.close()
 
