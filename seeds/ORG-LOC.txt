@@ -1,9 +1,0 @@
-e1:ORG
-e2:LOC
-
-Google;Mountain View
-Interpol;Lyon
-Coca-Cola;Atlanta
-CERN;Geneva
-Microsoft;Redmond
-Apple;Cupertino

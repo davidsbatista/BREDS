@@ -7,3 +7,10 @@ FIFA;Zurich
 Fort Suze;Sulaimaniyah
 BBC Scotland;Glasgow
 European Union;Brussels
+
+#Google;Mountain View
+#Interpol;Lyon
+#Coca-Cola;Atlanta
+#CERN;Geneva
+#Microsoft;Redmond
+#Apple;Cupertino
