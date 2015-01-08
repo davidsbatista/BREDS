@@ -154,6 +154,7 @@ def calculate_c(corpus, database, b):
     for proc in processes:
         proc.join()
 
+    # TODO: isto dá igual, verificar
     print len(g_dash), "relationships built"
     g_dash_set = set(g_dash)
     print len(g_dash_set), "unique relationships"
@@ -164,8 +165,8 @@ def calculate_c(corpus, database, b):
     for r in g_dash_set:
         if len(database[(r.ent1, r.ent2)]) > 0:
             for relation in database[(r.ent1, r.ent2)]:
-                # TODO: está hard-coded para relação: founder, para outros casos, aplicar uma medida de similaridade
-                # entre, entre a palvra da na frase e a relação do freebase
+                # TODO: está hard-coded para relação: founder, para caso geral, aplicar uma medida de similaridade
+                # entre a palvra da na frase e a relação do freebase
                 if relation == 'Organization founded':
                     g_intersect_d.add(r)
 
@@ -343,7 +344,6 @@ def main():
     print len(system_output), "system output relationships loaded"
 
     # load freebase relationships as the database
-    # TODO: limpar as entidades ao carregar: vírgulas, parentesis, etc.
     database = freebase.collect_relationships(sys.argv[2], 'Organization founded')
     print len(database.keys()), "freebase relationships loaded"
 

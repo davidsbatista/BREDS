@@ -63,7 +63,7 @@ def index_sentences(writer):
 
 def main():
     idx = create_index()
-    writer = idx.writer(limitmb=2048, procs=4, multisegment=True)
+    writer = idx.writer(limitmb=2048, procs=5, multisegment=True)
     index_sentences(writer)
     idx.close()
 

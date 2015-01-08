@@ -5,7 +5,6 @@ import functools
 import time
 
 from whoosh.index import open_dir
-from whoosh.qparser import QueryParser
 from whoosh.query import spans
 from whoosh import query
 
