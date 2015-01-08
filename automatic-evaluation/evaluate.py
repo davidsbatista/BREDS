@@ -118,6 +118,7 @@ def calculate_b(output, database):
             """
             # TODO: usar string matching entre as entidades: https://www.cs.cmu.edu/~pradeepr/papers/ijcai03.pdf
             # ver biblioteca de python jellyfish
+            # TODO: usar a expansão de acrónimos, usar apenas acrónimos da lista não âmbiguos
             if system_r.e1.decode("utf8") == k[1].decode("utf8") and system_r.e2.decode("utf8") == k[0].decode("utf8"):
                 if len(database[(k[0].encode("utf8"), k[1].encode("utf8"))]) == 1:
                     b.add(system_r)
@@ -147,14 +148,14 @@ def calculate_c(corpus, database, b):
             queue.put(l)
 
     processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash)) for i in range(num_cpus)]
-    print "Running", len(processes), "threads to query the index"
+    print "Running", len(processes), "threads"
 
     for proc in processes:
         proc.start()
     for proc in processes:
         proc.join()
 
-    # TODO: isto dá igual, verificar
+    # TODO: isto dá igual: implementar o __eq__ numa relationships
     print len(g_dash), "relationships built"
     g_dash_set = set(g_dash)
     print len(g_dash_set), "unique relationships"
@@ -382,8 +383,12 @@ def main():
     print "|c| =", len(c)
     print "|d| =", len(d)
 
-    print "\nPrecision: ", float(len(a) + len(b)) / float(len(system_output))
-    print "Recall   : ", float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
+    precision = float(len(a) + len(b)) / float(len(system_output))
+    recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
+    f1 = 2*(precision*recall)/(precision+recall)
+    print "\nPrecision: ", precision
+    print "Recall   : ", recall
+    print "F1   : ", f1
     print "\n"
 
 if __name__ == "__main__":

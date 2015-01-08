@@ -5,6 +5,7 @@ regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
 
 class Relationship:
+
     def __init__(self, _sentence, _before=None, _between=None, _after=None, _ent1=None, _ent2=None, _arg1type=None,
                  _arg2type=None, _type=None, _id=None):
 
@@ -44,6 +45,13 @@ class Relationship:
                 arg2match = re.match("<[A-Z]+>", self.ent2)
                 self.arg1type = arg1match.group()[1:-1]
                 self.arg2type = arg2match.group()[1:-1]
+
+    def __eq__(self, other):
+        if self.ent1 == other.ent1 and self.before == other.before and self.between == other.between \
+                and self.after == other.after:
+            return True
+        else:
+            return False
 
 
 class Sentence:
