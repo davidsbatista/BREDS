@@ -27,7 +27,7 @@ def timecall(f):
 
 @timecall
 def create_index():
-    regex_tokenize = re.compile('\w+|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+    regex_tokenize = re.compile('\w+(?:-\w+)+|<[A-Z]+>[^<]+</[A-Z]+>|\w+', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
     schema = Schema(sentence=TEXT(stored=True, analyzer=tokenizer))
     if not os.path.exists("index_full"):
