@@ -17,7 +17,6 @@ from Sentence import Sentence
 
 
 class ExtractedFact(object):
-
     def __init__(self, _e1, _e2, _score, _patterns, _sentence):
         self.e1 = _e1
         self.e2 = _e2
@@ -47,8 +46,8 @@ def calculate_a(output, e1_type, e2_type, index):
     """
     manager = multiprocessing.Manager()
     queue = manager.Queue()
-    list_a = manager.list()
     num_cpus = multiprocessing.cpu_count()
+    list_a = manager.list()
 
     # construir queue com output
     for r in output:
@@ -85,12 +84,17 @@ def query_a(queue, list_a, e1_type, e2_type, index):
         with idx.searcher() as searcher:
             entities_r = searcher.search(q1)
             entities = searcher.search(q2)
+
+            # ignore low occurrence even if PMI is 1
+            if len(entities_r) == 1:
+                    continue
+
             # TODO: fazer stemming ou normalização da palavra a usar no query
             if len(entities) > 0:
                 pmi = float(len(entities_r)) / float(len(entities))
                 # TODO: qual o melhor valor de threshold ?
                 if pmi >= 0.5:
-                    #print entity1, '\t', r.patterns, '\t', entity2, pmi
+                    print entity1, '\t', r.patterns, '\t', entity2, pmi
                     list_a.append(r)
 
         if queue.empty is True:
@@ -147,7 +151,9 @@ def calculate_c(corpus, database, b):
         for l in data:
             queue.put(l)
 
-    processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash)) for i in range(num_cpus)]
+    print "Queue size:", queue.qsize()
+
+    processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash)) for _ in range(num_cpus)]
     print "Running", len(processes), "threads"
 
     for proc in processes:
@@ -155,10 +161,10 @@ def calculate_c(corpus, database, b):
     for proc in processes:
         proc.join()
 
-    # TODO: isto dá igual: implementar o __eq__ numa relationships
     print len(g_dash), "relationships built"
     g_dash_set = set(g_dash)
     print len(g_dash_set), "unique relationships"
+    # TODO: fazer dump para um ficheiro do superset G'
 
     # estimate G \in D, look for facts in G' that a match a fact in the database
     print "Estimating G intersection with D"
@@ -167,7 +173,7 @@ def calculate_c(corpus, database, b):
         if len(database[(r.ent1, r.ent2)]) > 0:
             for relation in database[(r.ent1, r.ent2)]:
                 # TODO: está hard-coded para relação: founder, para caso geral, aplicar uma medida de similaridade
-                # entre a palvra da na frase e a relação do freebase
+                # entre a palavra da na frase e a relação do freebase
                 if relation == 'Organization founded':
                     g_intersect_d.add(r)
 
@@ -200,9 +206,8 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index):
 
     manager = multiprocessing.Manager()
     queue = manager.Queue()
-    g_minus_d = manager.list()
     num_cpus = multiprocessing.cpu_count()
-
+    results = [manager.list() for _ in range(num_cpus)]
     print len(g_dash)
     c = 0
     print "Storing g_dash in a shared Queue"
@@ -215,30 +220,37 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index):
     print "queue size", queue.qsize()
 
     # calculate PMI for r not in database
-    processes = [multiprocessing.Process(target=query_thread, args=(queue, database, g_minus_d, e1_type, e2_type, index)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=query_thread, args=(queue, database, results[i], e1_type, e2_type, index)) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
 
     for proc in processes:
         proc.join()
 
+    g_minus_d = set()
+    for l in results:
+        g_minus_d.update(l)
+
     print "Relationships with high PMI", len(g_minus_d)
-    g_minus_d_set = set(g_minus_d)
-    return g_minus_d_set.difference(a)
+    print "|G\D|-|a|", len(g_minus_d.difference(a))
+    return g_minus_d.difference(a)
 
 
 def query_thread(queue, database, g_minus_d, e1_type, e2_type, index):
     idx = open_dir(index)
-    regex_tokenize = re.compile('\w+|-|<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+    regex_tokenize = re.compile('\w+(?:-\w+)+|<[A-Z]+>[^<]+</[A-Z]+>|\w+', re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
     stopper = StopFilter()
     count = 0
 
     with idx.searcher() as searcher:
+
+        searcher
+
         while True:
             r = queue.get_nowait()
             count += 1
-            if count % 25000 == 0:
+            if count % 1000 == 0:
                 print multiprocessing.current_process(), count, queue.qsize()
 
             if len(database[(r.ent1, r.ent2)]) == 0:
@@ -264,13 +276,8 @@ def query_thread(queue, database, g_minus_d, e1_type, e2_type, index):
                 entities_r = searcher.search(q1)
                 entities = searcher.search(q2)
 
-                """
-                print query_terms, len(entities_r)
-                print [t1, t3], len(entities)
-                print "\n"
-                """
-
-                #print entity1, '\t', r.between, '\t', entity2, len(entities_r), len(entities)
+                if len(entities_r) == 1:
+                    continue
 
                 try:
                     assert not len(entities_r) > len(entities)
@@ -279,8 +286,11 @@ def query_thread(queue, database, g_minus_d, e1_type, e2_type, index):
                     print r.sentence
                     print r.ent1
                     print r.ent2
-                    print query_terms
-                    print [t1, t3]
+                    print query_terms, len(entities_r)
+                    print [t1, t3], len(entities)
+                    print q1
+                    print q2
+                    print "\n"
 
                 if len(entities) > 0:
                     pmi = float(len(entities_r)) / float(len(entities))
@@ -320,6 +330,41 @@ def process_output(data):
     fileinput.close()
     return system_output
 
+
+def proximity_pmi(entity1, entity2, rel, index, distance, q_limit):
+    idx = open_dir(index)
+    with idx.searcher() as searcher:
+        t1 = query.Term('sentence', entity1)
+        t2 = query.Term('sentence', rel)
+        t3 = query.Term('sentence', entity2)
+
+        # Entities proximity query
+        q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
+
+        # Entities proximity query considering relational words
+        q2 = spans.SpanNear2([t1, t2], slop=distance-1, ordered=True, mindist=1)
+        q3 = spans.SpanNear2([t2, t3], slop=distance-1, ordered=True, mindist=1)
+
+        hits_1 = searcher.search(q1, limit=q_limit)
+        hits_2 = searcher.search(q2, limit=q_limit)
+        hits_3 = searcher.search(q3, limit=q_limit)
+
+        n_1 = set()
+        n_2 = set()
+        n_3 = set()
+
+        for d in hits_1:
+            n_1.add(d.get("sentence"))
+
+        for d in hits_2:
+            n_2.add(d.get("sentence"))
+
+        for d in hits_3:
+            n_3.add(d.get("sentence"))
+
+        entities_occurr = len(hits_1)
+        entities_occurr_with_r = len(n_1.intersection(n_2).intersection(n_3))
+        return float(entities_occurr_with_r) / float(entities_occurr)
 
 def main():
     # Implements the paper: "Automatic Evaluation of Relation Extraction Systems on Large-scale"
@@ -369,13 +414,13 @@ def main():
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
-    c, g_dash = calculate_c(corpus, database, b)
+    c, superset = calculate_c(corpus, database, b)
     assert len(c) > 0
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
-    d = calculate_d(g_dash, database, a, e1_type, e2_type, index)
+    d = calculate_d(superset, database, a, e1_type, e2_type, index)
     assert len(d) > 0
 
     print "|a| =", len(a)

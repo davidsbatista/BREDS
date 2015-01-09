@@ -42,17 +42,12 @@ def index_sentences(writer):
     count = 0
     f = codecs.open(sys.argv[1], "r", "utf-8")
     for l in f:
-        s = Sentence(l.strip())
-        for r in s.relationships:
-            if r.between == " ) , " or r.between == " ( ":
-                continue
-            try:
-                writer.add_document(sentence=r.sentence)
-            except UnicodeDecodeError, e:
-                print e
-                print r.ent1, '\t', r.ent2
-                print r.sentence
-                sys.exit(0)
+        try:
+            writer.add_document(sentence=l.strip())
+        except UnicodeDecodeError, e:
+            print e
+            print l
+            sys.exit(0)
 
         count += 1
         if count % 50000 == 0:

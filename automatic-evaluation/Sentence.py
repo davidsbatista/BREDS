@@ -53,6 +53,9 @@ class Relationship:
         else:
             return False
 
+    def __hash__(self):
+        return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
+
 
 class Sentence:
 
