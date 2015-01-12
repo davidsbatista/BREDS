@@ -55,7 +55,7 @@ class BREADS(object):
             f_sentences.close()
 
             print len(self.processed_tuples), "tuples generated"
-
+            print "Writing generated tuples to disk"
             f = open("processed_tuples.pkl", "wb")
             cPickle.dump(self.processed_tuples, f)
             f.close()
@@ -218,8 +218,7 @@ class BREADS(object):
                             max_similarity = score
                             max_similarity_cluster_index = i
                     except Exception, e:
-                        # TODO: t e extraction_pattern nao podem ser vazios
-                        # ver pq isto estah a acontecer
+                        print "Error! Tuple and Extraction pattern are empty!"
                         print e
                         print "tuple"
                         print t.sentence
