@@ -20,9 +20,6 @@ def collect_relationships(data, r_filter):
     rel_to_consider = ['Governance of', 'Leader of', 'Organization founded', 'Organization acquired',
                        'Employment history', 'Venture Investment', 'Peer', 'Place founded', 'Sibling', 'Spouse']
 
-    # wc -l facts
-    # 241 897 882
-
     relationships = defaultdict(list)
 
     try:
@@ -38,8 +35,8 @@ def collect_relationships(data, r_filter):
         count = 0
         numbered = re.compile('#[0-9]+$')
         for line in fileinput.input(data):
-            if count % 50000 == 0:
-                print count, "of 24 189 7882\tRelationships: ", len(relationships)
+            if count % 5000 == 0:
+                print count, len(relationships)
             e1, r, e2, point = line.split('\t')
             if r in rel_to_consider:
                 # ignore some entities, which are Freebase identifiers or which are ambigious
