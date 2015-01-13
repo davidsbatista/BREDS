@@ -574,7 +574,7 @@ def main():
             not_found.append(r)
 
     for r in sorted(not_found):
-        print r
+        print r.ent1, '\t', r.patterns,'\t', r.ent2
 
     print "not found", len(not_found)
     sys.exit(0)
