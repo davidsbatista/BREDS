@@ -20,7 +20,7 @@ from Sentence import Relationship
 from collections import defaultdict
 
 # relational words to be used in calculating the set D with the proximity PMI
-founder = ['founder', 'co-founder', 'was started by']
+founder = ['founder', 'co-founder', 'cofounder', 'founded by', 'started by']
 acquired = ['bought', 'shares', 'holds', 'buys']
 headquarters = ['headquarters', 'compund', '']
 contained_by = ['capital', 'north', 'located']
@@ -100,30 +100,22 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
 
     b = list()
     not_found = list()
-
     # direct string matching
+    print "Trying direct string matching"
     for system_r in output:
-        found = False
-        for k in database_1.keys():
-            """
-            # TODO: its hard-coded for 'Organization founder'
-            Freebase represents the 'founder-of' relationship has:
-            PER 'Organization founder' ORG
-            The system extracted in a different order: ORG founded-by PER
-            Swap the entities order, in comparision
-            """
-            if system_r.ent1.decode("utf8") == k[1].decode("utf8") and system_r.ent2.decode("utf8") == k[0].decode("utf8"):
-                if len(database_1[(k[0].encode("utf8"), k[1].encode("utf8"))]) == 1:
-                    b.append(system_r)
-                    found = True
-                else:
-                    # TODO: this should not happend
-                    for r in database_1[(k[0].encode("utf8"), k[1].encode("utf8"))]:
-                        print r
-
-        if found is False:
+        """
+        # TODO: its hard-coded for 'Organization founder'
+        Freebase represents the 'founder-of' relationship has:
+        PER 'Organization founder' ORG
+        The system extracted in a different order: ORG founded-by PER
+        Swap the entities order, in comparision
+        """
+        if len(database_1[(system_r.ent2.decode("utf8"), system_r.ent1.decode("utf8"))]) > 0:
+            b.append(system_r)
+        else:
             not_found.append(system_r)
 
+    print "\nExpanding acronyms"
     # for the ones not found, check if the entities are acronyms and expand them
     # using the dictionary of acronyms from Wikipedia
     tmp_not_found = copy.copy(not_found)
@@ -146,10 +138,12 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                 for e in expansions:
                     try:
                         if system_r.ent2 in database_2[e]:
-                            not_found.remove(system_r)
                             b.append(system_r)
-                    except KeyError:
-                        pass
+                            not_found.remove(system_r)
+                    except ValueError, x:
+                        print "ERRO!", x
+                        print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
+                        sys.exit(0)
 
         # if e2 is acronym
         if is_acronym(system_r.ent2) and not is_acronym(system_r.ent1):
@@ -158,19 +152,19 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                 for e in expansions:
                     try:
                         if system_r.ent1 in database_3[e]:
-                            not_found.remove(system_r)
                             b.append(system_r)
-                    except KeyError:
-                        pass
+                            not_found.remove(system_r)
+                    except ValueError, x:
+                        print "ERRO!", x
+                        print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
+                        sys.exit(0)
 
-    # TODO: string approximation matching
-    # TODO: usar string matching entre as entidades: https://www.cs.cmu.edu/~pradeepr/papers/ijcai03.pdf
     # approximate string similarity
     # store in a dictionary per relationship: dict['ent1'] = 'ent2'
     # database_2 = dict()
     # store in a dictionary per relationship: dict['ent2'] = 'ent1'
     # database_3 = dict()
-
+    print "Using string approximation similarity"
     tmp_not_found = copy.copy(not_found)
     for system_r in tmp_not_found:
         for k in database_2.keys():
@@ -183,8 +177,8 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                         #print k, system_r.ent2, '\t', score
                         #print e1, system_r.ent1, '\t', score
                         try:
-                            not_found.remove(system_r)
                             b.append(system_r)
+                            not_found.remove(system_r)
                         except ValueError, x:
                             print "ERRO!", x
                             print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
@@ -266,13 +260,6 @@ def calculate_c(corpus, database_1, b, e1_type, e2_type, rel_type):
                 if len(database_1[(r.ent2.decode("utf8"), r.ent1.decode("utf8"))]) > 0:
                     g_intersect_d.add(r)
                     #print r.ent1, '\t', r.ent2
-            """
-            for k in database_1.keys():
-                if r.ent1.decode("utf8") == k[1].decode("utf8") and r.ent2.decode("utf8") == k[0].decode("utf8"):
-                    if len(database_1[(k[0].encode("utf8"), k[1].encode("utf8"))]) == 1:
-                        g_intersect_d.add(r)
-                        print r.ent1, '\t', r.ent2
-            """
 
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
