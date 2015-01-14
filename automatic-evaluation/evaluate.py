@@ -395,18 +395,20 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
                 for s in hits:
                     sentence = s.get("sentence")
                     s = Sentence(sentence, e1_type, e2_type)
-                    for r in s.relationships:
-                        if r.ent1 == entity1.decode("utf8") and r.ent2 == entity2.decode("utf8"):
-                            print sentence
+                    for s_r in s.relationships:
+                        if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
                             for rel in rel_words:
                                 if rel in r.between:
                                     hits_with_r += 1
+                                    break
 
-                if not len(hits) >= hits_with_r:
-                    print "hits", len(hits)
-                    print "hits_with_r", hits_with_r
-                    print entity1, '\t', entity2
-                    sys.exit(0)
+                    if not len(hits) >= hits_with_r:
+                        print "ERROR!"
+                        print "hits", len(hits)
+                        print "hits_with_r", hits_with_r
+                        print entity1, '\t', entity2
+                        print "\n"
+                        sys.exit(0)
 
                 if float(len(hits)) > 0:
                     pmi = float(hits_with_r) / float(len(hits))
@@ -550,7 +552,6 @@ def process_output(data):
 def process_freebase(data):
 
     # store a tuple (entity1, entity2) in a dictionary
-    # TODO: maybe this can be a set, do I need the relationship word?
     database_1 = defaultdict(list)
 
     # store in a dictionary per relationship: dict['ent1'] = 'ent2'
