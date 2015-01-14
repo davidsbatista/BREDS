@@ -48,8 +48,8 @@ def calculate_pmi(e1, e2, r):
 
 @timecall
 def main():
-    pmi = calculate_pmi('<ORG>Microsoft</ORG>', '<LOC>Seattle</LOC>', "headquarters")
-    print pmi
+    #pmi = calculate_pmi('<ORG>Microsoft</ORG>', '<LOC>Seattle</LOC>', "headquarters")
+    #print pmi
 
     # To find documents where “<ORG>Microsoft</ORG>” occurs at most X positions before “headquarters”:
     # q1t1 = query.Term("sentence", "<ORG>Microsoft</ORG>")
