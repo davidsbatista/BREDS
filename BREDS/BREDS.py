@@ -35,6 +35,7 @@ class BREADS(object):
         Generate tuples instances from a text file with sentences
         where named entities are already tagged
         """
+
         try:
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
@@ -42,10 +43,15 @@ class BREADS(object):
             self.processed_tuples = cPickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
+
         except IOError:
             print "\nGenerating relationship instances from sentences..."
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
+            count = 0
             for line in f_sentences:
+                count += 1
+                if count % 10000 == 0:
+                    sys.stdout.write(".")
                 sentence = Sentence(line.strip())
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
@@ -54,7 +60,7 @@ class BREADS(object):
                             self.processed_tuples.append(t)
             f_sentences.close()
 
-            print len(self.processed_tuples), "tuples generated"
+            print "\n", len(self.processed_tuples), "tuples generated"
             print "Writing generated tuples to disk"
             f = open("processed_tuples.pkl", "wb")
             cPickle.dump(self.processed_tuples, f)

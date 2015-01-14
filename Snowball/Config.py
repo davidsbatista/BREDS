@@ -72,6 +72,7 @@ class Config(object):
         except IOError:
             print "\nGenerating tf-idf model from sentences..."
             self.vsm = VectorSpaceModel(sentences_file, self.stopwords)
+            print "\nWriting generated model to disk..."
             f = open("vsm.pkl", "wb")
             cPickle.dump(self.vsm, f)
             f.close()
@@ -94,7 +95,6 @@ class Config(object):
         print "context window:", self.context_window_size
         print "max tokens away:", self.max_tokens_away
         print "min tokens away:", self.min_tokens_away
-
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):
