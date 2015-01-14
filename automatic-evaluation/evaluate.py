@@ -101,7 +101,7 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
     b = list()
     not_found = list()
     # direct string matching
-    print "Trying direct string matching"
+    print "\nTrying direct string matching..."
     for system_r in output:
         """
         # TODO: its hard-coded for 'Organization founder'
@@ -115,7 +115,7 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
         else:
             not_found.append(system_r)
 
-    print "\nExpanding acronyms"
+    print "Expanding acronyms and direct string matching"
     # for the ones not found, check if the entities are acronyms and expand them
     # using the dictionary of acronyms from Wikipedia
     tmp_not_found = copy.copy(not_found)
@@ -141,7 +141,7 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                             b.append(system_r)
                             not_found.remove(system_r)
                     except ValueError, x:
-                        print "ERRO!", x
+                        print "ERRO1!", x
                         print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
                         sys.exit(0)
 
@@ -155,15 +155,12 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                             b.append(system_r)
                             not_found.remove(system_r)
                     except ValueError, x:
-                        print "ERRO!", x
+                        print "ERRO2!", x
                         print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
+
                         sys.exit(0)
 
     # approximate string similarity
-    # store in a dictionary per relationship: dict['ent1'] = 'ent2'
-    # database_2 = dict()
-    # store in a dictionary per relationship: dict['ent2'] = 'ent1'
-    # database_3 = dict()
     print "Using string approximation similarity"
     tmp_not_found = copy.copy(not_found)
     for system_r in tmp_not_found:
@@ -180,8 +177,13 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
                             b.append(system_r)
                             not_found.remove(system_r)
                         except ValueError, x:
-                            print "ERRO!", x
+                            print "ERRO3!", x
                             print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
+                            """
+                            for r in not_found:
+                                print r.ent1, '\t', r.patterns, '\t', r.ent2
+                            """
+                            print len(not_found)
                             sys.exit(0)
 
     return b, not_found
