@@ -317,7 +317,7 @@ def main():
         breads.start(tuples=sentences_file)
     else:
         breads.generate_tuples(sentences_file)
-        breads.start()
+        breads.start(tuples=None)
 
 
 if __name__ == "__main__":

@@ -295,7 +295,7 @@ def main():
         snowball.start(tuples=sentences_file)
     else:
         snowball.generate_tuples(sentences_file)
-        snowball.start()
+        snowball.start(tuples=None)
 
 
 
