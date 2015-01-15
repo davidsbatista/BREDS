@@ -61,10 +61,16 @@ class Snowball(object):
             cPickle.dump(self.processed_tuples, f)
             f.close()
 
-    def start(self):
+    def start(self, tuples):
         """
         starts a bootstrap iteration
         """
+        if tuples is not None:
+            f = open(tuples, "r")
+            print "\nLoading processed tuples from disk..."
+            self.processed_tuples = cPickle.load(f)
+            f.close()
+            print len(self.processed_tuples), "tuples loaded"
         i = 0
         while i <= self.config.number_iterations:
             print "\n============================================="
@@ -284,8 +290,14 @@ def main():
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
     snowball = Snowball(configuration, seeds_file, sentences_file)
-    snowball.generate_tuples(sentences_file)
-    snowball.start()
+    if sentences_file.endswith('.pkl'):
+        print "Loading pre-processed sentences", sentences_file
+        snowball.start(tuples=sentences_file)
+    else:
+        snowball.generate_tuples(sentences_file)
+        snowball.start()
+
+
 
 if __name__ == "__main__":
     main()

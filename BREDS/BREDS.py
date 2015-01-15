@@ -35,7 +35,6 @@ class BREADS(object):
         Generate tuples instances from a text file with sentences
         where named entities are already tagged
         """
-
         try:
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
@@ -66,10 +65,16 @@ class BREADS(object):
             cPickle.dump(self.processed_tuples, f)
             f.close()
 
-    def start(self):
+    def start(self, tuples):
         """
         starts a bootstrap iteration
         """
+        if tuples is not None:
+            f = open(tuples, "r")
+            print "\nLoading processed tuples from disk..."
+            self.processed_tuples = cPickle.load(f)
+            f.close()
+            print len(self.processed_tuples), "tuples loaded"
         i = 0
         while i <= self.config.number_iterations:
             print "\nStarting iteration", i
@@ -304,11 +309,16 @@ def similarity_all(t, extraction_pattern, config):
 
 def main():
     configuration = sys.argv[1]
-    senteces_file = sys.argv[2]
+    sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
     breads = BREADS(configuration, seeds_file)
-    breads.generate_tuples(senteces_file)
-    breads.start()
+    if sentences_file.endswith('.pkl'):
+        print "Loading pre-processed sentences", sentences_file
+        breads.start(tuples=sentences_file)
+    else:
+        breads.generate_tuples(sentences_file)
+        breads.start()
+
 
 if __name__ == "__main__":
     main()
