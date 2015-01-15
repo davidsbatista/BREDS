@@ -4,7 +4,6 @@
 import fileinput
 import functools
 import multiprocessing
-import copy
 import re
 import time
 import sys
@@ -24,6 +23,12 @@ founder = ['founder', 'co-founder', 'cofounder', 'founded by', 'started by']
 acquired = ['bought', 'shares', 'holds', 'buys']
 headquarters = ['headquarters', 'compund', '']
 contained_by = ['capital', 'north', 'located']
+
+# PMI value for proximity
+PMI = 0.7
+
+# DEBUG stuff
+PRINT_NOT_FOUND = False
 
 
 class ExtractedFact(object):
@@ -88,6 +93,77 @@ def is_acronym(entity):
         return False
 
 
+def string_matching_parallel(acronyms, matches, no_matches, database_1, database_2, database_3, queue):
+    count = 0
+    while True:
+        r = queue.get_nowait()
+        found = False
+        count += 1
+        if count % 100 == 0:
+            print "Queue size", str(queue.qsize())
+        # TODO: generalizar isto para todos os tipos de relações
+        """
+        Freebase represents the 'founder-of' relationship has:
+        PER 'Organization founder' ORG
+        The system extracted in a different order: ORG founded-by PER
+        Swap the entities order, in comparision
+        """
+        if len(database_1[(r.ent2.decode("utf8"), r.ent1.decode("utf8"))]) > 0:
+            matches.append(r)
+            found = True
+
+        # if e1 and e2 are both acronyms
+        if is_acronym(r.ent1) and is_acronym(r.ent2):
+            expansions_e1 = acronyms.get(r.ent1)
+            expansions_e2 = acronyms.get(r.ent2)
+            for i in itertools.product(expansions_e1, expansions_e2):
+                e1 = i[0]
+                e2 = i[1]
+                if e2 in database_2[e1]:
+                    matches.append(r)
+                    found = True
+
+        if found is False:
+            # if e1 is acronym
+            if is_acronym(r.ent1) and not is_acronym(r.ent2):
+                expansions = acronyms.get(r.ent1)
+                if expansions is not None:
+                    for e in expansions:
+                        if r.ent2 in database_2[e]:
+                            matches.append(r)
+                            found = True
+
+        if found is False:
+            # if e2 is acronym
+            if is_acronym(r.ent2) and not is_acronym(r.ent1):
+                expansions = acronyms.get(r.ent2)
+                if expansions is not None:
+                    for e in expansions:
+                        if r.ent1 in database_3[e]:
+                            matches.append(r)
+
+        if found is False:
+            # approximate string similarity
+            # as keys na database_2 para 'founder' são os nomes
+            for k in database_2.keys():
+                score = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
+                if score >= 0.9:
+                    for e1 in database_2[k]:
+                        score = jellyfish.jaro_winkler(e1.upper(), r.ent1.upper())
+                        if score >= 0.9:
+                            matches.append(r)
+                            found = True
+                            break
+                    if found is True:
+                        break
+
+        if found is False:
+            no_matches.append(r)
+
+        if queue.empty() is True:
+            break
+
+
 @timecall
 def calculate_b(output, database_1, database_2, database_3, acronyms):
     # intersection between the system output and the database (i.e., freebase),
@@ -98,99 +174,41 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
     # each key is a tuple (e1,e2), and each value is a list containing the relationships
     # between the e1 and e2 entities
 
-    b = list()
-    not_found = list()
-    # direct string matching
-    print "\nTrying direct string matching..."
-    for system_r in output:
-        """
-        # TODO: its hard-coded for 'Organization founder'
-        Freebase represents the 'founder-of' relationship has:
-        PER 'Organization founder' ORG
-        The system extracted in a different order: ORG founded-by PER
-        Swap the entities order, in comparision
-        """
-        if len(database_1[(system_r.ent2.decode("utf8"), system_r.ent1.decode("utf8"))]) > 0:
-            b.append(system_r)
-        else:
-            not_found.append(system_r)
+    manager = multiprocessing.Manager()
+    queue = manager.Queue()
+    num_cpus = multiprocessing.cpu_count()
+    results = [manager.list() for _ in range(num_cpus)]
+    no_matches = [manager.list() for _ in range(num_cpus)]
 
-    print "Expanding acronyms and direct string matching"
-    # for the ones not found, check if the entities are acronyms and expand them
-    # using the dictionary of acronyms from Wikipedia
-    tmp_not_found = copy.copy(not_found)
-    for system_r in tmp_not_found:
-        # if e1 and e2 are both acronyms
-        if is_acronym(system_r.ent1) and is_acronym(system_r.ent2):
-            expansions_e1 = acronyms.get(system_r.ent1)
-            expansions_e2 = acronyms.get(system_r.ent2)
-            for i in itertools.product(expansions_e1, expansions_e2):
-                e1 = i[0]
-                e2 = i[1]
-                if e2 in database_2[e1]:
-                    not_found.remove(system_r)
-                    b.append(system_r)
+    # passar tudo para a queue
+    for r in output:
+        #print r.ent1, '\t', r.ent2
+        #print type(r)
+        queue.put(r)
 
-        # if e1 is acronym
-        if is_acronym(system_r.ent1) and not is_acronym(system_r.ent2):
-            expansions = acronyms.get(system_r.ent1)
-            if expansions is not None:
-                for e in expansions:
-                    try:
-                        if system_r.ent2 in database_2[e]:
-                            b.append(system_r)
-                            not_found.remove(system_r)
-                    except ValueError, x:
-                        print "ERRO1!", x
-                        print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
-                        sys.exit(0)
+    #string_matching(acronyms, b, database_2, database_3, not_found)
+    #string_matching_parallel(acronyms, matches, no_matches, database_2, database_3, queue):
+    processes = [multiprocessing.Process(target=string_matching_parallel, args=(acronyms, results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
 
-        # if e2 is acronym
-        if is_acronym(system_r.ent2) and not is_acronym(system_r.ent1):
-            expansions = acronyms.get(system_r.ent2)
-            if expansions is not None:
-                for e in expansions:
-                    try:
-                        if system_r.ent1 in database_3[e]:
-                            b.append(system_r)
-                            not_found.remove(system_r)
-                    except ValueError, x:
-                        print "ERRO2!", x
-                        print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
+    for proc in processes:
+        proc.start()
 
-                        sys.exit(0)
+    for proc in processes:
+        proc.join()
 
-    # approximate string similarity
-    print "Using string approximation similarity"
-    tmp_not_found = copy.copy(not_found)
-    for system_r in tmp_not_found:
-        for k in database_2.keys():
-            score = jellyfish.jaro_winkler(k.upper(), system_r.ent2.upper())
-            if score >= 0.9:
-                for e1 in database_2[k]:
-                    #score = jellyfish.jaro_winkler(e1.upper(), system_r.ent1.upper())
-                    score = jellyfish.jaro_winkler(e1, system_r.ent1)
-                    if score >= 0.9:
-                        #print k, system_r.ent2, '\t', score
-                        #print e1, system_r.ent1, '\t', score
-                        try:
-                            b.append(system_r)
-                            not_found.remove(system_r)
-                        except ValueError, x:
-                            print "ERRO3!", x
-                            print system_r.ent1, '\t', system_r.patterns, '\t', system_r.ent2
-                            """
-                            for r in not_found:
-                                print r.ent1, '\t', r.patterns, '\t', r.ent2
-                            """
-                            print len(not_found)
-                            sys.exit(0)
+    b = set()
+    for l in results:
+        b.update(l)
+
+    not_found = set()
+    for l in no_matches:
+        not_found.update(l)
 
     return b, not_found
 
 
 @timecall
-def calculate_c(corpus, database_1, b, e1_type, e2_type, rel_type):
+def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type, e2_type, rel_type):
     # contains the database facts described in the corpus but not extracted by the system
     #
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
@@ -250,18 +268,25 @@ def calculate_c(corpus, database_1, b, e1_type, e2_type, rel_type):
         g_intersect_d = set()
         print "G':", len(g_dash_set)
         print "Freebase:", len(database_1.keys())
+
+        queue = manager.Queue()
+        results = [manager.list() for _ in range(num_cpus)]
+        no_matches = [manager.list() for _ in range(num_cpus)]
+
+        # passar tudo para a queue
         for r in g_dash_set:
-            """
-            Freebase represents the 'founder-of' relationship has:
-            PER 'Organization founder' ORG
-            The system extracted in a different order: ORG founded-by PER
-            Swap the entities order, in comparision
-            """
-            #TODO: considerar string approximation, e acronym expansion
-            if rel_type == 'founder':
-                if len(database_1[(r.ent2.decode("utf8"), r.ent1.decode("utf8"))]) > 0:
-                    g_intersect_d.add(r)
-                    #print r.ent1, '\t', r.ent2
+            queue.put(r)
+
+        processes = [multiprocessing.Process(target=string_matching_parallel, args=(acronyms, results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
+
+        for proc in processes:
+            proc.start()
+
+        for proc in processes:
+            proc.join()
+
+        for l in results:
+            g_intersect_d.update(l)
 
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
@@ -270,7 +295,7 @@ def calculate_c(corpus, database_1, b, e1_type, e2_type, rel_type):
             f.close()
 
     # having B and G_intersect_D => C = G_intersect_D - B
-    c = g_intersect_d.difference(b)
+    c = g_intersect_d.difference(set(b))
     return c, g_dash_set
 
 
@@ -279,7 +304,6 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
         line = queue.get_nowait()
         s = Sentence(line.strip(), e1_type, e2_type)
         for r in s.relationships:
-            # TODO: ignore relationships where between is: "," "(", ")" , stopwords
             if r.between == " , " or r.between == " ( " or r.between == " ) ":
                 continue
             else:
@@ -401,12 +425,13 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
 
                 if float(len(hits)) > 0:
                     pmi = float(hits_with_r) / float(len(hits))
-                    # TODO: qual o valor ideal do PMI ?
-                    if pmi > 0.5:
+                    if pmi > PMI:
+                        """
                         if isinstance(r, ExtractedFact):
                             print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
                         elif isinstance(r, Relationship):
                             print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                        """
                         results.append(r)
 
                 if queue.empty() is True:
@@ -430,7 +455,7 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
         while True:
             count += 1
             if count % 50 == 0:
-                print multiprocessing.current_process(), count, queue.qsize()
+                print multiprocessing.current_process(), "Total Done", count, "In Queue", queue.qsize(), "Total Matched: ", len(results)
             r = queue.get_nowait()
             n_1 = set()
             n_2 = set()
@@ -497,12 +522,14 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
                 if float(entities_occurr) > 0:
                     if float(entities_occurr) > 1 and entities_occurr_with_r > 1:
                         pmi = float(entities_occurr_with_r) / float(entities_occurr)
-                        # TODO: qual o valor ideal do PMI ?
-                        if pmi > 0.8:
+                        if pmi > PMI:
+                            """
+                            # TODO: há coisas aqui que sao falsas, por exemplo: 'chief'
                             if isinstance(r, ExtractedFact):
                                 print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
                             elif isinstance(r, Relationship):
                                 print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                            """
                             results.append(r)
 
                 if queue.empty() is True:
@@ -629,8 +656,21 @@ def main():
     rel_type = sys.argv[6]
 
     # entities semantic type
-    e1_type = "ORG"
-    e2_type = "PER"
+    if rel_type == 'founder':
+        e1_type = "ORG"
+        e2_type = "PER"
+    elif rel_type == 'acquired':
+        e1_type = "ORG"
+        e2_type = "ORG"
+    elif rel_type == 'headquarters':
+        e1_type = "ORG"
+        e2_type = "LOC"
+    elif rel_type == 'contained_by':
+        e1_type = "LOC"
+        e2_type = "LOC"
+    else:
+        print "Invalid relationship type", rel_type
+        print "Use: founder, acquired, headquarters, contained_by"
 
     print "\nRelationship Type:", rel_type
     print "Arg1 Type:", e1_type
@@ -652,7 +692,6 @@ def main():
     print "Found in Freebase", len(b)
     print "Not in Freebase", len(not_in_database)
     print "Found in Corpus", len(a)
-
     print "Not Found", len(not_in_database)-len(a)
     print "\n"
     not_found = list()
@@ -660,16 +699,15 @@ def main():
         if r not in a:
             not_found.append(r)
 
-    for r in sorted(not_found):
-        print r.ent1, '\t', r.patterns, '\t', r.ent2
-
-    print "not found", len(not_found)
+    if PRINT_NOT_FOUND is True:
+        for r in sorted(set(not_found)):
+            print r.ent1, '\t', r.patterns, '\t', r.ent2
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
-    c, superset = calculate_c(corpus, database_1, b, e1_type, e2_type, rel_type)
+    c, superset = calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type, e2_type, rel_type)
     assert len(c) > 0
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
@@ -682,8 +720,14 @@ def main():
     print "|b| =", len(b)
     print "|c| =", len(c)
     print "|d| =", len(d)
+    print "|S| =", len(system_output)
+    print "Relationships not evaluated", len(set(not_found))
 
-    precision = float(len(a) + len(b)) / float(len(system_output))
+    a = set(a)
+    b = set(b)
+    output = set(system_output)
+
+    precision = float(len(a) + len(b)) / float(len(output))
     recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
     f1 = 2*(precision*recall)/(precision+recall)
     print "\nPrecision: ", precision
