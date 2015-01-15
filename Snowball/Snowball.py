@@ -44,7 +44,7 @@ class Snowball(object):
             print "\nGenerating relationship instances from sentences..."
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             for line in f_sentences:
-                sentence = Sentence(line.strip())
+                sentence = Sentence(line.strip(), self.config.max_tokens_away, self.config.min_tokens_away, self.config.context_window_size)
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         bef_tokens = self.tokenize(self, rel.before)
@@ -296,7 +296,6 @@ def main():
     else:
         snowball.generate_tuples(sentences_file)
         snowball.start(tuples=None)
-
 
 
 if __name__ == "__main__":

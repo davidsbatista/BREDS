@@ -7,7 +7,7 @@ import multiprocessing
 import re
 import time
 import sys
-import freebase
+import easy_freebase_clean
 
 from whoosh.analysis import RegexTokenizer, StopFilter
 from whoosh.index import open_dir
@@ -349,7 +349,7 @@ def main():
     print len(system_output), "system output relationships loaded"
 
     # load freebase relationships as the database
-    database = freebase.collect_relationships(sys.argv[2], 'Organization founded')
+    database = easy_freebase_clean.collect_relationships(sys.argv[2], 'Organization founded')
     print len(database.keys()), "freebase relationships loaded"
 
     # corpus from which the system extracted relationships

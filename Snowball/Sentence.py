@@ -1,3 +1,5 @@
+__author__ = 'dsbatista'
+
 import re
 from nltk import PunktWordTokenizer
 
@@ -47,7 +49,7 @@ class Relationship:
 
 
 class Sentence:
-    def __init__(self, _sentence):
+    def __init__(self, _sentence, max_tokens, min_tokens, window_size):
         self.relationships = set()
         self.sentence = _sentence
         matches = []
@@ -69,17 +71,16 @@ class Sentence:
                 between = self.sentence[matches[x].end():matches[x + 1].start()]
                 after = self.sentence[matches[x + 1].end(): end]
 
-                # select only a few tokens from left and right context
-                # TODO: read the context values from parameters.cfg
-                before = PunktWordTokenizer().tokenize(before)[-2:]
-                after = PunktWordTokenizer().tokenize(after)[:2]
+                # select only 'window_size' tokens from left and right context
+                before = PunktWordTokenizer().tokenize(before)[-window_size:]
+                after = PunktWordTokenizer().tokenize(after)[:window_size]
                 before = ' '.join(before)
                 after = ' '.join(after)
 
                 # only consider relationships where the distance between the two entities
-                # is less than 8 tokens
-                # TODO: read the context window size from parameters.cfg
-                if not len(PunktWordTokenizer().tokenize(between)) > 8:
+                # is less than 'max_tokens' and greter than 'min_tokens'
+                number_bet_tokens = len(PunktWordTokenizer().tokenize(between))
+                if not number_bet_tokens > max_tokens and not number_bet_tokens < min_tokens:
                     ent1 = matches[x].group()
                     ent2 = matches[x + 1].group()
                     arg1match = re.match("<[A-Z]+>", ent1)

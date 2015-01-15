@@ -322,45 +322,58 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
     # |G \ D|
     # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
 
-    manager = multiprocessing.Manager()
-    queue = manager.Queue()
-    num_cpus = multiprocessing.cpu_count()
-    results = [manager.list() for _ in range(num_cpus)]
-    print len(g_dash)
-    c = 0
-    print "Storing g_dash in a shared Queue"
-    for r in g_dash:
-        c += 1
-        if c % 1000 == 0:
-            print c
-        queue.put(r)
+    if os.path.isfile(rel_type+"_g_minus_d.pkl"):
+        f = open(rel_type+"_g_minus_d.pkl", "r")
+        print "\nLoading G-D'", rel_type+"_g_minus_d.pkl"
+        g_minus_d = cPickle.load(f)
+        f.close()
 
-    print "queue size", queue.qsize()
+    # else estimate:
+    else:
+        manager = multiprocessing.Manager()
+        queue = manager.Queue()
+        num_cpus = multiprocessing.cpu_count()
+        results = [manager.list() for _ in range(num_cpus)]
+        print len(g_dash)
+        c = 0
+        print "Storing g_dash in a shared Queue"
+        for r in g_dash:
+            c += 1
+            if c % 1000 == 0:
+                print c
+            queue.put(r)
 
-    if rel_type == "founder":
-        rel_words = founder
-    elif rel_type == "acquired":
-        rel_words = acquired
-    elif rel_type == 'headquarters':
-        rel_words = headquarters
-    elif rel_type == "contained_by":
-        rel_words = contained_by
+        print "queue size", queue.qsize()
 
-    # calculate PMI for r not in database
-    processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, database, queue, index, results[i], rel_words)) for i in range(num_cpus)]
-    for proc in processes:
-        proc.start()
+        if rel_type == "founder":
+            rel_words = founder
+        elif rel_type == "acquired":
+            rel_words = acquired
+        elif rel_type == 'headquarters':
+            rel_words = headquarters
+        elif rel_type == "contained_by":
+            rel_words = contained_by
 
-    for proc in processes:
-        proc.join()
+        # calculate PMI for r not in database
+        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, database, queue, index, results[i], rel_words)) for i in range(num_cpus)]
+        for proc in processes:
+            proc.start()
 
-    g_minus_d = set()
-    for l in results:
-        g_minus_d.update(l)
+        for proc in processes:
+            proc.join()
 
-    print "Relationships with high PMI", len(g_minus_d)
+        g_minus_d = set()
+        for l in results:
+            g_minus_d.update(l)
+
+        print "Relationships with high PMI", len(g_minus_d)
+        # Dump results to file
+        f = open(rel_type+"_g_minus_d.pkl", "w")
+        print "\nDumping G-D'", rel_type+"_g_minus_d.pkl"
+        cPickle.dump(g_minus_d, f)
+        f.close()
+
     print "|G\D|-|a|", len(g_minus_d.difference(a))
-    #TODO: fazer o dump para cada tipo de relação diferente
     return g_minus_d.difference(a)
 
 
@@ -722,6 +735,14 @@ def main():
     print "|d| =", len(d)
     print "|S| =", len(system_output)
     print "Relationships not evaluated", len(set(not_found))
+
+    f = open(rel_type+"_not_found.txt", "w")
+    for r in set(not_found):
+        #print type(r.ent1)
+        #print type(r.ent2)
+        f.write(r.ent1+'\t'+r.patterns+r.ent2+'\n')
+        #f.write(r.ent1.encode("utf8")+'\t'+r.patterns.encode("utf8")+r.ent2.encode("utf8")+'\n')
+    f.close()
 
     a = set(a)
     b = set(b)
