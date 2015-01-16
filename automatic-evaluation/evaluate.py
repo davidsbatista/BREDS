@@ -14,18 +14,23 @@ import jellyfish
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
-from Sentence import Sentence
-from Sentence import Relationship
+from Snowball.Sentence import Sentence
+from Snowball.Sentence import Relationship
 from collections import defaultdict
 
 # relational words to be used in calculating the set D with the proximity PMI
 founder = ['founder', 'co-founder', 'cofounder', 'founded by', 'started by']
-acquired = ['bought', 'shares', 'holds', 'buys']
-headquarters = ['headquarters', 'compund', '']
+acquired = ['bought', 'shares', 'holds', 'buys', 'acquired']
+headquarters = ['headquarters', 'compund', 'offices']
 contained_by = ['capital', 'north', 'located']
 
 # PMI value for proximity
 PMI = 0.7
+
+# Parameters for relationship extraction from Sentence
+MAX_TOKENS_AWAY = 6
+MIN_TOKENS_AWAY = 1
+CONTEXT_WINDOW = 2
 
 # DEBUG stuff
 PRINT_NOT_FOUND = False
@@ -106,6 +111,11 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
             print "Queue size", str(queue.qsize())
         # TODO: generalizar isto para todos os tipos de relações
         """
+        # gold standard directions
+        founder:        PER-ORG
+        headquarters:   ORG-LOC
+        acquired:       ORG-ORG
+        contained_by:   LOC-LOC
         Freebase represents the 'founder-of' relationship has:
         PER 'Organization founder' ORG
         The system extracted in a different order: ORG founded-by PER
@@ -308,7 +318,7 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
 def process_corpus(queue, g_dash, e1_type, e2_type):
     while True:
         line = queue.get_nowait()
-        s = Sentence(line.strip(), e1_type, e2_type)
+        s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
         for r in s.relationships:
             if r.between == " , " or r.between == " ( " or r.between == " ) ":
                 continue
@@ -408,7 +418,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
         while True:
             count += 1
             if count % 500 == 0:
-                print multiprocessing.current_process(), count, queue.qsize()
+                print multiprocessing.current_process(), "Queue size:", queue.qsize()
             r = queue.get_nowait()
             #if len(database[(r.ent1, r.ent2)]) == 0:
             if r not in all_in_freebase:

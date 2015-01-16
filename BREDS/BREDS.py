@@ -14,11 +14,10 @@ from numpy import dot
 from gensim import matutils
 from nltk import PunktWordTokenizer
 from collections import defaultdict
-
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
-from Sentence import Sentence
+from Snowball.Sentence import Sentence
 from Word2VecWrapper import Word2VecWrapper
 
 

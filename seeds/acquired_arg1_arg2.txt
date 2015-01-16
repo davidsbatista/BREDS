@@ -1,7 +1,8 @@
 e1:ORG
 e2:ORG
 
-Pfizer;Warner-Lambert Co.
-ABSA Group;NBC
-Walt Disney;ABC
-Google;Youtube
+Fiat;Chrysler
+Geely;Volvo
+AOL;Mirabilis
+Zipcar;Flexcar
+Google;Aardvark

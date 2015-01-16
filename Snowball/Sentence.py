@@ -47,9 +47,20 @@ class Relationship:
                 self.arg1type = arg1match.group()[1:-1]
                 self.arg2type = arg2match.group()[1:-1]
 
+    def __eq__(self, other):
+        if self.ent1 == other.ent1 and self.before == other.before and self.between == other.between \
+                and self.after == other.after:
+            return True
+        else:
+            return False
+
+    def __hash__(self):
+        return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
+
 
 class Sentence:
-    def __init__(self, _sentence, max_tokens, min_tokens, window_size):
+
+    def __init__(self, _sentence, e1_type, e2_type, max_tokens, min_tokens, window_size):
         self.relationships = set()
         self.sentence = _sentence
         matches = []
@@ -71,14 +82,14 @@ class Sentence:
                 between = self.sentence[matches[x].end():matches[x + 1].start()]
                 after = self.sentence[matches[x + 1].end(): end]
 
-                # select only 'window_size' tokens from left and right context
+                # select 'window_size' tokens from left and right context
                 before = PunktWordTokenizer().tokenize(before)[-window_size:]
                 after = PunktWordTokenizer().tokenize(after)[:window_size]
                 before = ' '.join(before)
                 after = ' '.join(after)
 
                 # only consider relationships where the distance between the two entities
-                # is less than 'max_tokens' and greter than 'min_tokens'
+                # is less than 'max_tokens' and greater than 'min_tokens'
                 number_bet_tokens = len(PunktWordTokenizer().tokenize(between))
                 if not number_bet_tokens > max_tokens and not number_bet_tokens < min_tokens:
                     ent1 = matches[x].group()
@@ -89,6 +100,8 @@ class Sentence:
                     ent2 = re.sub("</?[A-Z]+>", "", ent2, count=2, flags=0)
                     arg1type = arg1match.group()[1:-1]
                     arg2type = arg2match.group()[1:-1]
-                    rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None,
-                                       _id=None)
-                    self.relationships.add(rel)
+
+                    if arg1type == e1_type and arg2type == e2_type:
+                        rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
+                                           _type=None, id=None)
+                        self.relationships.add(rel)

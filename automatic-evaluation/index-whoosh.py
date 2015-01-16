@@ -11,7 +11,6 @@ from whoosh.analysis import RegexTokenizer
 from whoosh.fields import Schema, TEXT
 from whoosh.index import create_in
 from whoosh.query import *
-from Sentence import Sentence
 
 
 def timecall(f):

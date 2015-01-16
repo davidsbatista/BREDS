@@ -14,7 +14,7 @@ from whoosh.analysis import RegexTokenizer, StopFilter
 from whoosh.index import open_dir
 from whoosh.query import spans
 from whoosh import query
-from Sentence import Sentence
+from Sentence_old import Sentence
 
 
 class ExtractedFact(object):
