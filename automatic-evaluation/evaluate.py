@@ -30,6 +30,9 @@ PMI = 0.7
 # DEBUG stuff
 PRINT_NOT_FOUND = False
 
+# stores all variations matched with database
+all_in_freebase = set()
+
 
 class ExtractedFact(object):
     def __init__(self, _e1, _e2, _score, _patterns, _sentence):
@@ -122,6 +125,7 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                 if e2 in database_2[e1]:
                     matches.append(r)
                     found = True
+                    all_in_freebase.add(r)
 
         if found is False:
             # if e1 is acronym
@@ -132,6 +136,7 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                         if r.ent2 in database_2[e]:
                             matches.append(r)
                             found = True
+                            all_in_freebase.add(r)
 
         if found is False:
             # if e2 is acronym
@@ -141,19 +146,24 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     for e in expansions:
                         if r.ent1 in database_3[e]:
                             matches.append(r)
+                            all_in_freebase.add(r)
 
         if found is False:
             # approximate string similarity
             # as keys na database_2 para 'founder' são os nomes
             for k in database_2.keys():
-                score = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
-                if score >= 0.9:
+                score_1 = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
+                if score_1 >= 0.85:
                     for e1 in database_2[k]:
-                        score = jellyfish.jaro_winkler(e1.upper(), r.ent1.upper())
-                        if score >= 0.9:
+                        # remove 'Corporation' to ease the string machting
+                        new_e1 = e1.replace(' Corporation', '')
+                        score_2 = jellyfish.jaro_winkler(new_e1.upper(), r.ent1.upper())
+                        if score_2 >= 0.85:
                             matches.append(r)
+                            all_in_freebase.add(r)
                             found = True
                             break
+
                     if found is True:
                         break
 
@@ -182,12 +192,8 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
 
     # passar tudo para a queue
     for r in output:
-        #print r.ent1, '\t', r.ent2
-        #print type(r)
         queue.put(r)
 
-    #string_matching(acronyms, b, database_2, database_3, not_found)
-    #string_matching_parallel(acronyms, matches, no_matches, database_2, database_3, queue):
     processes = [multiprocessing.Process(target=string_matching_parallel, args=(acronyms, results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
 
     for proc in processes:
@@ -404,7 +410,8 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
             if count % 500 == 0:
                 print multiprocessing.current_process(), count, queue.qsize()
             r = queue.get_nowait()
-            if len(database[(r.ent1, r.ent2)]) == 0:
+            #if len(database[(r.ent1, r.ent2)]) == 0:
+            if r not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
@@ -468,7 +475,7 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
         while True:
             count += 1
             if count % 50 == 0:
-                print multiprocessing.current_process(), "Total Done", count, "In Queue", queue.qsize(), "Total Matched: ", len(results)
+                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
             r = queue.get_nowait()
             n_1 = set()
             n_2 = set()
@@ -738,10 +745,7 @@ def main():
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
-        #print type(r.ent1)
-        #print type(r.ent2)
-        f.write(r.ent1+'\t'+r.patterns+r.ent2+'\n')
-        #f.write(r.ent1.encode("utf8")+'\t'+r.patterns.encode("utf8")+r.ent2.encode("utf8")+'\n')
+        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
     f.close()
 
     a = set(a)
@@ -758,3 +762,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

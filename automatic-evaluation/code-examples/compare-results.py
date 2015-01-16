@@ -87,7 +87,6 @@ def loadTuples(threshold):
     return total_tuples
 
 
-
 def loadAcronyms(data):
     for line in fileinput.input(data):
         parts = line.split('\t')
@@ -95,7 +94,6 @@ def loadAcronyms(data):
         expanded = parts[-1].strip()
         acronyms[acronym].append(expanded)
     fileinput.close()
-
 
 
 def loadCountryCodes(data):
@@ -131,12 +129,6 @@ def member():
     f_positive  = open("positive.txt","w")
 
     tuples_not_found = set()
-
-    """
-    sorted_ = sorted(total_uniq, key=lambda tup: (tup[0],len(tup[0])))
-    for t in sorted_:
-        print t
-    """
 
     for t in total_uniq:
         # try a direct match
