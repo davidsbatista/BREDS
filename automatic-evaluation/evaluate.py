@@ -445,7 +445,6 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
             if count % 50 == 0:
                 print multiprocessing.current_process(), "Queue size:", queue.qsize()
             r = queue.get_nowait()
-            #if len(database[(r.ent1, r.ent2)]) == 0:
             if r not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
@@ -514,7 +513,7 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
             n_1 = set()
             n_2 = set()
             n_3 = set()
-            if len(database[(r.ent1, r.ent2)]) == 0:
+            if r not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
