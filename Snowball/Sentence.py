@@ -8,10 +8,9 @@ regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
 class Relationship:
     def __init__(self, _sentence, _before=None, _between=None, _after=None, _ent1=None, _ent2=None, _arg1type=None,
-                 _arg2type=None, _type=None, _id=None):
+                 _arg2type=None, _type=None):
 
         self.sentence = _sentence
-        self.identifier = _id
         self.rel_type = _type
         self.before = _before
         self.between = _between
@@ -102,6 +101,5 @@ class Sentence:
                     arg2type = arg2match.group()[1:-1]
 
                     if arg1type == e1_type and arg2type == e2_type:
-                        rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
-                                           _type=None, id=None)
+                        rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None)
                         self.relationships.add(rel)
