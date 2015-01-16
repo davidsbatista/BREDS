@@ -57,6 +57,10 @@ class ExtractedFact(object):
             return False
 
 
+###################
+# Misc. and utils #
+###################
+
 def timecall(f):
     @functools.wraps(f)
     def wrapper(*args, **kw):
@@ -67,6 +71,126 @@ def timecall(f):
         return result
     return wrapper
 
+
+def is_acronym(entity):
+    if len(entity.split()) == 1 and entity.isupper():
+        return True
+    else:
+        return False
+
+
+def process_corpus(queue, g_dash, e1_type, e2_type):
+    while True:
+        line = queue.get_nowait()
+        s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+        for r in s.relationships:
+            if r.between == " , " or r.between == " ( " or r.between == " ) ":
+                continue
+            else:
+                g_dash.append(r)
+        if queue.empty() is True:
+            break
+
+
+def process_output(data):
+    """
+    parses the file with the relationships extracted by the system
+    each relationship is transformed into a ExtracteFact class
+    :param data:
+    :return:
+    """
+
+    system_output = list()
+    for line in fileinput.input(data):
+
+        if line.startswith('instance'):
+            instance_parts, score = line.split("score:")
+            e1, e2 = instance_parts.split("instance:")[1].strip().split('\t')
+
+        if line.startswith('sentence'):
+            sentence = line.split("sentence:")[1].strip()
+
+        if line.startswith('pattern'):
+            patterns = line.split("pattern:")[1].strip()
+
+        if line.startswith('\n'):
+            r = ExtractedFact(e1, e2, score, patterns, sentence)
+            system_output.append(r)
+
+    fileinput.close()
+    return system_output
+
+
+def process_freebase(data, rel_type):
+    # Load relationships from Freebase and keep them in the same direction has
+    # the output of the extraction system
+    # TODO:
+    """
+    # rel_type                   Gold standard directions
+    founder_arg2_arg1            PER-ORG
+    headquarters_arg1_arg2       ORG-LOC
+    acquired_arg1_arg2           ORG-ORG
+    contained_by_arg1_arg2       LOC-LOC
+    """
+
+    # store a tuple (entity1, entity2) in a dictionary
+    database_1 = defaultdict(list)
+
+    # store in a dictionary per relationship: dict['ent1'] = 'ent2'
+    database_2 = defaultdict(list)
+
+    # store in a dictionary per relationship: dict['ent2'] = 'ent1'
+    database_3 = defaultdict(list)
+
+    # regex used to clean entities
+    numbered = re.compile('#[0-9]+$')
+
+    for line in fileinput.input(data):
+        e1, r, e2 = line.split('\t')
+        # ignore some entities, which are Freebase identifiers or which are ambigious
+        if e1.startswith('/') or e2.startswith('/'):
+            continue
+        if e1.startswith('m/') or e2.startswith('m/'):
+            continue
+        if re.search(numbered, e1) or re.search(numbered, e2):
+            continue
+        else:
+            if "(" in e1:
+                e1 = re.sub(r"\(.*\)", "", e1).strip()
+            if "(" in e2:
+                e2 = re.sub(r"\(.*\)", "", e2).strip()
+
+            if rel_type == 'founder':
+                database_1[(e2.strip(), e1.strip())].append(r)
+                database_2[e2.strip()].append(e1.strip())
+                database_3[e1.strip()].append(e2.strip())
+
+            else:
+                database_1[(e1.strip(), e2.strip())].append(r)
+                database_2[e1.strip()].append(e2.strip())
+                database_3[e2.strip()].append(e1.strip())
+
+    return database_1, database_2, database_3
+
+
+def load_acronyms(data):
+    acronyms = defaultdict(list)
+    for line in fileinput.input(data):
+        parts = line.split('\t')
+        acronym = parts[0].strip()
+        if "/" in acronym:
+            continue
+        expanded = parts[-1].strip()
+        if "/" in expanded:
+            continue
+        acronyms[acronym].append(expanded)
+    return acronyms
+    fileinput.close()
+
+
+##########################################
+# Calculations of sets and intersections #
+##########################################
 
 @timecall
 def calculate_a(output, database, e1_type, e2_type, index):
@@ -92,96 +216,6 @@ def calculate_a(output, database, e1_type, e2_type, index):
     for l in results:
         a.extend(l)
     return a
-
-
-def is_acronym(entity):
-    if len(entity.split()) == 1 and entity.isupper():
-        return True
-    else:
-        return False
-
-
-def string_matching_parallel(acronyms, matches, no_matches, database_1, database_2, database_3, queue):
-    count = 0
-    while True:
-        r = queue.get_nowait()
-        found = False
-        count += 1
-        if count % 100 == 0:
-            print "Queue size", str(queue.qsize())
-        # TODO: generalizar isto para todos os tipos de relações
-        """
-        # gold standard directions
-        founder:        PER-ORG
-        headquarters:   ORG-LOC
-        acquired:       ORG-ORG
-        contained_by:   LOC-LOC
-        Freebase represents the 'founder-of' relationship has:
-        PER 'Organization founder' ORG
-        The system extracted in a different order: ORG founded-by PER
-        Swap the entities order, in comparision
-        """
-        if len(database_1[(r.ent2.decode("utf8"), r.ent1.decode("utf8"))]) > 0:
-            matches.append(r)
-            found = True
-
-        # if e1 and e2 are both acronyms
-        if is_acronym(r.ent1) and is_acronym(r.ent2):
-            expansions_e1 = acronyms.get(r.ent1)
-            expansions_e2 = acronyms.get(r.ent2)
-            for i in itertools.product(expansions_e1, expansions_e2):
-                e1 = i[0]
-                e2 = i[1]
-                if e2 in database_2[e1]:
-                    matches.append(r)
-                    found = True
-                    all_in_freebase.add(r)
-
-        if found is False:
-            # if e1 is acronym
-            if is_acronym(r.ent1) and not is_acronym(r.ent2):
-                expansions = acronyms.get(r.ent1)
-                if expansions is not None:
-                    for e in expansions:
-                        if r.ent2 in database_2[e]:
-                            matches.append(r)
-                            found = True
-                            all_in_freebase.add(r)
-
-        if found is False:
-            # if e2 is acronym
-            if is_acronym(r.ent2) and not is_acronym(r.ent1):
-                expansions = acronyms.get(r.ent2)
-                if expansions is not None:
-                    for e in expansions:
-                        if r.ent1 in database_3[e]:
-                            matches.append(r)
-                            all_in_freebase.add(r)
-
-        if found is False:
-            # approximate string similarity
-            # as keys na database_2 para 'founder' são os nomes
-            for k in database_2.keys():
-                score_1 = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
-                if score_1 >= 0.85:
-                    for e1 in database_2[k]:
-                        # remove 'Corporation' to ease the string machting
-                        new_e1 = e1.replace(' Corporation', '')
-                        score_2 = jellyfish.jaro_winkler(new_e1.upper(), r.ent1.upper())
-                        if score_2 >= 0.85:
-                            matches.append(r)
-                            all_in_freebase.add(r)
-                            found = True
-                            break
-
-                    if found is True:
-                        break
-
-        if found is False:
-            no_matches.append(r)
-
-        if queue.empty() is True:
-            break
 
 
 @timecall
@@ -254,7 +288,7 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
         print "Queue size:", queue.qsize()
 
         processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type)) for _ in range(num_cpus)]
-        print "Extracting all possible relationships from the corpus"
+        print "Extracting all possible "+e1_type+","+e2_type+" relationships from the corpus"
         print "Running", len(processes), "threads"
 
         for proc in processes:
@@ -313,19 +347,6 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
     # having B and G_intersect_D => C = G_intersect_D - B
     c = g_intersect_d.difference(set(b))
     return c, g_dash_set
-
-
-def process_corpus(queue, g_dash, e1_type, e2_type):
-    while True:
-        line = queue.get_nowait()
-        s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
-        for r in s.relationships:
-            if r.between == " , " or r.between == " ( " or r.between == " ) ":
-                continue
-            else:
-                g_dash.append(r)
-        if queue.empty() is True:
-            break
 
 
 @timecall
@@ -393,6 +414,10 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
     return g_minus_d.difference(a)
 
 
+#########################
+# Paralelized functions #
+#########################
+
 def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, rel_words):
     """
     #TODO: proximity_pmi with relation specific given relational words
@@ -417,7 +442,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
     with idx.searcher() as searcher:
         while True:
             count += 1
-            if count % 500 == 0:
+            if count % 50 == 0:
                 print multiprocessing.current_process(), "Queue size:", queue.qsize()
             r = queue.get_nowait()
             #if len(database[(r.ent1, r.ent2)]) == 0:
@@ -433,11 +458,11 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
                 hits = searcher.search(q1, limit=q_limit)
 
                 # Entities proximity considering relational words
-                # From the results above count how many contain relational words
+                # From the results above count how many contain a relational word
                 hits_with_r = 0
                 for s in hits:
                     sentence = s.get("sentence")
-                    s = Sentence(sentence, e1_type, e2_type)
+                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
                     for s_r in s.relationships:
                         if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
                             for rel in rel_words:
@@ -456,14 +481,13 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
                 if float(len(hits)) > 0:
                     pmi = float(hits_with_r) / float(len(hits))
                     if pmi > PMI:
+                        results.append(r)
                         """
                         if isinstance(r, ExtractedFact):
                             print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
                         elif isinstance(r, Relationship):
                             print r.ent1, '\t', r.between, '\t', r.ent2, pmi
                         """
-                        results.append(r)
-
                 if queue.empty() is True:
                     break
 
@@ -566,84 +590,82 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
                     break
 
 
-def process_output(data):
-    """
-    parses the file with the relationships extracted by the system
-    each relationship is transformed into a ExtracteFact class
-    :param data:
-    :return:
-    """
+def string_matching_parallel(acronyms, matches, no_matches, database_1, database_2, database_3, queue):
+    count = 0
+    while True:
+        r = queue.get_nowait()
+        found = False
+        count += 1
+        if count % 100 == 0:
+            print "Queue size", str(queue.qsize())
 
-    system_output = list()
-    for line in fileinput.input(data):
+        if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
+            matches.append(r)
+            found = True
+            #print "1", r.ent1, '\t', r.ent2
 
-        if line.startswith('instance'):
-            instance_parts, score = line.split("score:")
-            e1, e2 = instance_parts.split("instance:")[1].strip().split('\t')
+        # if e1 and e2 are both acronyms
+        if is_acronym(r.ent1) and is_acronym(r.ent2):
+            expansions_e1 = acronyms.get(r.ent1)
+            expansions_e2 = acronyms.get(r.ent2)
+            if expansions_e1 is not None and expansions_e2 is not None:
+                for i in itertools.product(expansions_e1, expansions_e2):
+                    e1 = i[0]
+                    e2 = i[1]
+                    if e2 in database_2[e1]:
+                        matches.append(r)
+                        found = True
+                        #print "2", r.ent1, '\t', r.ent2
+                        all_in_freebase.add(r)
 
-        if line.startswith('sentence'):
-            sentence = line.split("sentence:")[1].strip()
+        if found is False:
+            # if e1 is acronym
+            if is_acronym(r.ent1) and not is_acronym(r.ent2):
+                expansions = acronyms.get(r.ent1)
+                if expansions is not None:
+                    for e in expansions:
+                        if r.ent2 in database_2[e]:
+                            matches.append(r)
+                            found = True
+                            #print "3", r.ent1, '\t', r.ent2
+                            all_in_freebase.add(r)
 
-        if line.startswith('pattern'):
-            patterns = line.split("pattern:")[1].strip()
+        if found is False:
+            # if e2 is acronym
+            if is_acronym(r.ent2) and not is_acronym(r.ent1):
+                expansions = acronyms.get(r.ent2)
+                if expansions is not None:
+                    for e in expansions:
+                        if r.ent1 in database_3[e]:
+                            matches.append(r)
+                            print "4", r.ent1, '\t', r.ent2
+                            all_in_freebase.add(r)
 
-        if line.startswith('\n'):
-            r = ExtractedFact(e1, e2, score, patterns, sentence)
-            system_output.append(r)
+        if found is False:
+            # approximate string similarity
+            # as keys na database_2 para 'founder' são os nomes
+            for k in database_2.keys():
+                score_1 = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
+                if score_1 >= 0.85:
+                    for e1 in database_2[k]:
+                        # remove 'Corporation' to ease the string machting
+                        new_e1 = e1.replace(' Corporation', '')
+                        score_2 = jellyfish.jaro_winkler(new_e1.upper(), r.ent1.upper())
+                        if score_2 >= 0.85:
+                            matches.append(r)
+                            all_in_freebase.add(r)
+                            found = True
+                            #print "5", r.ent1, '\t', r.ent2
+                            break
 
-    fileinput.close()
-    return system_output
+                    if found is True:
+                        break
 
+        if found is False:
+            no_matches.append(r)
 
-def process_freebase(data):
-
-    # store a tuple (entity1, entity2) in a dictionary
-    database_1 = defaultdict(list)
-
-    # store in a dictionary per relationship: dict['ent1'] = 'ent2'
-    database_2 = defaultdict(list)
-
-    # store in a dictionary per relationship: dict['ent2'] = 'ent1'
-    database_3 = defaultdict(list)
-
-    # regex used to clean entities
-    numbered = re.compile('#[0-9]+$')
-
-    for line in fileinput.input(data):
-        e1, r, e2 = line.split('\t')
-        # ignore some entities, which are Freebase identifiers or which are ambigious
-        if e1.startswith('/') or e2.startswith('/'):
-            continue
-        if e1.startswith('m/') or e2.startswith('m/'):
-            continue
-        if re.search(numbered, e1) or re.search(numbered, e2):
-            continue
-        else:
-            if "(" in e1:
-                e1 = re.sub(r"\(.*\)", "", e1).strip()
-            if "(" in e2:
-                e2 = re.sub(r"\(.*\)", "", e2).strip()
-
-            database_1[(e1.strip(), e2.strip())].append(r)
-            database_2[e1.strip()].append(e2.strip())
-            database_3[e2.strip()].append(e1.strip())
-
-    return database_1, database_2, database_3
-
-
-def load_acronyms(data):
-    acronyms = defaultdict(list)
-    for line in fileinput.input(data):
-        parts = line.split('\t')
-        acronym = parts[0].strip()
-        if "/" in acronym:
-            continue
-        expanded = parts[-1].strip()
-        if "/" in expanded:
-            continue
-        acronyms[acronym].append(expanded)
-    return acronyms
-    fileinput.close()
+        if queue.empty() is True:
+            break
 
 
 def main():
@@ -669,8 +691,11 @@ def main():
     system_output = process_output(sys.argv[1])
     print len(system_output), "system output relationships loaded"
 
+    # relationship type
+    rel_type = sys.argv[6]
+
     # load freebase relationships as the database
-    database_1, database_2, database_3 = process_freebase(sys.argv[2])
+    database_1, database_2, database_3 = process_freebase(sys.argv[2], rel_type)
     print len(database_1.keys()), "freebase relationships loaded"
 
     # corpus from which the system extracted relationships
@@ -681,9 +706,6 @@ def main():
 
     acronyms = load_acronyms(sys.argv[5])
     print len(acronyms), "acronyms loaded"
-
-    # relationship type
-    rel_type = sys.argv[6]
 
     # entities semantic type
     if rel_type == 'founder':
