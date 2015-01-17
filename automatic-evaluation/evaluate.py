@@ -36,7 +36,8 @@ CONTEXT_WINDOW = 2
 PRINT_NOT_FOUND = False
 
 # stores all variations matched with database
-all_in_freebase = set()
+manager = multiprocessing.Manager()
+all_in_freebase = manager.dict()
 
 
 class ExtractedFact(object):
@@ -124,7 +125,6 @@ def process_output(data):
 def process_freebase(data, rel_type):
     # Load relationships from Freebase and keep them in the same direction has
     # the output of the extraction system
-    # TODO:
     """
     # rel_type                   Gold standard directions
     founder_arg2_arg1            PER-ORG
@@ -145,6 +145,8 @@ def process_freebase(data, rel_type):
     # regex used to clean entities
     numbered = re.compile('#[0-9]+$')
 
+    founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union', 'United Nations']
+
     for line in fileinput.input(data):
         e1, r, e2 = line.split('\t')
         # ignore some entities, which are Freebase identifiers or which are ambigious
@@ -153,6 +155,9 @@ def process_freebase(data, rel_type):
         if e1.startswith('m/') or e2.startswith('m/'):
             continue
         if re.search(numbered, e1) or re.search(numbered, e2):
+            continue
+        # for founder don't load those from freebase, lists countries as founders not persons
+        if e2.strip() in founder_to_ignore:
             continue
         else:
             if "(" in e1:
@@ -206,7 +211,7 @@ def calculate_a(output, database, e1_type, e2_type, index):
     print "queue size", queue.qsize()
 
     print "num_cpus", num_cpus
-    processes = [multiprocessing.Process(target=proximity_pmi, args=(e1_type, e2_type, database, queue, index, results[i])) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=proximity_pmi, args=(e1_type, e2_type, queue, index, results[i])) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -227,7 +232,6 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
     # database is a dictionary of lists
     # each key is a tuple (e1,e2), and each value is a list containing the relationships
     # between the e1 and e2 entities
-
     manager = multiprocessing.Manager()
     queue = manager.Queue()
     num_cpus = multiprocessing.cpu_count()
@@ -392,7 +396,7 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
             rel_words = contained_by
 
         # calculate PMI for r not in database
-        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, database, queue, index, results[i], rel_words)) for i in range(num_cpus)]
+        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
         for proc in processes:
             proc.start()
 
@@ -418,7 +422,7 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
 # Paralelized functions #
 #########################
 
-def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, rel_words):
+def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     """
     #TODO: proximity_pmi with relation specific given relational words
     :param e1_type:
@@ -445,7 +449,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
             if count % 50 == 0:
                 print multiprocessing.current_process(), "Queue size:", queue.qsize()
             r = queue.get_nowait()
-            if r not in all_in_freebase:
+            if (r.ent1, r.ent2) not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
@@ -491,7 +495,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, database, queue, index, results, re
                     break
 
 
-def proximity_pmi(e1_type, e2_type, database, queue, index, results):
+def proximity_pmi(e1_type, e2_type, queue, index, results):
     """
     sentences with tagged entities are indexed in whoosh
     perform the following query
@@ -513,7 +517,7 @@ def proximity_pmi(e1_type, e2_type, database, queue, index, results):
             n_1 = set()
             n_2 = set()
             n_3 = set()
-            if r not in all_in_freebase:
+            if (r.ent1, r.ent2) not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
@@ -594,28 +598,42 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
     while True:
         r = queue.get_nowait()
         found = False
+
         count += 1
         if count % 100 == 0:
             print "Queue size", str(queue.qsize())
 
-        if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
+        # check cache
+        """
+        print "Cache", all_in_freebase, len(all_in_freebase)
+        print "Tuple:", (r.ent1, r.ent2)
+        print "\n"
+        """
+
+        if (r.ent1, r.ent2) in all_in_freebase:
             matches.append(r)
             found = True
-            #print "1", r.ent1, '\t', r.ent2
 
-        # if e1 and e2 are both acronyms
-        if is_acronym(r.ent1) and is_acronym(r.ent2):
-            expansions_e1 = acronyms.get(r.ent1)
-            expansions_e2 = acronyms.get(r.ent2)
-            if expansions_e1 is not None and expansions_e2 is not None:
-                for i in itertools.product(expansions_e1, expansions_e2):
-                    e1 = i[0]
-                    e2 = i[1]
-                    if e2 in database_2[e1]:
-                        matches.append(r)
-                        found = True
-                        #print "2", r.ent1, '\t', r.ent2
-                        all_in_freebase.add(r)
+        if found is False:
+            # both entities, direct string matching
+            if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
+                matches.append(r)
+                all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                found = True
+
+        if found is False:
+            # if e1 and e2 are both acronyms
+            if is_acronym(r.ent1) and is_acronym(r.ent2):
+                expansions_e1 = acronyms.get(r.ent1)
+                expansions_e2 = acronyms.get(r.ent2)
+                if expansions_e1 is not None and expansions_e2 is not None:
+                    for i in itertools.product(expansions_e1, expansions_e2):
+                        e1 = i[0]
+                        e2 = i[1]
+                        if e2 in database_2[e1]:
+                            matches.append(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            found = True
 
         if found is False:
             # if e1 is acronym
@@ -625,9 +643,8 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     for e in expansions:
                         if r.ent2 in database_2[e]:
                             matches.append(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
-                            #print "3", r.ent1, '\t', r.ent2
-                            all_in_freebase.add(r)
 
         if found is False:
             # if e2 is acronym
@@ -637,30 +654,77 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     for e in expansions:
                         if r.ent1 in database_3[e]:
                             matches.append(r)
-                            print "4", r.ent1, '\t', r.ent2
-                            all_in_freebase.add(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            found = True
+
+        # approximate string similarity
+        # FOUNDER   : r.ent1:ORG   r.ent2:PER
+        # DATABASE_1: (ORG,PER)
+        # DATABASE_2: ORG   list<PER>
+        # DATABASE_3: PER   list<ORG>
+        # direct matching with person name
+        if found is False:
+            organisations = database_3[r.ent2]
+            if organisations is not None:
+                for o in organisations:
+                    new_o = re.sub(r" Corporation| Inc\.", "", o)
+                    score = jellyfish.jaro_winkler(new_o.upper(), r.ent1.upper())
+                    if score >= 0.9:
+                        matches.append(r)
+                        all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                        found = True
+
+        # direct matching with organisation name
+        if found is False:
+            names = database_2[r.ent1]
+            if names is not None:
+                for n in names:
+                    score = jellyfish.jaro_winkler(n.upper(), r.ent2.upper())
+                    if score >= 0.9:
+                        matches.append(r)
+                        all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                        found = True
 
         if found is False:
-            # approximate string similarity
-            # as keys na database_2 para 'founder' são os nomes
             for k in database_2.keys():
-                score_1 = jellyfish.jaro_winkler(k.upper(), r.ent2.upper())
-                if score_1 >= 0.85:
+                # remove 'Corporation' and 'Inc.' from companies names to ease the string machting
+                new_k = re.sub(r" Corporation| Inc\.", "", k)
+                score_1 = jellyfish.jaro_winkler(new_k.upper(), r.ent1.upper())
+                if score_1 >= 0.9:
                     for e1 in database_2[k]:
-                        # remove 'Corporation' to ease the string machting
-                        new_e1 = e1.replace(' Corporation', '')
-                        score_2 = jellyfish.jaro_winkler(new_e1.upper(), r.ent1.upper())
-                        if score_2 >= 0.85:
+                        score_2 = jellyfish.jaro_winkler(e1.upper(), r.ent2.upper())
+                        if score_2 >= 0.9:
                             matches.append(r)
-                            all_in_freebase.add(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
-                            #print "5", r.ent1, '\t', r.ent2
                             break
+
+                        else:
+                            pass
+                            """
+                            print k, r.ent1, score_1
+                            # if company matched with high score, try to match name
+                            print e1, '\t', r.ent2, score_2
+                            # TODO: look for how many common names, jaccardi
+                            print "\n"
+                            """
 
                     if found is True:
                         break
 
+                #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
+                #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
+
         if found is False:
+            # try name matching
+            #TODO: AirAsia         founder         Fernandes
+            #TODO: Tony Fernandes	Organization founded	AirAsia
+            for k in database_2.keys():
+                pass
+
+        if found is False:
+            if 'founder' in r.patterns:
+                print "NOT FOUND:", r.ent1, '\t', r.patterns, '\t', r.ent2
             no_matches.append(r)
 
         if queue.empty() is True:
@@ -685,6 +749,10 @@ def main():
     # Precision = |a|+|b| / |S|
     # Recall = |a|+|b| / |a| + |b| + |c| + |d|
     # F1 = 2*P*R / P+R
+
+    if len(sys.argv) == 0:
+        print "No arguments"
+        print "Use: evaluation.py system_output database corpus index acronyms rel_type"
 
     # load relationships extracted by the system
     system_output = process_output(sys.argv[1])
