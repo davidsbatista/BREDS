@@ -20,9 +20,9 @@ from collections import defaultdict
 
 # relational words to be used in calculating the set D with the proximity PMI
 founder = ['founder', 'co-founder', 'cofounder', 'founded by', 'started by']
-acquired = ['bought', 'shares', 'holds', 'buys', 'acquired']
+acquired = ['bought', 'shares', 'holds', 'owns', 'acquired']
 headquarters = ['headquarters', 'compund', 'offices']
-contained_by = ['capital', 'north', 'located']
+contained_by = ['capital', 'located']
 
 # PMI value for proximity
 PMI = 0.7
@@ -58,9 +58,9 @@ class ExtractedFact(object):
             return False
 
 
-###################
-# Misc. and utils #
-###################
+############################################
+# Misc., Utils, parsing corpus into memory #
+############################################
 
 def timecall(f):
     @functools.wraps(f)
@@ -193,24 +193,21 @@ def load_acronyms(data):
     fileinput.close()
 
 
-##########################################
-# Calculations of sets and intersections #
-##########################################
+#########################################
+# Estimations of sets and intersections #
+#########################################
 
 @timecall
-def calculate_a(output, database, e1_type, e2_type, index):
-    manager = multiprocessing.Manager()
-    queue = manager.Queue()
+def calculate_a(output, e1_type, e2_type, index):
+    m = multiprocessing.Manager()
+    queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
-    results = [manager.list() for _ in range(num_cpus)]
+    results = [m.list() for _ in range(num_cpus)]
 
     # put output in a processed shared queue
     for r in output:
         queue.put(r)
 
-    print "queue size", queue.qsize()
-
-    print "num_cpus", num_cpus
     processes = [multiprocessing.Process(target=proximity_pmi, args=(e1_type, e2_type, queue, index, results[i])) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
@@ -227,16 +224,11 @@ def calculate_a(output, database, e1_type, e2_type, index):
 def calculate_b(output, database_1, database_2, database_3, acronyms):
     # intersection between the system output and the database (i.e., freebase),
     # it is assumed that every fact in this region is correct
-    # relationships in +database are in the form of
-    # (e1,e2) is a tuple
-    # database is a dictionary of lists
-    # each key is a tuple (e1,e2), and each value is a list containing the relationships
-    # between the e1 and e2 entities
-    manager = multiprocessing.Manager()
-    queue = manager.Queue()
+    m = multiprocessing.Manager()
+    queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
-    results = [manager.list() for _ in range(num_cpus)]
-    no_matches = [manager.list() for _ in range(num_cpus)]
+    results = [m.list() for _ in range(num_cpus)]
+    no_matches = [m.list() for _ in range(num_cpus)]
 
     # passar tudo para a queue
     for r in output:
@@ -268,9 +260,9 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     # for now, all relationships from a sentence
     print "Building G', a superset of G"
-    manager = multiprocessing.Manager()
-    queue = manager.Queue()
-    g_dash = manager.list()
+    m = multiprocessing.Manager()
+    queue = m.Queue()
+    g_dash = m.list()
     num_cpus = multiprocessing.cpu_count()
 
     # check if superset G' for e1_type, e2_type already exists
@@ -354,7 +346,7 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
 
 
 @timecall
-def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
+def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
     # contains facts described in the corpus that are not in the system output nor in the database
     #
     # by applying the PMI of the facts not in the database (i.e., G' \in D)
@@ -371,19 +363,14 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
 
     # else estimate:
     else:
-        manager = multiprocessing.Manager()
-        queue = manager.Queue()
+        m = multiprocessing.Manager()
+        queue = m.Queue()
         num_cpus = multiprocessing.cpu_count()
-        results = [manager.list() for _ in range(num_cpus)]
-        print len(g_dash)
-        c = 0
+        results = [m.list() for _ in range(num_cpus)]
+
         print "Storing g_dash in a shared Queue"
         for r in g_dash:
-            c += 1
-            if c % 1000 == 0:
-                print c
             queue.put(r)
-
         print "queue size", queue.qsize()
 
         if rel_type == "founder":
@@ -418,9 +405,9 @@ def calculate_d(g_dash, database, a, e1_type, e2_type, index, rel_type):
     return g_minus_d.difference(a)
 
 
-#########################
-# Paralelized functions #
-#########################
+########################################################################
+# Paralelized functions: each function will run as a different process #
+########################################################################
 
 def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     """
@@ -447,7 +434,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
         while True:
             count += 1
             if count % 50 == 0:
-                print multiprocessing.current_process(), "Queue size:", queue.qsize()
+                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
             r = queue.get_nowait()
             if (r.ent1, r.ent2) not in all_in_freebase:
                 # if its not in the database calculate the PMI
@@ -517,8 +504,8 @@ def proximity_pmi(e1_type, e2_type, queue, index, results):
             n_1 = set()
             n_2 = set()
             n_3 = set()
+            # if its not in the database calculate the proximity PMI
             if (r.ent1, r.ent2) not in all_in_freebase:
-                # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
                 entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
                 t1 = query.Term('sentence', entity1)
@@ -600,22 +587,16 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
         found = False
 
         count += 1
-        if count % 100 == 0:
-            print "Queue size", str(queue.qsize())
+        if count % 250 == 0:
+            print multiprocessing.current_process(), "In Queue", queue.qsize()
 
-        # check cache
-        """
-        print "Cache", all_in_freebase, len(all_in_freebase)
-        print "Tuple:", (r.ent1, r.ent2)
-        print "\n"
-        """
-
+        # check if its in cache, i.e., if tuple was already matched
         if (r.ent1, r.ent2) in all_in_freebase:
             matches.append(r)
             found = True
 
         if found is False:
-            # both entities, direct string matching
+            # check both entities for a direct string matching
             if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
                 matches.append(r)
                 all_in_freebase[(r.ent1, r.ent2)] = "Found"
@@ -657,34 +638,60 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
 
-        # approximate string similarity
         # FOUNDER   : r.ent1:ORG   r.ent2:PER
         # DATABASE_1: (ORG,PER)
         # DATABASE_2: ORG   list<PER>
         # DATABASE_3: PER   list<ORG>
+
         # direct matching with person name
         if found is False:
             organisations = database_3[r.ent2]
             if organisations is not None:
                 for o in organisations:
                     new_o = re.sub(r" Corporation| Inc\.", "", o)
-                    score = jellyfish.jaro_winkler(new_o.upper(), r.ent1.upper())
-                    if score >= 0.9:
+                    # person name matched 100% check if organisation match with jaccardi
+                    set_1 = set(new_o.split())
+                    set_2 = set(r.ent1.split())
+                    jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                    if jaccardi >= 0.5:
+                        print r.ent1, '\t', database_3[r.ent2], "MATCHED"
+                        print "Set1", set(new_o.split())
+                        print "Set2", set(r.ent1.split())
+                        print float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                        print "\n"
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
+
+                    else:
+                        score = jellyfish.jaro_winkler(new_o.upper(), r.ent1.upper())
+                        if score >= 0.9:
+                            matches.append(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            found = True
 
         # direct matching with organisation name
         if found is False:
             names = database_2[r.ent1]
             if names is not None:
                 for n in names:
-                    score = jellyfish.jaro_winkler(n.upper(), r.ent2.upper())
-                    if score >= 0.9:
+                    # organisation name matched 100% check if names match with jaccardi
+                    set_1 = set(n.split())
+                    set_2 = set(r.ent2.split())
+                    jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                    if jaccardi >= 0.5:
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
+                    else:
+                        score = jellyfish.jaro_winkler(n.upper(), r.ent2.upper())
+                        if score >= 0.9:
+                            matches.append(r)
+                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            found = True
 
+        # approximate string similarity
+        # TODO: usar similaridade de Jaccardi aqui também
         if found is False:
             for k in database_2.keys():
                 # remove 'Corporation' and 'Inc.' from companies names to ease the string machting
@@ -712,19 +719,9 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     if found is True:
                         break
 
-                #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
-                #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
-
         if found is False:
-            # try name matching
-            #TODO: AirAsia         founder         Fernandes
-            #TODO: Tony Fernandes	Organization founded	AirAsia
-            for k in database_2.keys():
-                pass
-
-        if found is False:
-            if 'founder' in r.patterns:
-                print "NOT FOUND:", r.ent1, '\t', r.patterns, '\t', r.ent2
+            #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
+            #TODO: cache para o que não fez match
             no_matches.append(r)
 
         if queue.empty() is True:
@@ -732,7 +729,7 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
 
 
 def main():
-    # Implements the paper: "Automatic Evaluation of Relation Extraction Systems on Large-scale"
+    # "Automatic Evaluation of Relation Extraction Systems on Large-scale"
     # https://akbcwekex2012.files.wordpress.com/2012/05/8_paper.pdf
     #
     # S  - system output
@@ -740,15 +737,15 @@ def main():
     # G  - will be the resulting ground truth
     # G' - superset, contains true facts, and wrong facts
     #
-    # a - contains correct facts from the system output
-    # b - intersection between the system output and the database (i.e., freebase),
-    #     it is assumed that every fact in this region is correct
-    # c - contains the database facts described in the corpus but not extracted by the system
-    # d - contains the facts described in the corpus that are not in the system output nor in the database
+    # a  - contains correct facts from the system output
+    # b  - intersection between the system output and the database (i.e., freebase),
+    #      it is assumed that every fact in this region is correct
+    # c  - contains the database facts described in the corpus but not extracted by the system
+    # d  - contains the facts described in the corpus that are not in the system output nor in the database
     #
     # Precision = |a|+|b| / |S|
-    # Recall = |a|+|b| / |a| + |b| + |c| + |d|
-    # F1 = 2*P*R / P+R
+    # Recall    = |a|+|b| / |a| + |b| + |c| + |d|
+    # F1        = 2*P*R / P+R
 
     if len(sys.argv) == 0:
         print "No arguments"
@@ -797,14 +794,14 @@ def main():
 
     print "\nCalculating set B: intersection between system output and database"
     b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, acronyms)
-    print "out", len(system_output)
-    print "not in db ", len(not_in_database)
-    print "in db  ", len(b)
     assert len(b) > 0
     assert len(system_output) == len(not_in_database) + len(b)
+    print "Total output", len(system_output)
+    print "Found in Freebase", len(b)
+    print "Not in Freebase", len(not_in_database)
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
-    a = calculate_a(not_in_database, database_1, e1_type, e2_type, index)
+    a = calculate_a(not_in_database, e1_type, e2_type, index)
     assert len(a) > 0
 
     print "Total output", len(system_output)
@@ -832,7 +829,7 @@ def main():
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
-    d = calculate_d(superset, database_1, a, e1_type, e2_type, index, rel_type)
+    d = calculate_d(superset, a, e1_type, e2_type, index, rel_type)
     assert len(d) > 0
 
     print "|a| =", len(a)
