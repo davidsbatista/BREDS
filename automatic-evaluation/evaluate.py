@@ -355,53 +355,37 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
     # |G \ D|
     # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
 
-    if os.path.isfile(rel_type+"_g_minus_d.pkl"):
-        f = open(rel_type+"_g_minus_d.pkl", "r")
-        print "\nLoading G-D'", rel_type+"_g_minus_d.pkl"
-        g_minus_d = cPickle.load(f)
-        f.close()
+    m = multiprocessing.Manager()
+    queue = m.Queue()
+    num_cpus = multiprocessing.cpu_count()
+    results = [m.list() for _ in range(num_cpus)]
 
-    # else estimate:
-    else:
-        m = multiprocessing.Manager()
-        queue = m.Queue()
-        num_cpus = multiprocessing.cpu_count()
-        results = [m.list() for _ in range(num_cpus)]
+    print "Storing g_dash in a shared Queue"
+    for r in g_dash:
+        queue.put(r)
+    print "queue size", queue.qsize()
 
-        print "Storing g_dash in a shared Queue"
-        for r in g_dash:
-            queue.put(r)
-        print "queue size", queue.qsize()
+    if rel_type == "founder":
+        rel_words = founder
+    elif rel_type == "acquired":
+        rel_words = acquired
+    elif rel_type == 'headquarters':
+        rel_words = headquarters
+    elif rel_type == "contained_by":
+        rel_words = contained_by
 
-        if rel_type == "founder":
-            rel_words = founder
-        elif rel_type == "acquired":
-            rel_words = acquired
-        elif rel_type == 'headquarters':
-            rel_words = headquarters
-        elif rel_type == "contained_by":
-            rel_words = contained_by
+    # calculate PMI for r not in database
+    processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
+    for proc in processes:
+        proc.start()
 
-        # calculate PMI for r not in database
-        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
-        for proc in processes:
-            proc.start()
+    for proc in processes:
+        proc.join()
 
-        for proc in processes:
-            proc.join()
+    g_minus_d = set()
+    for l in results:
+        g_minus_d.update(l)
 
-        g_minus_d = set()
-        for l in results:
-            g_minus_d.update(l)
-
-        print "Relationships with high PMI", len(g_minus_d)
-        # Dump results to file
-        f = open(rel_type+"_g_minus_d.pkl", "w")
-        print "\nDumping G-D'", rel_type+"_g_minus_d.pkl"
-        cPickle.dump(g_minus_d, f)
-        f.close()
-
-    print "|G\D|-|a|", len(g_minus_d.difference(a))
     return g_minus_d.difference(a)
 
 
@@ -654,11 +638,13 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     set_2 = set(r.ent1.split())
                     jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                     if jaccardi >= 0.5:
-                        print r.ent1, '\t', database_3[r.ent2], "MATCHED"
+                        #print r.ent1, '\t', database_3[r.ent2], "MATCHED"
+                        """
                         print "Set1", set(new_o.split())
                         print "Set2", set(r.ent1.split())
                         print float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                         print "\n"
+                        """
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
