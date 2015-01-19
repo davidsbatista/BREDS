@@ -41,7 +41,7 @@ class Snowball(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
-            print "\nGenerating relationship instances from sentences..."
+            print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
             for line in f_sentences:
@@ -59,7 +59,7 @@ class Snowball(object):
                         self.processed_tuples.append(t)
             f_sentences.close()
 
-            print len(self.processed_tuples), "tuples generated"
+            print "\n", len(self.processed_tuples), "tuples generated"
 
             f = open("processed_tuples.pkl", "wb")
             cPickle.dump(self.processed_tuples, f)
