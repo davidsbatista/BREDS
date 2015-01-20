@@ -26,8 +26,8 @@ def collect_relationships(data):
     count = 0
     numbered = re.compile('#[0-9]+$')
     for line in fileinput.input(data):
-        if count % 5000 == 0:
-            print count, len(relationships)
+        if count % 50000 == 0:
+            print len(relationships)
         e1, r, e2, point = line.split('\t')
         if r in rel_to_consider:
             # ignore some entities, which are Freebase identifiers or which are ambigious
@@ -36,6 +36,16 @@ def collect_relationships(data):
             if e1.startswith('m/') or e2.startswith('m/'):
                 continue
             if re.search(numbered, e1) or re.search(numbered, e2):
+                continue
+
+            # lots of unintersting stuff in contained_by
+            if re.match(r'^[0-9]+$', e1) or re.match(r'^[0-9]+$', e2):
+                continue
+            if e1.startswith('DVD Region') or e2.startswith('DVD Region'):
+                continue
+            if e1.startswith('US Census'):
+                continue
+            if e1.startswith('Area code') or e2.startswith('Area code'):
                 continue
             else:
                 if "(" in e1:

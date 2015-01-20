@@ -733,9 +733,11 @@ def main():
     # Recall    = |a|+|b| / |a| + |b| + |c| + |d|
     # F1        = 2*P*R / P+R
 
-    if len(sys.argv) == 0:
+    if len(sys.argv) == 1:
         print "No arguments"
         print "Use: evaluation.py system_output database corpus index acronyms rel_type"
+        print "\n"
+        sys.exit(0)
 
     # load relationships extracted by the system
     system_output = process_output(sys.argv[1])
@@ -782,7 +784,6 @@ def main():
     b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, acronyms)
     assert len(b) > 0
     assert len(system_output) == len(not_in_database) + len(b)
-    print "Total output", len(system_output)
     print "Found in Freebase", len(b)
     print "Not in Freebase", len(not_in_database)
 
