@@ -41,7 +41,8 @@ def load_sentences(data_file):
     sentences = manager.Queue()
     with codecs.open(data_file, 'rb', encoding='utf-8') as f:
         # Size 0 will read the ENTIRE file into memory!
-        m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ) #File is open read-only
+        # File is open read-only
+        m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
 
         # Proceed with your code here -- note the file is already in memory
         # so "readine" here will be as fast as could be
@@ -69,16 +70,10 @@ def get_sentences(sentences, freebase, results):
             else:
                 try:
                     freebase[r.ent1]
+                    freebase[r.ent2]
                     results.append(sentence)
-                    print "MATCHED:", r.ent1, '\t', r.ent2
                 except KeyError:
-                    try:
-                        freebase[r.ent2]
-                        results.append(sentence)
-                        print "MATCHED:", r.ent1, '\t', r.ent2
-                    except KeyError:
-                        pass
-
+                    pass
         if count % 1000 == 0:
             print multiprocessing.current_process(), "queue size", sentences.qsize()
         if sentences.empty is True:
