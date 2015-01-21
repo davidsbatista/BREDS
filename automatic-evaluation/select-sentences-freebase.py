@@ -109,7 +109,12 @@ def main():
     print "Writing sentences to disk"
     f = open("sentences_matched_freebase.txt", "w")
     for s in selected_sentences:
-        f.write(s.encode("utf8")+'\n')
+        try:
+            f.write(s+'\n')
+        except Exception, e:
+            print e
+            print type(s)
+            print s
     f.close
 
 if __name__ == "__main__":
