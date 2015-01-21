@@ -71,10 +71,10 @@ def get_sentences(sentences, freebase, results):
                 try:
                     freebase[r.ent1]
                     freebase[r.ent2]
-                    results.append(sentence)
                 except KeyError:
-                    pass
-        if count % 1000 == 0:
+                    continue
+            results.append(sentence)
+        if count % 50000 == 0:
             print multiprocessing.current_process(), "queue size", sentences.qsize()
         if sentences.empty is True:
             break
