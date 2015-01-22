@@ -100,11 +100,14 @@ class Sentence:
                     arg1type = arg1match.group()[1:-1]
                     arg2type = arg2match.group()[1:-1]
 
-                    if arg1type is not None and arg2type is not None:
+                    if e1_type is not None and arg2type is not e2_type:
+                        # restrict relationships by arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
                             rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None)
                             self.relationships.add(rel)
-                    else:
+
+                    elif e1_type is None and e2_type is None:
+                        # create all possible relationship types
                         rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type, _type=None)
                         self.relationships.add(rel)
 

@@ -134,13 +134,6 @@ class Snowball(object):
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
-                                """
-                                if i > 0:
-                                    print t.e1, '\t', t.e2, '\t', t.sentence
-                                    for x in self.candidate_tuples[t]:
-                                        print x[0], x[1]
-                                    print "\n"
-                                """
 
                         # if this instance was not extracted before, associate theisextraciton pattern with the instance
                         # and the similarity score
@@ -163,7 +156,7 @@ class Snowball(object):
                     # use past confidence values to calculate new confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
-                    if i > 0:
+                    if iter > 1:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # update seed set of tuples to use in next iteration

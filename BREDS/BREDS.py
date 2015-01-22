@@ -21,6 +21,11 @@ from Snowball.Sentence import Sentence
 from Word2VecWrapper import Word2VecWrapper
 
 
+# usefull stuff for debugging
+PRINT_TUPLES = False
+PRINT_PATTERNS = False
+
+
 class BREADS(object):
 
     def __init__(self, config_file, seeds_file):
@@ -103,6 +108,11 @@ class BREADS(object):
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
                 self.patterns = new_patterns
                 print "\n", len(self.patterns), "patterns generated"
+
+                if PRINT_PATTERNS is True:
+                    for p in self.patterns:
+                        print p.patterns_words
+
                 if i == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
                     sys.exit(0)
@@ -116,7 +126,11 @@ class BREADS(object):
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
                 print "\nCollecting instances based on extraction patterns"
+                count = 0
                 for t in self.processed_tuples:
+                    count += 1
+                    if count % 1000 == 0:
+                        sys.stdout.write(".")
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         if self.config.similarity == "all":
@@ -145,12 +159,10 @@ class BREADS(object):
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
 
-                """
                 print "\nExtraction patterns confidence:"
                 tmp = sorted(self.patterns)
                 for p in tmp:
-                    print p, '\t', len(p.patterns_words), '\t', p.confidence
-                """
+                    print p, '\t', p.patterns_words, '\t', p.confidence
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -164,8 +176,19 @@ class BREADS(object):
                     # use past confidence values to calculate new confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
-                    if iter > 0:
+                    if iter > 1:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
+
+                # sort tuples by confidence and print
+                if PRINT_TUPLES is True:
+                    extracted_tuples = self.candidate_tuples.keys()
+                    tuples_sorted = sorted(extracted_tuples, key=lambda t: t.confidence, reverse=True)
+                    for t in tuples_sorted:
+                        best_pattern = self.candidate_tuples[t]
+                        print t.e1, t.patterns_words, t.e2, t.confidence
+                        for b in best_pattern:
+                            print b[0].patterns_words, b[1]
+                        print "\n"
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
@@ -174,6 +197,7 @@ class BREADS(object):
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
                             self.config.seed_tuples.add(t)
+                            print t.e1, t.e2, t.confidence
 
                 # increment the number of iterations
                 i += 1
@@ -198,7 +222,7 @@ class BREADS(object):
     @staticmethod
     def cluster_tuples(self, matched_tuples):
         """
-        single-pass clustering
+        Single-pass Clustering
         """
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
@@ -207,7 +231,11 @@ class BREADS(object):
 
         # Compute the similarity between an instance with each pattern
         # go through all tuples
+        count = 0
         for t in matched_tuples:
+            count += 1
+            if count % 500 == 0:
+                sys.stdout.write(".")
             max_similarity = 0
             max_similarity_cluster_index = 0
 
@@ -294,6 +322,9 @@ def similarity_all(t, extraction_pattern, config):
         tokens = PunktWordTokenizer().tokenize(p)
         vector = Word2VecWrapper.pattern2vector(tokens, config)
         score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
+
+        #print t.e1, t.patterns_words, t.e2, '\t', p, score
+
         if score > max_similarity:
             max_similarity = score
         if score >= config.threshold_similarity:
@@ -301,9 +332,13 @@ def similarity_all(t, extraction_pattern, config):
         else:
             bad += 1
         if good >= bad:
+            #print max_similarity
+            #print "\n"
             return True, max_similarity
         else:
             return False, 0.0
+            #print "\n"
+            #return 0.0
 
 
 def main():
