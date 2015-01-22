@@ -416,10 +416,10 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     q_limit = 500
     with idx.searcher() as searcher:
         while True:
-            count += 1
-            if count % 50 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
             r = queue.get_nowait()
+            count += 1
+            if count % 500 == 0:
+                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
             if (r.ent1, r.ent2) not in all_in_freebase:
                 # if its not in the database calculate the PMI
                 entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
@@ -569,9 +569,8 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
     while True:
         r = queue.get_nowait()
         found = False
-
         count += 1
-        if count % 250 == 0:
+        if count % 500 == 0:
             print multiprocessing.current_process(), "In Queue", queue.qsize()
 
         # check if its in cache, i.e., if tuple was already matched
@@ -709,6 +708,7 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
             #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
             #TODO: cache para o que não fez match
             no_matches.append(r)
+            print r.ent1, '\t', r.ent2
 
         if queue.empty() is True:
             break
@@ -775,6 +775,7 @@ def main():
     else:
         print "Invalid relationship type", rel_type
         print "Use: founder, acquired, headquarters, contained_by"
+        sys.exit(0)
 
     print "\nRelationship Type:", rel_type
     print "Arg1 Type:", e1_type
@@ -784,8 +785,10 @@ def main():
     b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, acronyms)
     assert len(b) > 0
     assert len(system_output) == len(not_in_database) + len(b)
+    print "\nTotal output", len(system_output)
     print "Found in Freebase", len(b)
     print "Not in Freebase", len(not_in_database)
+    print "\n"
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
     a = calculate_a(not_in_database, e1_type, e2_type, index)
