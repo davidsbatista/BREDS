@@ -88,7 +88,6 @@ def get_sentences(sentences, freebase, results):
             discard = True
         if discard is False:
             results.append(sentence)
-            print "added", sentence, len(sentence)
 
         if count % 50000 == 0:
             print multiprocessing.current_process(), "queue size", sentences.qsize()
@@ -123,6 +122,7 @@ def main():
     for l in results:
         selected_sentences.update(l)
 
+    #TODO: for the AFP and APW collection outputs 'ascii' codec can't encode character u'\xf6' in position 33: ordinal not in range(128)
     print "Writing sentences to disk"
     f = open("sentences_matched_freebase.txt", "w")
     for s in selected_sentences:
