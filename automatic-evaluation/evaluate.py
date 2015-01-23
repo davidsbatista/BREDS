@@ -14,9 +14,13 @@ import jellyfish
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
+from nltk import PunktWordTokenizer
+from nltk.corpus import stopwords
+from collections import defaultdict
+
 from Snowball.Sentence import Sentence
 from Snowball.Sentence import Relationship
-from collections import defaultdict
+
 
 # relational words to be used in calculating the set D with the proximity PMI
 founder = ['founder', 'co-founder', 'cofounder', 'founded by', 'started by']
@@ -202,13 +206,14 @@ def calculate_a(output, e1_type, e2_type, index):
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
+    num_cpus = 1
     results = [m.list() for _ in range(num_cpus)]
 
     # put output in a processed shared queue
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=proximity_pmi, args=(e1_type, e2_type, queue, index, results[i])) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i])) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -466,104 +471,6 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     break
 
 
-def proximity_pmi(e1_type, e2_type, queue, index, results):
-    """
-    sentences with tagged entities are indexed in whoosh
-    perform the following query
-    ent1 NEAR:X r NEAR:X ent2
-    X is the maximum number of words between the query elements.
-    """
-    tokenize = re.compile('\w+(?:-\w+)+|<[A-Z]+>[^<]+</[A-Z]+>|\w+', re.U)
-    entity = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
-    idx = open_dir(index)
-    count = 0
-    distance = 9
-    q_limit = 500
-    with idx.searcher() as searcher:
-        while True:
-            count += 1
-            if count % 50 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
-            r = queue.get_nowait()
-            n_1 = set()
-            n_2 = set()
-            n_3 = set()
-            # if its not in the database calculate the proximity PMI
-            if (r.ent1, r.ent2) not in all_in_freebase:
-                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
-                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
-                t1 = query.Term('sentence', entity1)
-                t3 = query.Term('sentence', entity2)
-
-                # Entities proximity query without relational words
-                q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
-                hits_1 = searcher.search(q1, limit=q_limit)
-
-                # Entities proximity considering relational words
-                if isinstance(r, ExtractedFact):
-                    tokens_rel = re.findall(tokenize, r.patterns)
-
-                elif isinstance(r, Relationship):
-                    tokens_rel = re.findall(tokenize, r.between)
-
-                token_terms = list()
-                for t in tokens_rel:
-                    if re.search(entity, t) is None:
-                        token_terms.append(query.Term('sentence', t))
-
-                l1 = [t for t in token_terms]
-                l1.insert(0, t1)
-                l2 = [t for t in token_terms]
-                l2.append(t3)
-
-                q2 = spans.SpanNear2(l1, slop=distance-1, ordered=True, mindist=1)
-                hits_2 = searcher.search(q2, limit=q_limit)
-
-                q3 = spans.SpanNear2(l2, slop=distance-1, ordered=True, mindist=1)
-                hits_3 = searcher.search(q3, limit=q_limit)
-
-                for d in hits_1:
-                    n_1.add(d.get("sentence"))
-
-                for d in hits_2:
-                    n_2.add(d.get("sentence"))
-
-                for d in hits_3:
-                    n_3.add(d.get("sentence"))
-
-                entities_occurr = len(hits_1)
-                entities_occurr_with_r = len(n_1.intersection(n_2).intersection(n_3))
-
-                try:
-                    assert not entities_occurr_with_r > entities_occurr
-                except AssertionError, e:
-                    print e
-                    print r.sentence
-                    print r.ent1
-                    print r.ent2
-                    print q1, len(hits_1)
-                    print q2, len(hits_2)
-                    print q3, len(hits_3)
-                    print "intersection", len(n_1.intersection(n_2).intersection(n_3))
-                    sys.exit(0)
-
-                if float(entities_occurr) > 0:
-                    if float(entities_occurr) > 1 and entities_occurr_with_r > 1:
-                        pmi = float(entities_occurr_with_r) / float(entities_occurr)
-                        if pmi > PMI:
-                            """
-                            # TODO: há coisas aqui que sao falsas, por exemplo: 'chief'
-                            if isinstance(r, ExtractedFact):
-                                print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
-                            elif isinstance(r, Relationship):
-                                print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                            """
-                            results.append(r)
-
-                if queue.empty() is True:
-                    break
-
-
 def string_matching_parallel(acronyms, matches, no_matches, database_1, database_2, database_3, queue):
     count = 0
     while True:
@@ -708,10 +615,96 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
             #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
             #TODO: cache para o que não fez match
             no_matches.append(r)
-            print r.ent1, '\t', r.ent2
+            if PRINT_NOT_FOUND is True:
+                print r.ent1, '\t', r.ent2
 
         if queue.empty() is True:
             break
+
+
+def proximity_pmi_a(e1_type, e2_type, queue, index, results):
+    """
+    #TODO: proximity_pmi with relation specific given relational words
+    :param e1_type:
+    :param e2_type:
+    :param queue:
+    :param index:
+    :param results:
+    :param rel_word:
+    :return:
+    """
+    """
+    sentences with tagged entities are indexed in whoosh
+    perform the following query
+    ent1 NEAR:X r NEAR:X ent2
+    X is the maximum number of words between the query elements.
+    """
+    idx = open_dir(index)
+    count = 0
+    q_limit = 500
+    with idx.searcher() as searcher:
+        while True:
+            r = queue.get_nowait()
+            count += 1
+            if count % 500 == 0:
+                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
+            if (r.ent1, r.ent2) not in all_in_freebase:
+                # if its not in the database calculate the PMI
+                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
+                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                t1 = query.Term('sentence', entity1)
+                t3 = query.Term('sentence', entity2)
+
+                # Entities proximity query without relational words
+                q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
+                hits = searcher.search(q1, limit=q_limit)
+
+                """
+                print "ent1", r.ent1
+                print "words", r.patterns
+                print "ent2", r.ent2
+                print q1
+                print "hits", len(hits)
+                """
+                rel_words = [word for word in PunktWordTokenizer().tokenize(r.patterns.lower()) if word not in stopwords.words('english')]
+                rel_words = set(rel_words)
+                """
+                print rel_words
+                """
+
+                # Entities proximity considering relational words
+                # From the results above count how many contain a relational word
+                hits_with_r = 0
+                for s in hits:
+                    sentence = s.get("sentence")
+                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+                    for s_r in s.relationships:
+                        if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
+                            for rel in rel_words:
+                                if rel in s_r.between:
+                                    hits_with_r += 1
+                                    break
+
+                    if not len(hits) >= hits_with_r:
+                        print "ERROR!"
+                        print "hits", len(hits)
+                        print "hits_with_r", hits_with_r
+                        print entity1, '\t', entity2
+                        print "\n"
+                        sys.exit(0)
+
+                if float(len(hits)) > 0:
+                    pmi = float(hits_with_r) / float(len(hits))
+                    if pmi > PMI:
+                        results.append(r)
+                        """
+                        if isinstance(r, ExtractedFact):
+                            print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
+                        elif isinstance(r, Relationship):
+                            print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                        """
+                if queue.empty() is True:
+                    break
 
 
 def main():
