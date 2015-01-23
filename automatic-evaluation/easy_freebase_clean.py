@@ -17,9 +17,43 @@ def collect_relationships(data):
     # load freebase entities to memory
     # select only a few entities, based on the relationships
 
-    rel_to_consider = ['Governance of', 'Leader of', 'Organization founded', 'Organization acquired',
-                       'Employment history', 'Venture Investment', 'Peer', 'Place founded', 'Sibling', 'Spouse',
-                       'Contained by']
+    rel_to_consider = ['Governance of', 'Leader of', 'Organization founded', 'Employment history',  # PER-ORG
+                       'Organization acquired', 'Venture Investment',                               # PER/ORG-ORG
+                       'Place founded',                                                             # ORG-LOC
+                       'location/mailing_address/citytown', 'Neighborhood of', 'Capital of',        # LOC-LOC
+                       'Spouse (or domestic partner)', 'Married To', 'Sibling', 'Peer']             # PER-PER
+
+    """
+    PER-PER
+    ==============================
+    Spouse (or domestic partner)
+    Married To
+    Sibling
+    Peer
+
+    LOC-LOC
+    =================================
+    location/mailing_address/citytown
+    Neighborhood of
+    Capital of
+
+    PER-ORG
+    =====================
+    Employment history
+    Leader of
+    Organization founded
+    Governance of
+    Organization acquired
+
+    ORG-ORG
+    =====================
+    Organization acquired
+    Venture Investment
+
+    ORG-LOC
+    =============
+    Place founded
+    """
 
     relationships = defaultdict(list)
 
