@@ -46,7 +46,6 @@ class Pattern(object):
 
     def update_selectivity(self, t, config):
         for s in config.seed_tuples:
-            print s.e1, '\t', s.e2
             if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
                 if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
                     self.positive += 1
