@@ -176,7 +176,7 @@ class BREADS(object):
                     # use past confidence values to calculate new confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
-                    if iter > 1:
+                    if iter > 0:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # sort tuples by confidence and print
@@ -292,6 +292,11 @@ class BREADS(object):
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
+
+                    print t.sentence
+                    print t.patterns_words
+                    print "\n"
+
                     try:
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
