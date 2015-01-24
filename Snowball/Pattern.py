@@ -11,6 +11,7 @@ class Pattern(object):
     def __init__(self, t=None):
         self.positive = 0
         self.negative = 0
+        self.unknown = 0
         self.confidence = 0
         self.tuples = list()
         self.tuple_patterns = set()
@@ -45,11 +46,15 @@ class Pattern(object):
 
     def update_selectivity(self, t, config):
         for s in config.seed_tuples:
+            print s.e1, '\t', s.e2
             if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
                 if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
                     self.positive += 1
                 else:
                     self.negative += 1
+            else:
+                self.unknown += 1
+
         self.update_confidence()
 
     def merge_tuple_patterns(self):

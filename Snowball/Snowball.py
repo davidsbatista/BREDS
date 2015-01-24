@@ -101,12 +101,24 @@ class Snowball(object):
                 self.cluster_tuples(self, matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
-                new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
+                new_patterns = [p for p in self.patterns if len(p.tuples) >= self.config.min_pattern_support]
                 self.patterns = new_patterns
                 print "\n", len(self.patterns), "patterns generated"
                 if i == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
                     sys.exit(0)
+
+                else:
+                    print "\nPatterns generated from clustering:"
+                    for p in self.patterns:
+                        p.merge_tuple_patterns()
+                        print "Pattern", p.tuple_patterns
+                        print "Positive", p.positive
+                        print "Negative", p.negative
+                        print "Unknown", p.unknown
+                        print "Tuples", len(p.tuples)
+                        print "Pattern Confidence", p.confidence
+                        print "\n"
 
                 # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
                 # This was already collect and its stored in: self.processed_tuples
@@ -127,8 +139,6 @@ class Snowball(object):
 
                     if sim_best >= self.config.threshold_similarity:
                         # if this instance was already extracted, check if it was by this extraction pattern
-                        # if it was not extracted by this pattern, associated this pattern with it along with the
-                        # similarity score
                         extraction_pattern.update_selectivity(t, self.config)
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
@@ -156,8 +166,17 @@ class Snowball(object):
                     # use past confidence values to calculate new confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
-                    if iter > 1:
+                    if iter > 0:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
+
+                    """
+                    if t.confidence == 0:
+                        print t.e1, '\t', t.e2
+                        print t.sentence
+                        for p in self.candidate_tuples.get(t):
+                            print p[0].confidence
+                            print p[1]
+                    """
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
