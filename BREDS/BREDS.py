@@ -14,11 +14,12 @@ from numpy import dot
 from gensim import matutils
 from nltk import PunktWordTokenizer
 from collections import defaultdict
+from Word2VecWrapper import Word2VecWrapper
+from Snowball.Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
-from Snowball.Sentence import Sentence
-from Word2VecWrapper import Word2VecWrapper
+from Seed import Seed
 
 
 # usefull stuff for debugging
@@ -28,11 +29,11 @@ PRINT_PATTERNS = False
 
 class BREADS(object):
 
-    def __init__(self, config_file, seeds_file):
+    def __init__(self, config_file, seeds_file, negative_seeds):
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file)
+        self.config = Config(config_file, seeds_file, negative_seeds)
 
     def generate_tuples(self, sentences_file):
         """
@@ -109,10 +110,6 @@ class BREADS(object):
                 self.patterns = new_patterns
                 print "\n", len(self.patterns), "patterns generated"
 
-                if PRINT_PATTERNS is True:
-                    for p in self.patterns:
-                        print p.patterns_words
-
                 if i == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
                     sys.exit(0)
@@ -159,10 +156,27 @@ class BREADS(object):
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
 
-                print "\nExtraction patterns confidence:"
-                tmp = sorted(self.patterns)
-                for p in tmp:
-                    print p, '\t', p.patterns_words, '\t', p.confidence
+                # normalize patterns confidence
+                # find the maximum value of confidence and divide all by the maximum
+                max_confidence = 0
+                for p in self.patterns:
+                    if p.confidence > max_confidence:
+                        max_confidence = p.confidence
+
+                for p in self.patterns:
+                    p.confidence = float(p.confidence) / float(max_confidence)
+
+                if PRINT_PATTERNS is True:
+                    print "\nPatterns:"
+                    for p in self.patterns:
+                        p.merge_tuple_patterns()
+                        print "Pattern", p.tuple_patterns
+                        print "Positive", p.positive
+                        print "Negative", p.negative
+                        print "Unknown", p.unknown
+                        print "Tuples", len(p.tuples)
+                        print "Pattern Confidence", p.confidence
+                        print "\n"
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -196,8 +210,8 @@ class BREADS(object):
                     print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
-                            self.config.seed_tuples.add(t)
-                            print t.e1, t.e2, t.confidence
+                            seed = Seed(t.e1, t.e2)
+                            self.config.seed_tuples.add(seed)
 
                 # increment the number of iterations
                 i += 1
@@ -292,11 +306,6 @@ class BREADS(object):
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
-
-                    print t.sentence
-                    print t.patterns_words
-                    print "\n"
-
                     try:
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
@@ -350,7 +359,8 @@ def main():
     configuration = sys.argv[1]
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
-    breads = BREADS(configuration, seeds_file)
+    negative_seeds = sys.argv[4]
+    breads = BREADS(configuration, seeds_file, negative_seeds)
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
         breads.start(tuples=sentences_file)

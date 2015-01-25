@@ -3,6 +3,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 from numpy import zeros
 from Word2VecWrapper import Word2VecWrapper
+from math import log
 
 
 class Pattern(object):
@@ -11,6 +12,7 @@ class Pattern(object):
         self.single_vector = zeros(200)
         self.positive = 0
         self.negative = 0
+        self.unknown = 0
         self.confidence = 0
         self.tuples = set()
         self.patterns_words = set()
@@ -36,8 +38,14 @@ class Pattern(object):
         else:
             return 0
 
+    def update_confidence_2003(self, config):
+        if self.positive > 0:
+            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive + self.unknown * config.wUnk + self.negative * config.wNeg))
+        elif self.positive == 0:
+            self.confidence = 0
+
     def update_confidence(self):
-        if self.positive or self.negative > 0:
+        if self.positive > 0 or self.negative > 0:
             self.confidence = float(self.positive) / float(self.positive + self.negative)
 
     def add_tuple(self, t):
@@ -63,4 +71,12 @@ class Pattern(object):
                     self.positive += 1
                 else:
                     self.negative += 1
-        self.update_confidence()
+            else:
+                for n in config.negative_seed_tuples:
+                    if n.e1 == t.e1 or n.e1.strip() == t.e1.strip():
+                        if n.e2 == t.e2.strip() or n.e2.strip() == t.e2.strip():
+                            self.negative += 1
+                self.unknown += 1
+
+        #self.update_confidence()
+        self.update_confidence_2003(config)
