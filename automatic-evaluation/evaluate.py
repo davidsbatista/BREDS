@@ -173,7 +173,6 @@ def process_freebase(data, rel_type):
                 database_1[(e2.strip(), e1.strip())].append(r)
                 database_2[e2.strip()].append(e1.strip())
                 database_3[e1.strip()].append(e2.strip())
-
             else:
                 database_1[(e1.strip(), e2.strip())].append(r)
                 database_2[e1.strip()].append(e2.strip())
@@ -206,7 +205,6 @@ def calculate_a(output, e1_type, e2_type, index):
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
-    num_cpus = 1
     results = [m.list() for _ in range(num_cpus)]
 
     # put output in a processed shared queue
@@ -226,7 +224,7 @@ def calculate_a(output, e1_type, e2_type, index):
 
 
 @timecall
-def calculate_b(output, database_1, database_2, database_3, acronyms):
+def calculate_b(output, database_1, database_2, database_3):
     # intersection between the system output and the database (i.e., freebase),
     # it is assumed that every fact in this region is correct
     m = multiprocessing.Manager()
@@ -239,7 +237,7 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=string_matching_parallel, args=(acronyms, results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
 
     for proc in processes:
         proc.start()
@@ -259,7 +257,7 @@ def calculate_b(output, database_1, database_2, database_3, acronyms):
 
 
 @timecall
-def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type, e2_type, rel_type):
+def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type):
     # contains the database facts described in the corpus but not extracted by the system
     #
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
@@ -328,7 +326,7 @@ def calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type
         for r in g_dash_set:
             queue.put(r)
 
-        processes = [multiprocessing.Process(target=string_matching_parallel, args=(acronyms, results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
+        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
 
         for proc in processes:
             proc.start()
@@ -471,7 +469,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     break
 
 
-def string_matching_parallel(acronyms, matches, no_matches, database_1, database_2, database_3, queue):
+def string_matching_parallel(matches, no_matches, database_1, database_2, database_3, queue):
     count = 0
     while True:
         r = queue.get_nowait()
@@ -492,6 +490,16 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                 all_in_freebase[(r.ent1, r.ent2)] = "Found"
                 found = True
 
+        if found is False:
+            #TODO: cache para o que não fez match
+            no_matches.append(r)
+            if PRINT_NOT_FOUND is True:
+                print r.ent1, '\t', r.ent2
+
+        if queue.empty() is True:
+            break
+
+        """
         if found is False:
             # if e1 and e2 are both acronyms
             if is_acronym(r.ent1) and is_acronym(r.ent2):
@@ -527,7 +535,6 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
-
         # FOUNDER   : r.ent1:ORG   r.ent2:PER
         # DATABASE_1: (ORG,PER)
         # DATABASE_2: ORG   list<PER>
@@ -545,12 +552,6 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
                     jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                     if jaccardi >= 0.5:
                         #print r.ent1, '\t', database_3[r.ent2], "MATCHED"
-                        """
-                        print "Set1", set(new_o.split())
-                        print "Set2", set(r.ent1.split())
-                        print float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
-                        print "\n"
-                        """
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
@@ -600,26 +601,16 @@ def string_matching_parallel(acronyms, matches, no_matches, database_1, database
 
                         else:
                             pass
-                            """
                             print k, r.ent1, score_1
                             # if company matched with high score, try to match name
                             print e1, '\t', r.ent2, score_2
                             # TODO: look for how many common names, jaccardi
                             print "\n"
-                            """
 
                     if found is True:
                         break
+        """
 
-        if found is False:
-            #TODO: "FARC Revolutionary Armed Forces of Colombia" -> "FARC"
-            #TODO: cache para o que não fez match
-            no_matches.append(r)
-            if PRINT_NOT_FOUND is True:
-                print r.ent1, '\t', r.ent2
-
-        if queue.empty() is True:
-            break
 
 
 def proximity_pmi_a(e1_type, e2_type, queue, index, results):
@@ -728,7 +719,7 @@ def main():
 
     if len(sys.argv) == 1:
         print "No arguments"
-        print "Use: evaluation.py system_output database corpus index acronyms rel_type"
+        print "Use: evaluation.py system_output database corpus index rel_type"
         print "\n"
         sys.exit(0)
 
@@ -737,7 +728,7 @@ def main():
     print len(system_output), "system output relationships loaded"
 
     # relationship type
-    rel_type = sys.argv[6]
+    rel_type = sys.argv[5]
 
     # load freebase relationships as the database
     database_1, database_2, database_3 = process_freebase(sys.argv[2], rel_type)
@@ -748,9 +739,6 @@ def main():
 
     # index to be used to estimate proximity PMI
     index = sys.argv[4]
-
-    acronyms = load_acronyms(sys.argv[5])
-    print len(acronyms), "acronyms loaded"
 
     # entities semantic type
     if rel_type == 'founder':
@@ -775,7 +763,7 @@ def main():
     print "Arg2 Type:", e2_type
 
     print "\nCalculating set B: intersection between system output and database"
-    b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, acronyms)
+    b, not_in_database = calculate_b(system_output, database_1, database_2, database_3)
     assert len(b) > 0
     assert len(system_output) == len(not_in_database) + len(b)
     print "\nTotal output", len(system_output)
@@ -806,7 +794,7 @@ def main():
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
-    c, superset = calculate_c(corpus, acronyms, database_1, database_2, database_3, b, e1_type, e2_type, rel_type)
+    c, superset = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type)
     assert len(c) > 0
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
