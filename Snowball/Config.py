@@ -15,9 +15,10 @@ from VectorSpaceModel import VectorSpaceModel
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file, sentences_file):
+    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file):
 
         self.seed_tuples = set()
+        self.negative_seed_tuples = set()
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words('english')
@@ -28,6 +29,12 @@ class Config(object):
 
             if line.startswith("wUpdt"):
                 self.wUpdt = float(line.split("=")[1])
+
+            if line.startswith("wUnk"):
+                self.wUnk = float(line.split("=")[1])
+
+            if line.startswith("wNeg"):
+                self.wNeg = float(line.split("=")[1])
 
             if line.startswith("number_iterations"):
                 self.number_iterations = int(line.split("=")[1])
@@ -78,6 +85,7 @@ class Config(object):
             f.close()
 
         self.read_seeds(seeds_file)
+        self.read_negative_seeds(negative_seeds)
         fileinput.close()
 
         print "\nConfiguration parameters"
@@ -85,16 +93,20 @@ class Config(object):
         print "e1 type:", self.e1_type
         print "e2 type:", self.e2_type
         print "instance confience:", self.instance_confidance
-        print "min_pattern_support", self.min_pattern_support
+        print "min_pattern_support:", self.min_pattern_support
         print "alpha: ", self.alpha
         print "beta : ", self.beta
         print "gamma: ", self.gamma
         print "iterations: ", self.number_iterations
         print "threshold_similarity: ", self.threshold_similarity
         print "iteration wUpdt:", self.wUpdt
+        print "negative seeds wNeg:", self.wNeg
+        print "unknown seeds wUnk:", self.wUnk
         print "context window:", self.context_window_size
         print "max tokens away:", self.max_tokens_away
         print "min tokens away:", self.min_tokens_away
+        print "seeds:", len(self.seed_tuples)
+        print "negative seeds:", len(self.negative_seed_tuples)
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):
@@ -109,3 +121,17 @@ class Config(object):
                 e2 = line.split(";")[1].strip()
                 seed = Seed(e1, e2)
                 self.seed_tuples.add(seed)
+
+    def read_negative_seeds(self, negative_seeds):
+        for line in fileinput.input(negative_seeds):
+                if line.startswith("#") or len(line) == 1:
+                    continue
+                if line.startswith("e1"):
+                    self.e1_type = line.split(":")[1].strip()
+                elif line.startswith("e2"):
+                    self.e2_type = line.split(":")[1].strip()
+                else:
+                    e1 = line.split(";")[0].strip()
+                    e2 = line.split(";")[1].strip()
+                    seed = Seed(e1, e2)
+                    self.negative_seed_tuples.add(seed)

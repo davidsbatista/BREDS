@@ -17,15 +17,18 @@ from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
+from Seed import Seed
+
+PRINT_PATTERNS = True
 
 
 class Snowball(object):
 
-    def __init__(self, config_file, seeds_file, sentences_file):
+    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file):
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, sentences_file)
+        self.config = Config(config_file, seeds_file, negative_seeds, sentences_file)
 
     def generate_tuples(self, sentences_file):
         """
@@ -66,15 +69,16 @@ class Snowball(object):
             f.close()
 
     def start(self, tuples):
-        """
-        starts a bootstrap iteration
-        """
         if tuples is not None:
             f = open(tuples, "r")
             print "\nLoading processed tuples from disk..."
             self.processed_tuples = cPickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
+
+        """
+        starts a bootstrap iteration
+        """
         i = 0
         while i <= self.config.number_iterations:
             print "\n============================================="
@@ -108,18 +112,6 @@ class Snowball(object):
                     print "No patterns generated"
                     sys.exit(0)
 
-                else:
-                    print "\nPatterns generated from clustering:"
-                    for p in self.patterns:
-                        p.merge_tuple_patterns()
-                        print "Pattern", p.tuple_patterns
-                        print "Positive", p.positive
-                        print "Negative", p.negative
-                        print "Unknown", p.unknown
-                        print "Tuples", len(p.tuples)
-                        print "Pattern Confidence", p.confidence
-                        print "\n"
-
                 # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
                 # This was already collect and its stored in: self.processed_tuples
                 #
@@ -129,17 +121,19 @@ class Snowball(object):
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
                 print "\nCollecting instances based on extraction patterns"
+                pattern_best = None
                 for t in self.processed_tuples:
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         score = self.similarity(self, t, extraction_pattern)
+                        if score > self.config.threshold_similarity:
+                            extraction_pattern.update_selectivity(t, self.config)
                         if score > sim_best:
                             sim_best = score
                             pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
                         # if this instance was already extracted, check if it was by this extraction pattern
-                        extraction_pattern.update_selectivity(t, self.config)
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
@@ -153,6 +147,28 @@ class Snowball(object):
                     # update extraction pattern confidence
                     extraction_pattern.confidence_old = extraction_pattern.confidence
                     extraction_pattern.update_confidence()
+
+                # normalize patterns confidence
+                # find the maximum value of confidence and divide all by the maximum
+                max_confidence = 0
+                for p in self.patterns:
+                    if p.confidence > max_confidence:
+                        max_confidence = p.confidence
+
+                for p in self.patterns:
+                    p.confidence = float(p.confidence) / float(max_confidence)
+
+                if PRINT_PATTERNS is True:
+                    print "\nPatterns:"
+                    for p in self.patterns:
+                        p.merge_tuple_patterns()
+                        print "Pattern", p.tuple_patterns
+                        print "Positive", p.positive
+                        print "Negative", p.negative
+                        print "Unknown", p.unknown
+                        print "Tuples", len(p.tuples)
+                        print "Pattern Confidence", p.confidence
+                        print "\n"
 
                 # update tuple confidence based on patterns confidence
                 print "\nCalculating tuples confidence"
@@ -184,8 +200,8 @@ class Snowball(object):
                     print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
-                            self.config.seed_tuples.add(t)
-                            print t.e1, '\t', t.e2
+                            seed = Seed(t.e1, t.e2)
+                            self.config.seed_tuples.add(seed)
 
                 # increment the number of iterations
                 i += 1
@@ -305,7 +321,8 @@ def main():
     configuration = sys.argv[1]
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
-    snowball = Snowball(configuration, seeds_file, sentences_file)
+    negative_seeds = sys.argv[4]
+    snowball = Snowball(configuration, seeds_file, negative_seeds, sentences_file)
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
         snowball.start(tuples=sentences_file)
