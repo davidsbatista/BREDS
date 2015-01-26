@@ -62,8 +62,8 @@ class Snowball(object):
                         self.processed_tuples.append(t)
             f_sentences.close()
 
-            print "\n", len(self.processed_tuples), "tuples generated"
-
+            print "\n", len(self.processed_tuples), "relationships generated"
+            print "Dumping relationships to file"
             f = open("processed_tuples.pkl", "wb")
             cPickle.dump(self.processed_tuples, f)
             f.close()
