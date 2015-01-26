@@ -84,6 +84,8 @@ class Config(object):
         print "iterations: ", self.number_iterations
         print "threshold_similarity: ", self.threshold_similarity
         print "iteration wUpdt:", self.wUpdt
+        print "negative seeds wNeg:", self.wNeg
+        print "unknown seeds wUnk:", self.wUnk
         print "similarity:", self.similarity
         print "word2vecmodel: ", self.word2vecmodelpath
         print "context window:", self.context_window_size
