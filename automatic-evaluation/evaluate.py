@@ -23,7 +23,7 @@ from Snowball.Sentence import Relationship
 
 
 # relational words to be used in calculating the set D with the proximity PMI
-founder = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
+founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
 acquired = ['owns', 'acquired']
 headquarters = ['headquarters', 'headquartered']
 
@@ -254,7 +254,7 @@ def calculate_a(output, e1_type, e2_type, index):
 
 
 @timecall
-def calculate_b(output, database_1, database_2, database_3):
+def calculate_b(output, database_1, database_2, database_3, e1_type, e2_type):
     # intersection between the system output and the database (i.e., freebase),
     # it is assumed that every fact in this region is correct
     m = multiprocessing.Manager()
@@ -268,7 +268,7 @@ def calculate_b(output, database_1, database_2, database_3):
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i], database_1, database_2, database_3, queue, e1_type, e2_type)) for i in range(num_cpus)]
 
     for proc in processes:
         proc.start()
@@ -356,12 +356,13 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         queue = manager.Queue()
         results = [manager.list() for _ in range(num_cpus)]
         no_matches = [manager.list() for _ in range(num_cpus)]
+        wrong = [manager.list() for _ in range(num_cpus)]
 
         # passar tudo para a queue
         for r in g_dash_set:
             queue.put(r)
 
-        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], database_1, database_2, database_3, queue)) for i in range(num_cpus)]
+        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i], database_1, database_2, database_3, queue, e1_type, e2_type)) for i in range(num_cpus)]
 
         for proc in processes:
             proc.start()
@@ -403,14 +404,12 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         queue.put(r)
     print "queue size", queue.qsize()
 
-    if rel_type == "founder":
-        rel_words = founder
+    if rel_type == "founded":
+        rel_words = founded
     elif rel_type == "acquired":
         rel_words = acquired
     elif rel_type == 'headquarters':
         rel_words = headquarters
-    elif rel_type == "contained_by":
-        rel_words = contained_by
 
     # calculate PMI for r not in database
     processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
@@ -504,8 +503,10 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     break
 
 
-def string_matching_parallel(matches, no_matches, incorrect, database_1, database_2, database_3, queue):
+def string_matching_parallel(matches, no_matches, wrong, database_1, database_2, database_3, queue, e1_type, e2_type):
     count = 0
+    incorrect_1 = False
+    incorrect_2 = False
     while True:
         r = queue.get_nowait()
         found = False
@@ -518,149 +519,106 @@ def string_matching_parallel(matches, no_matches, incorrect, database_1, databas
             matches.append(r)
             found = True
 
+        # check for a relationshi with a direct string matching
         if found is False:
-            # check both entities for a direct string matching
             if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
                 matches.append(r)
                 all_in_freebase[(r.ent1, r.ent2)] = "Found"
                 found = True
 
         if found is False:
-            #TODO: cache para o que não fez match
-            #TODO: distinguir entre not_found e wrong
+            # database_2: arg_1 rel list(arg_2)
+            # check for a direct string matching with all possible arg2 entities
+            # FOUNDER   : r.ent1:ORG   r.ent2:PER
+            # DATABASE_1: (ORG,PER)
+            # DATABASE_2: ORG   list<PER>
+            # DATABASE_3: PER   list<ORG>
+
             ent2 = database_2[r.ent1.decode("utf8")]
             if len(ent2) > 0:
                 if r.ent2 in ent2:
-                    # matched
+                    # found a match!
                     matches.append(r)
                     all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                else:
-                    # wrong
-                    print "INCORRECT", r.ent1, '\t', r.ent2, ent2
-                    print r.sentence
-                    print "\n"
-                    incorrect.append(r)
+                    found = True
 
-            else:
-                # not found
-                no_matches.append(r)
-                if PRINT_NOT_FOUND is True:
-                    print r.ent1, '\t', r.ent2
-
-        if queue.empty() is True:
-            break
-
-        """
+        # if a direct string matching occur with arg_2, check for a direct string matching
+        # with all possible arg1 entities
         if found is False:
-            # if e1 and e2 are both acronyms
-            if is_acronym(r.ent1) and is_acronym(r.ent2):
-                expansions_e1 = acronyms.get(r.ent1)
-                expansions_e2 = acronyms.get(r.ent2)
-                if expansions_e1 is not None and expansions_e2 is not None:
-                    for i in itertools.product(expansions_e1, expansions_e2):
-                        e1 = i[0]
-                        e2 = i[1]
-                        if e2 in database_2[e1]:
-                            matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                            found = True
+            arg1_list = database_3[r.ent2]
+            if arg1_list is not None:
+                for arg1 in arg1_list:
+                    if e1_type == 'ORG':
+                        new_arg1 = re.sub(r" Corporation| Inc\.", "", arg1)
+                    else:
+                        new_arg1 = arg1
 
-        if found is False:
-            # if e1 is acronym
-            if is_acronym(r.ent1) and not is_acronym(r.ent2):
-                expansions = acronyms.get(r.ent1)
-                if expansions is not None:
-                    for e in expansions:
-                        if r.ent2 in database_2[e]:
-                            matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                            found = True
-
-        if found is False:
-            # if e2 is acronym
-            if is_acronym(r.ent2) and not is_acronym(r.ent1):
-                expansions = acronyms.get(r.ent2)
-                if expansions is not None:
-                    for e in expansions:
-                        if r.ent1 in database_3[e]:
-                            matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                            found = True
-        # FOUNDER   : r.ent1:ORG   r.ent2:PER
-        # DATABASE_1: (ORG,PER)
-        # DATABASE_2: ORG   list<PER>
-        # DATABASE_3: PER   list<ORG>
-
-        # direct matching with person name
-        if found is False:
-            organisations = database_3[r.ent2]
-            if organisations is not None:
-                for o in organisations:
-                    new_o = re.sub(r" Corporation| Inc\.", "", o)
-                    # person name matched 100% check if organisation match with jaccardi
-                    set_1 = set(new_o.split())
+                    # Jaccardi
+                    set_1 = set(new_arg1.split())
                     set_2 = set(r.ent1.split())
                     jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                     if jaccardi >= 0.5:
-                        #print r.ent1, '\t', database_3[r.ent2], "MATCHED"
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
 
-                    else:
-                        score = jellyfish.jaro_winkler(new_o.upper(), r.ent1.upper())
+                    # Jaro Winkler
+                    elif jaccardi <= 0.5:
+                        score = jellyfish.jaro_winkler(new_arg1.upper(), r.ent1.upper())
                         if score >= 0.9:
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
 
-        # direct matching with organisation name
+                if found is False:
+                    incorrect_1 = True
+
+        # if a direct string matching occur with arg_1, check for a direct string matching
+        # with all possible arg_2 entities
         if found is False:
-            names = database_2[r.ent1]
-            if names is not None:
-                for n in names:
-                    # organisation name matched 100% check if names match with jaccardi
-                    set_1 = set(n.split())
+            arg2_list = database_2[r.ent1]
+            if arg2_list is not None:
+                for arg2 in arg2_list:
+                    # Jaccardi
+                    if e1_type == 'ORG':
+                        new_arg2 = re.sub(r" Corporation| Inc\.", "", arg2)
+                    else:
+                        new_arg2 = arg2
+                    set_1 = set(new_arg2.split())
                     set_2 = set(r.ent2.split())
                     jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                     if jaccardi >= 0.5:
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
-                    else:
-                        score = jellyfish.jaro_winkler(n.upper(), r.ent2.upper())
+
+                    # Jaro Winkler
+                    elif jaccardi <= 0.5:
+                        score = jellyfish.jaro_winkler(new_arg2.upper(), r.ent2.upper())
                         if score >= 0.9:
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
 
-        # approximate string similarity
-        # TODO: usar similaridade de Jaccardi aqui também
-        if found is False:
-            for k in database_2.keys():
-                # remove 'Corporation' and 'Inc.' from companies names to ease the string machting
-                new_k = re.sub(r" Corporation| Inc\.", "", k)
-                score_1 = jellyfish.jaro_winkler(new_k.upper(), r.ent1.upper())
-                if score_1 >= 0.9:
-                    for e1 in database_2[k]:
-                        score_2 = jellyfish.jaro_winkler(e1.upper(), r.ent2.upper())
-                        if score_2 >= 0.9:
-                            matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                            found = True
-                            break
+                if found is False:
+                    incorrect_2 = True
 
-                        else:
-                            pass
-                            print k, r.ent1, score_1
-                            # if company matched with high score, try to match name
-                            print e1, '\t', r.ent2, score_2
-                            # TODO: look for how many common names, jaccardi
-                            print "\n"
+        if incorrect_1 is True and incorrect_2 is True and found is False:
+            """
+            print "INCORRECT", r.ent1, '\t', r.ent2
+            print r.sentence
+            print "\n"
+            """
+            wrong.append(r)
 
-                    if found is True:
-                        break
-        """
+        elif found is False:
+            # not found
+            no_matches.append(r)
+            if PRINT_NOT_FOUND is True:
+                print r.ent1, '\t', r.ent2
+
+        if queue.empty() is True:
+            break
 
 
 def proximity_pmi_a(e1_type, e2_type, queue, index, results):
@@ -741,12 +699,10 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results):
                     pmi = float(hits_with_r) / float(len(hits))
                     if pmi > PMI:
                         results.append(r)
-                        """
                         if isinstance(r, ExtractedFact):
                             print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
                         elif isinstance(r, Relationship):
                             print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                        """
                 if queue.empty() is True:
                     break
 
@@ -822,19 +778,17 @@ def main():
     print "Arg2 Type:", e2_type
 
     print "\nCalculating set B: intersection between system output and database"
-    b, not_in_database, incorrect = calculate_b(system_output, database_1, database_2, database_3)
-    """
-    print "\nTotal output", len(system_output)
-    print "Found in Freebase", len(b)
+    b, not_in_database, incorrect = calculate_b(system_output, database_1, database_2, database_3, e1_type, e2_type)
+
+    print "Total output", len(system_output)
+    print "Correct in Freebase", len(b)
+    print "Not in Freebase", len(not_in_database)
     print "Incorrect", len(incorrect)
-    print "Not Found", len(not_in_database)
-    print "\n"
-    """
+
     assert len(system_output) == len(not_in_database) + len(b) + len(incorrect)
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
     a = calculate_a(not_in_database, e1_type, e2_type, index)
-    #assert len(a) > 0
 
     print "Total output", len(system_output)
     print "Correct in Freebase", len(b)
@@ -850,8 +804,6 @@ def main():
     if PRINT_NOT_FOUND is True:
         for r in sorted(set(not_found)):
             print r.ent1, '\t', r.patterns, '\t', r.ent2
-
-    """
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
@@ -871,31 +823,47 @@ def main():
     print "|c| =", len(c)
     print "|d| =", len(d)
     print "|S| =", len(system_output)
+    print "Relationships incorrect", len(set(incorrect))
     print "Relationships not evaluated", len(set(not_found))
-
-    """
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
         f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
     f.close()
 
+    # Dump sets to file
+    f = open(rel_type+"_set_d.txt", "w")
+    for r in set(d):
+        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
+    f.close()
+
+    f = open(rel_type+"_set_c.txt", "w")
+    for r in set(c):
+        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
+    f.close()
+
+    f = open(rel_type+"_set_b.txt", "w")
+    for r in set(b):
+        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+    f.close()
+
+    f = open(rel_type+"_set_a.txt", "w")
+    for r in set(a):
+        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+    f.close()
+
     a = set(a)
     b = set(b)
     output = set(system_output)
-
     precision = float(len(a) + len(b)) / float(len(output)-float(len(not_found)))
-
-    #recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
-    #f1 = 2*(precision*recall)/(precision+recall)
+    recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
+    f1 = 2*(precision*recall)/(precision+recall)
 
     print "\nPrecision: ", precision
-
-    """
     print "Recall   : ", recall
     print "F1   : ", f1
     print "\n"
-    """
+
 
 if __name__ == "__main__":
     main()
