@@ -715,7 +715,7 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                             print r.ent1, '\t', r.between, '\t', r.ent2, pmi
                         """
                     else:
-                        not_found.append(r)
+                        not_found.append((r, pmi))
                 else:
                     print q1
                     print "HITS", len(hits)
@@ -768,7 +768,8 @@ def main():
     corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
 
     # index to be used to estimate proximity PMI
-    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
+    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
+    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
 
     # entities semantic type
     if rel_type == 'founded':
@@ -803,7 +804,6 @@ def main():
     print "Correct in Freebase", len(b)
     print "Not in Freebase", len(not_in_database)
     print "Incorrect", len(incorrect)
-
     assert len(system_output) == len(not_in_database) + len(b) + len(incorrect)
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
@@ -814,7 +814,6 @@ def main():
     print "Correct in Corpus", len(a)
     print "Not Found/Incorrect", len(not_found)
     print "\n"
-
     assert len(system_output) == len(a) + len(b) + len(not_found)
 
     if PRINT_NOT_FOUND is True:
@@ -828,28 +827,30 @@ def main():
     c, superset = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type)
     assert len(c) > 0
 
+    uniq_c = set()
+    for r in c:
+        uniq_c.add((r.ent1, r.ent2))
+
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
     d = calculate_d(superset, a, e1_type, e2_type, index, rel_type)
     assert len(d) > 0
 
+    uniq_d = set()
+    for r in d:
+        uniq_d.add((r.ent1, r.ent2))
+
     print "|a| =", len(a)
     print "|b| =", len(b)
-    print "|c| =", len(c)
-    print "|d| =", len(d)
+    print "|c| =", len(c), "(", len(uniq_c), ")"
+    print "|d| =", len(d), "(", len(uniq_d), ")"
     print "|S| =", len(system_output)
-    print "Relationships incorrect", len(set(incorrect))
     print "Relationships not evaluated", len(set(not_found))
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
-        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
-    f.close()
-
-    f = open(rel_type+"_incorrect.txt", "w")
-    for r in set(incorrect):
-        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+        f.write(r[0].ent1+'\t'+r.patterns+'\t'+r[0].ent2+'\tPMI', str(r[1])+'\n')
     f.close()
 
     # Dump sets to file
@@ -876,8 +877,8 @@ def main():
     a = set(a)
     b = set(b)
     output = set(system_output)
-    precision = float(len(a) + len(b)) / float(len(output)-float(len(not_found)))
-    recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(c) + len(d))
+    precision = float(len(a) + len(b)) / float(len(output))
+    recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
     f1 = 2*(precision*recall)/(precision+recall)
 
     print "\nPrecision: ", precision
