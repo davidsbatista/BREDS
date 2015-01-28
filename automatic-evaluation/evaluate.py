@@ -8,7 +8,6 @@ import re
 import time
 import sys
 import cPickle
-import itertools
 import jellyfish
 
 from whoosh.index import open_dir, os
@@ -231,17 +230,22 @@ def load_dbpedia(data, database_1, database_2):
 
 
 @timecall
-def calculate_a(output, e1_type, e2_type, index):
+def calculate_a(output, incorrect, e1_type, e2_type, index):
+
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
     results = [m.list() for _ in range(num_cpus)]
+    not_found = [m.list() for _ in range(num_cpus)]
 
     # put output in a processed shared queue
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i])) for i in range(num_cpus)]
+    for r in incorrect:
+        queue.put(r)
+
+    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i], not_found[i])) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -250,7 +254,12 @@ def calculate_a(output, e1_type, e2_type, index):
     a = list()
     for l in results:
         a.extend(l)
-    return a
+
+    wrong = list()
+    for l in not_found:
+        wrong.extend(l)
+
+    return a, wrong
 
 
 @timecall
@@ -621,7 +630,7 @@ def string_matching_parallel(matches, no_matches, wrong, database_1, database_2,
             break
 
 
-def proximity_pmi_a(e1_type, e2_type, queue, index, results):
+def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
     """
     #TODO: proximity_pmi with relation specific given relational words
     :param e1_type:
@@ -697,12 +706,22 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results):
 
                 if float(len(hits)) > 0:
                     pmi = float(hits_with_r) / float(len(hits))
-                    if pmi > PMI:
+                    if pmi >= PMI:
                         results.append(r)
+                        """
                         if isinstance(r, ExtractedFact):
                             print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
                         elif isinstance(r, Relationship):
                             print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                        """
+                    else:
+                        not_found.append(r)
+                else:
+                    print q1
+                    print "HITS", len(hits)
+                    #print r.ent1, '\t', r.patterns, '\t', r.ent2
+                    not_found.append(r)
+                    print "\n"
                 if queue.empty() is True:
                     break
 
@@ -788,18 +807,15 @@ def main():
     assert len(system_output) == len(not_in_database) + len(b) + len(incorrect)
 
     print "\nCalculation set A: correct facts from system output not in the database (proximity PMI)"
-    a = calculate_a(not_in_database, e1_type, e2_type, index)
+    a, not_found = calculate_a(not_in_database, incorrect, e1_type, e2_type, index)
 
     print "Total output", len(system_output)
     print "Correct in Freebase", len(b)
     print "Correct in Corpus", len(a)
-    print "Incorrect", len(incorrect)
-    print "Not Found", len(not_in_database)-len(a)
+    print "Not Found/Incorrect", len(not_found)
     print "\n"
-    not_found = list()
-    for r in not_in_database:
-        if r not in a:
-            not_found.append(r)
+
+    assert len(system_output) == len(a) + len(b) + len(not_found)
 
     if PRINT_NOT_FOUND is True:
         for r in sorted(set(not_found)):
@@ -828,6 +844,11 @@ def main():
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
+        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+    f.close()
+
+    f = open(rel_type+"_incorrect.txt", "w")
+    for r in set(incorrect):
         f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
     f.close()
 
