@@ -20,17 +20,18 @@ from collections import defaultdict
 from Snowball.Sentence import Sentence
 from Snowball.Sentence import Relationship
 
-
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
 acquired = ['owns', 'acquired']
 headquarters = ['headquarters', 'headquartered']
+employment = ['chief', 'scientist', 'professor', 'biologist', 'ceo']
 
 # PMI value for proximity
 PMI = 0.7
 
 # Parameters for relationship extraction from Sentence
-MAX_TOKENS_AWAY = 6
+# 9 tokens away, cause it was indexed was done without removing stop-words...
+MAX_TOKENS_AWAY = 9
 MIN_TOKENS_AWAY = 1
 CONTEXT_WINDOW = 2
 
@@ -166,7 +167,7 @@ def process_freebase(data, rel_type):
             if "(" in e2:
                 e2 = re.sub(r"\(.*\)", "", e2).strip()
 
-            if rel_type == 'founded':
+            if rel_type == 'founded' or rel_type == 'employment':
                 database_1[(e2.strip(), e1.strip())].append(r)
                 database_2[e2.strip()].append(e1.strip())
                 database_3[e1.strip()].append(e2.strip())
@@ -419,6 +420,8 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         rel_words = acquired
     elif rel_type == 'headquarters':
         rel_words = headquarters
+    elif rel_type == 'employment':
+        rel_words = employment
 
     # calculate PMI for r not in database
     processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
@@ -458,8 +461,8 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     """
     idx = open_dir(index)
     count = 0
-    distance = 9
-    q_limit = 10
+    distance = MAX_TOKENS_AWAY
+    q_limit = 500
     with idx.searcher() as searcher:
         while True:
             r = queue.get_nowait()
@@ -717,11 +720,7 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                     else:
                         not_found.append((r, pmi))
                 else:
-                    print q1
-                    print "HITS", len(hits)
-                    #print r.ent1, '\t', r.patterns, '\t', r.ent2
-                    not_found.append(r)
-                    print "\n"
+                    not_found.append((r, None))
                 if queue.empty() is True:
                     break
 
@@ -769,10 +768,11 @@ def main():
 
     # index to be used to estimate proximity PMI
     #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
-    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
+    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
+    index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
-    if rel_type == 'founded':
+    if rel_type == 'founded' or rel_type == 'employment':
         e1_type = "ORG"
         e2_type = "PER"
     elif rel_type == 'acquired':
@@ -850,7 +850,7 @@ def main():
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
-        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\tPMI', str(r[1])+'\n')
+        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
     f.close()
 
     # Dump sets to file
