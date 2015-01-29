@@ -459,12 +459,12 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     idx = open_dir(index)
     count = 0
     distance = 9
-    q_limit = 500
+    q_limit = 10
     with idx.searcher() as searcher:
         while True:
             r = queue.get_nowait()
             count += 1
-            if count % 500 == 0:
+            if count % 100 == 0:
                 print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
             if (r.ent1, r.ent2) not in all_in_freebase:
                 # if its not in the database calculate the PMI
@@ -850,7 +850,7 @@ def main():
 
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
-        f.write(r[0].ent1+'\t'+r.patterns+'\t'+r[0].ent2+'\tPMI', str(r[1])+'\n')
+        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\tPMI', str(r[1])+'\n')
     f.close()
 
     # Dump sets to file
