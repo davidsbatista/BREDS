@@ -1,3 +1,5 @@
+from nltk import PunktWordTokenizer
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
@@ -8,8 +10,8 @@ from math import log
 
 class Pattern(object):
 
-    def __init__(self, t=None):
-        self.single_vector = zeros(200)
+    def __init__(self, config, t=None):
+        self.single_vector = zeros(config.vec_dim)
         self.positive = 0
         self.negative = 0
         self.unknown = 0
@@ -56,12 +58,14 @@ class Pattern(object):
             for p in t.patterns_words:
                 self.patterns_words.add(p)
 
-    def calculate_single_vector(self):
+    def calculate_single_vector(self, config):
         self.merge_patterns()
-        pattern_vector = zeros(200)
+        pattern_vector = zeros(config.vec_dim)
         for p in self.patterns_words:
-            vector_p = Word2VecWrapper.pattern2vector(p, 200)
+            tokens = PunktWordTokenizer().tokenize(p)
+            vector_p = Word2VecWrapper.pattern2vector(tokens, config)
             pattern_vector += vector_p
+
         self.single_vector = pattern_vector
 
     def update_selectivity(self, t, config):

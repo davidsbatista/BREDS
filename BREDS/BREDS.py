@@ -24,7 +24,7 @@ from Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
-PRINT_PATTERNS = False
+PRINT_PATTERNS = True
 
 
 class BREADS(object):
@@ -110,6 +110,17 @@ class BREADS(object):
                 self.patterns = new_patterns
                 print "\n", len(self.patterns), "patterns generated"
 
+                if PRINT_PATTERNS is True:
+                    print "\nPatterns:"
+                    for p in self.patterns:
+                        print "Pattern", p.patterns_words
+                        print "Positive", p.positive
+                        print "Negative", p.negative
+                        print "Unknown", p.unknown
+                        print "Tuples", len(p.tuples)
+                        print "Pattern Confidence", p.confidence
+                        print "\n"
+
                 if i == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
                     sys.exit(0)
@@ -130,9 +141,18 @@ class BREADS(object):
                         sys.stdout.write(".")
                     sim_best = 0
                     for extraction_pattern in self.patterns:
+
                         if self.config.similarity == "all":
                             accept, score = similarity_all(t, extraction_pattern, self.config)
                             if accept is True:
+                                extraction_pattern.update_selectivity(t, self.config)
+                                if score > sim_best:
+                                    sim_best = score
+                                    pattern_best = extraction_pattern
+
+                        elif self.config.similarity == "single-vector":
+                            score = similarity_sum(t.patterns_vectors[0], extraction_pattern, self.config)
+                            if score > self.config.threshold_similarity:
                                 extraction_pattern.update_selectivity(t, self.config)
                                 if score > sim_best:
                                     sim_best = score
@@ -163,14 +183,14 @@ class BREADS(object):
                     if p.confidence > max_confidence:
                         max_confidence = p.confidence
 
-                for p in self.patterns:
-                    p.confidence = float(p.confidence) / float(max_confidence)
+                if max_confidence > 0:
+                    for p in self.patterns:
+                        p.confidence = float(p.confidence) / float(max_confidence)
 
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
-                        p.merge_tuple_patterns()
-                        print "Pattern", p.tuple_patterns
+                        print "Pattern", p.patterns_words
                         print "Positive", p.positive
                         print "Negative", p.negative
                         print "Unknown", p.unknown
@@ -240,8 +260,10 @@ class BREADS(object):
         """
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
-            c1 = Pattern(matched_tuples[0])
+            c1 = Pattern(self.config, matched_tuples[0])
             self.patterns.append(c1)
+
+            print self.patterns[0].patterns_words
 
         # Compute the similarity between an instance with each pattern
         # go through all tuples
@@ -281,19 +303,24 @@ class BREADS(object):
                 # 2 - similarity calculate with just one vector, representd by the sum of all
                 #     tuple's vectors in a pattern/cluster
                 elif self.config.similarity == "single-vector":
-                    score = similarity_sum(t.pattern_vectors[0], extraction_pattern)
+                    score = similarity_sum(t.patterns_vectors[0], extraction_pattern, self.config)
                     if score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i
 
             # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:
-                c = Pattern(t)
+                c = Pattern(self.config, t)
                 self.patterns.append(c)
+                #print "New Cluster", c.patterns_words
+                #print "\n"
 
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
+                #print "\n"
+                #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
+                #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
 
     @staticmethod
     def match_seeds_tuples(self):
@@ -314,13 +341,13 @@ class BREADS(object):
         return count_matches, matched_tuples
 
 
-def similarity_sum(sentence_vector, extraction_pattern):
+def similarity_sum(t_pattern, extraction_pattern, config):
     """
     Cosine similarity between a Cluster/Extraction Pattern represented as a single vector
     and the vector of a ReVerb pattern extracted from a sentence
     """
-    extraction_pattern.calculate_single_vector()
-    score = dot(matutils.unitvec(sentence_vector), matutils.unitvec(extraction_pattern.single_vector))
+    extraction_pattern.calculate_single_vector(config)
+    score = dot(matutils.unitvec(t_pattern), matutils.unitvec(extraction_pattern.single_vector))
     return score
 
 
@@ -336,9 +363,6 @@ def similarity_all(t, extraction_pattern, config):
         tokens = PunktWordTokenizer().tokenize(p)
         vector = Word2VecWrapper.pattern2vector(tokens, config)
         score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
-
-        #print t.e1, t.patterns_words, t.e2, '\t', p, score
-
         if score > max_similarity:
             max_similarity = score
         if score >= config.threshold_similarity:
@@ -346,13 +370,9 @@ def similarity_all(t, extraction_pattern, config):
         else:
             bad += 1
         if good >= bad:
-            #print max_similarity
-            #print "\n"
             return True, max_similarity
         else:
             return False, 0.0
-            #print "\n"
-            #return 0.0
 
 
 def main():
