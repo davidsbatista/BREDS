@@ -324,74 +324,6 @@ def processBunescu(data):
 
     return relationships
 
-
-
-"""
-Extract ReVerb relational patterns
-http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
-"""
-def extractReVerbPatterns(tagged_text):
-    """
-    VERB - verbs (all tenses and modes) 
-    NOUN - nouns (common and proper) 
-    PRON - pronouns 
-    ADJ - adjectives 
-    ADV - adverbs 
-    ADP - adpositions (prepositions and postpositions) 
-    CONJ - conjunctions 
-    DET - determiners 
-    NUM - cardinal numbers 
-    PRT - particles or other function words 
-    X - other: foreign words, typos, abbreviations 
-    . - punctuation
-    """
-    # extract ReVerb patterns:
-    # V | V P | V W*P
-    # V = verb particle? adv?
-    # W = (noun | adj | adv | pron | det)
-    # P = (prep | particle | inf. marker)
-
-    tags = tagged_text
-
-    patterns = []
-    patterns_tags = []
-    i = 0
-    limit = len(tags)-1
-
-    while i <= limit:
-        tmp = StringIO.StringIO()
-        tmp_tags = []
-        # a ReVerb pattern always starts with a verb
-        if (tags[i][1] == 'VERB'):
-            tmp.write(tags[i][0]+' ')
-            t = (tags[i][0],tags[i][1])
-            tmp_tags.append(t)
-            i += 1
-            # V = verb particle? adv? (also capture auxiliary verbs)
-            while (i <= limit and tags[i][1] in ['VERB','PRT','ADV']):
-                tmp.write(tags[i][0]+' ')
-                t = (tags[i][0],tags[i][1])
-                tmp_tags.append(t)
-                i += 1
-            # W = (noun | adj | adv | pron | det)
-            while (i <= limit and tags[i][1] in ['NOUN','ADJ','ADV','PRON','DET']):
-                tmp.write(tags[i][0]+' ')
-                t = (tags[i][0],tags[i][1])
-                tmp_tags.append(t)
-                i += 1
-            # P = (prep | particle | inf. marker)
-            while (i <= limit and tags[i][1] in ['ADP','PRT']):
-                tmp.write(tags[i][0]+' ')
-                t = (tags[i][0],tags[i][1])
-                tmp_tags.append(t)
-                i += 1
-            # add the build pattern to the list collected patterns
-            patterns.append(tmp.getvalue())
-            patterns_tags.append(tmp_tags)
-        i += 1
-
-    return patterns,patterns_tags
-
 """
 - PoS-taggs a sentence
 - Extract ReVerB patterns
@@ -1015,24 +947,6 @@ def main():
         print "F1                : ",results[5]
         print "=========================================\n"
 
-"""
-Generate word2vec vectors based on words that mediate the relationship
-- If between context is empty
-"""
-def patterns2Vectors(rel):
-    # sum each word of a pattern in the 'between' context
-    if len(rel.patterns_bet_norm)>0:
-        pattern = rel.patterns_bet_norm[0]
-        pattern_vector = np.zeros(vectors_dim)
-        for word in word_tokenize(pattern):
-            try:
-                vector = model[word.strip()]
-                pattern_vector += vector
-            except Exception, e:
-                words_not_found.append(word.strip())
-        rel.patterns_bet_vectors.append(pattern_vector)
-
-
 def reverb(rel):
     text = re.sub(r"</?e[1-2]>|\"", "", rel.between)
     
@@ -1054,90 +968,6 @@ def reverb(rel):
     #rel.good_patterns = triples
     return triples
     #print "\n"
-
-
-"""
-Normalize relation phrase by removing: auxiliary verbs, adjectives, and adverbs
-TODO: if we are dealing with direction, do not remove aux verbs, can be used to 
-      detect passive voice
-"""
-def normalizeReVerbPattern(pattern):
-    lmtzr = WordNetLemmatizer()
-    aux_verbs = ['be', 'do', 'have', 'will', 'would', 'can', 'could', 'may', \
-    'might', 'must', 'shall', 'should', 'will', 'would']
-    norm_pattern = []
-    
-    #print rel_type
-    #print "pattern  :",pattern
-    
-    # remove ADJ, ADV, and auxialiary VERB
-    for i in range(0,len(pattern)):
-        if pattern[i][1] == 'ADJ':
-            continue
-        elif pattern[i][1] == 'ADV':
-            continue
-        else:
-            norm_pattern.append(pattern[i])
-        """
-        elif pattern[i][1]== 'VERB':
-            verb = lmtzr.lemmatize(pattern[i][0],'v')
-            if (verb in aux_verbs):
-                if (len(pattern)>=i+2):
-                    if (pattern[i+1][1]=='VERB'):
-                        continue
-                    else:
-                        norm_pattern.append(pattern[i])
-                else:
-                    norm_pattern.append(pattern[i])
-            else:
-                norm_pattern.append(pattern[i])
-        """
-
-
-    # if last word of pattern is a NOUN remove
-    #while norm_pattern[-1][1]=='NOUN':
-    #    del norm_pattern[-1]
-
-    #print "norm     :",norm_pattern
-
-    # Lemmatize VERB using WordNet
-    """
-    lemma_pattern = []
-    for i in range(0,len(norm_pattern)):
-        if norm_pattern[i][1]== 'VERB':
-            norm = WordNetLemmatizer().lemmatize(norm_pattern[i][0],'v')
-            lemma_pattern.append((norm,'VERB'))
-        elif norm_pattern[i][0] == "'s":
-            continue
-        else:
-            lemma_pattern.append(norm_pattern[i])    
-    #print "lemma    :",lemma_pattern
-    """
-    
-    # Short Version: just VERBs and ending ADP, PRT, DET
-    short = []
-    #short.append(lemma_pattern[0])   
-    #if (len(lemma_pattern)>1) and lemma_pattern[1][1]=='VERB':
-    #    short.append(lemma_pattern[1])
-    
-    short.append(norm_pattern[0])
-    if (len(norm_pattern)>1) and norm_pattern[1][1]=='VERB':
-        short.append(norm_pattern[1])
-    tmp = []
-    for w in reversed(norm_pattern):
-        if (w[1] == 'ADP' or w[1] == 'NOUN' or w[1] == 'PRT' or w[1] == 'DET'):
-            tmp.append(w)
-            
-    for w in reversed(tmp):
-        short.append(w)
-
-    if len(short)==1 and short[0][1]== 'VERB':
-        verb = lmtzr.lemmatize(short[0][0],'v')
-        if (verb in aux_verbs):
-            return None
-    
-    else:
-        return short
 
 """
 Start the bootstrap process based on sentences, by simulating iterations:
@@ -1594,7 +1424,7 @@ Cluster patterns seeds with DBSCAN
 Calculates a centroid for each generated cluster
 Keeps sentences with a sim threshold to iteration_sentences
 """
-def simDBSCANCentroids(seeds,iteration_sentences):
+def simDBSCANCentroids(seeds, iteration_sentences):
     eps=0.2
     min_samples=2
     threshold=0.6

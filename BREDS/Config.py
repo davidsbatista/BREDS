@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from nltk import WordNetLemmatizer
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -20,6 +21,7 @@ class Config(object):
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words('english')
+        self.lmtzr = WordNetLemmatizer()
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:

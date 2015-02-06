@@ -101,6 +101,80 @@ class Reverb(object):
         return patterns, patterns_tags
 
     @staticmethod
+    def extract_reverb_patterns_ptb(text):
+        """
+        Extract ReVerb relational patterns
+        http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
+
+        # extract ReVerb patterns:
+        # V | V P | V W*P
+        # V = verb particle? adv?
+        # W = (noun | adj | adv | pron | det)
+        # P = (prep | particle | inf. marker)
+        """
+
+        # split text into tokens
+        text_tokens = PunktWordTokenizer().tokenize(text)
+
+        # tag the sentence, using the default NTLK English tagger
+        # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
+        tags_ptb = pos_tag(text_tokens)
+        patterns = []
+        patterns_tags = []
+        i = 0
+        limit = len(tags_ptb)-1
+        tags = tags_ptb
+
+        verb = ['VB', 'VBD', 'VBD|VBN', 'VBG', 'VBG|NN', 'VBN', 'VBP', 'VBP|TO', 'VBZ', 'VP']
+        adverb = ['RB', 'RBR', 'RBS', 'RB|RP', 'RB|VBG', 'WRB']
+        particule = ['POS', 'PRT', 'TO', 'RP']
+        noun = ['NN', 'NNP', 'NNPS', 'NNS', 'NN|NNS', 'NN|SYM', 'NN|VBG', 'NP']
+        adjectiv = ['JJ', 'JJR', 'JJRJR', 'JJS', 'JJ|RB', 'JJ|VBG']
+        pronoun = ['WP', 'WP$', 'PRP', 'PRP$', 'PRP|VBP']
+        determiner = ['DT', 'EX', 'PDT', 'WDT']
+        adp = ['IN', 'IN|RP']
+
+        while i <= limit:
+            tmp = StringIO.StringIO()
+            tmp_tags = []
+
+            # a ReVerb pattern always starts with a verb
+            if tags[i][1] in verb:
+                tmp.write(tags[i][0]+' ')
+                t = (tags[i][0], tags[i][1])
+                tmp_tags.append(t)
+                i += 1
+
+                # V = verb particle? adv? (also capture auxiliary verbs)
+                while i <= limit and (tags[i][1] in verb or tags[i][1] in adverb or tags[i][1] in particule):
+                    tmp.write(tags[i][0]+' ')
+                    t = (tags[i][0], tags[i][1])
+                    tmp_tags.append(t)
+                    i += 1
+
+                # W = (noun | adj | adv | pron | det)
+                while i <= limit and (tags[i][1] in noun or tags[i][1] in adjectiv or tags[i][1] in adverb or
+                                      tags[i][1] in pronoun or tags[i][1] in determiner):
+                    tmp.write(tags[i][0]+' ')
+                    t = (tags[i][0], tags[i][1])
+                    tmp_tags.append(t)
+                    i += 1
+
+                # P = (prep | particle | inf. marker)
+                while i <= limit and (tags[i][1] in adp or tags[i][1] in particule):
+                    tmp.write(tags[i][0]+' ')
+                    t = (tags[i][0], tags[i][1])
+                    tmp_tags.append(t)
+                    i += 1
+
+                # add the build pattern to the list collected patterns
+                patterns.append(tmp.getvalue())
+                patterns_tags.append(tmp_tags)
+            i += 1
+
+        return patterns, patterns_tags
+
+    @staticmethod
     def test_reverb_patterns_extraction(sentences):
         for line in fileinput.input(sentences):
             #s = line.split('sentence:')[1].strip()
@@ -202,6 +276,32 @@ class Reverb(object):
         else:
             return short
 
+
+def main():
+
+    lmtzr = WordNetLemmatizer()
+    aux_verbs = ['be']
+    reverb = Reverb()
+
+    # simple passive voice
+    # auxiliary verb be + main verb past participle + 'by'
+
+    for line in fileinput.input():
+        patterns, patterns_tags = reverb.extract_reverb_patterns_ptb(line)
+        #print patterns
+        #print "\n"
+
+        for pattern in patterns_tags:
+            for i in range(0, len(pattern)):
+                if pattern[i][1].startswith('V'):
+                    verb = lmtzr.lemmatize(pattern[i][0], 'v')
+                    if verb in aux_verbs and i+2 <= len(pattern)-1:
+                        if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[i+2][0] == 'by':
+                            print pattern
+    fileinput.close()
+
+if __name__ == "__main__":
+    main()
 
 """
 - PoS-taggs a sentence

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import pairwise
+import numpy
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -103,7 +106,8 @@ class BREADS(object):
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
-                self.cluster_tuples(self, matched_tuples)
+                self.cluster_dbscan(self, matched_tuples)
+                #self.cluster_tuples(self, matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
@@ -240,9 +244,16 @@ class BREADS(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
         for t in tmp:
-            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
+            if t.passive_voice is False:
+                f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
+            elif t.passive_voice is True:
+                f_output.write("instance: "+t.e2.encode("utf8")+'\t'+t.e1.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
             f_output.write("pattern: "+t.patterns_words[0]+'\n')
+            if t.passive_voice is False:
+                f_output.write("passive voice: False\n")
+            elif t.passive_voice is True:
+                f_output.write("passive voice: True\n")
             f_output.write("\n")
         f_output.close()
 
@@ -252,6 +263,26 @@ class BREADS(object):
         for p in tmp:
             f_output.write(str(p.patterns_words)+'\t'+str(p.confidence)+'\n')
         f_output.close()
+
+    @staticmethod
+    def cluster_dbscan(self, matched_tuples):
+        #TODO: usar o self.config para ler os params eps=0.1, min_samples=2
+        # add all bet_vectors
+        vectors = []
+        for t in matched_tuples:
+            vectors.append(t.patterns_vectors[0])
+
+        # build a matrix with all the pairwise distances between all the vectors
+        matrix = pairwise.pairwise_distances(numpy.array(vectors), metric='cosine', n_jobs=-1)
+
+        # perform DBSCAN
+        db = DBSCAN(eps=0.1, min_samples=2, metric='precomputed')
+        db.fit(matrix)
+
+        print "\n"
+        for v in range(0, len(vectors)-1):
+            print matched_tuples[v], db.labels_[v]
+            #TODO: agregar pelo label, discartando o que tem label=-1, criar instancias de Pattern com o que tem o mesmo label
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
