@@ -24,6 +24,7 @@ class Pattern(object):
                 self.patterns_words.add(p)
 
     def __hash__(self):
+        print "chamei o hash()"
         return hash((self.patterns_words, self.tuples))
 
     def __eq__(self, other):
@@ -52,6 +53,10 @@ class Pattern(object):
 
     def add_tuple(self, t):
         self.tuples.add(t)
+
+    def add_pattern(self, p):
+        pass
+        #TODO:
 
     def merge_patterns(self):
         for t in self.tuples:

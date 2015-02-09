@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import copy
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import pairwise
+from nltk.corpus import stopwords
 import numpy
 
 __author__ = "David S. Batista"
@@ -106,8 +108,8 @@ class BREADS(object):
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
-                self.cluster_dbscan(self, matched_tuples)
-                #self.cluster_tuples(self, matched_tuples)
+                #self.cluster_dbscan(self, matched_tuples)
+                self.cluster_tuples(self, matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
@@ -278,11 +280,95 @@ class BREADS(object):
         # perform DBSCAN
         db = DBSCAN(eps=0.1, min_samples=2, metric='precomputed')
         db.fit(matrix)
+        clusters = defaultdict(list)
 
-        print "\n"
+        # aggregate results by label, discard -1 which is noise
         for v in range(0, len(vectors)-1):
-            print matched_tuples[v], db.labels_[v]
-            #TODO: agregar pelo label, discartando o que tem label=-1, criar instancias de Pattern com o que tem o mesmo label
+            label = db.labels_[v]
+            if label > -1:
+                clusters[label].append(matched_tuples[v])
+
+        # create Patterns instances from the clustered Tuples
+        patterns_generated = list()
+        for k in clusters.keys():
+            c = Pattern(self.config, clusters[k][0])
+            for p in range(1, len(clusters[k])):
+                c.add_tuple(clusters[k][p])
+            patterns_generated.append(c)
+
+        """
+        print "\nPatterns generated in this iteration"
+        for p in patterns_generated:
+            print p, len(p.tuples)
+        """
+
+        print "\nAlready existing patterns"
+        for p in self.patterns:
+            print p
+
+        if len(self.patterns) == 0:
+            # no patterns exist, these are the initial patterns
+            for p in patterns_generated:
+                self.patterns.append(p)
+        else:
+            # Only compare new patterns
+            print "\nLooking for repetead patterns"
+            if len(self.patterns) > 0:
+                new_patterns = list()
+                for new_p in patterns_generated:
+                    equals = False
+                    for p in self.patterns:
+                        if p.patterns_words == new_p.patterns_words:
+                            equals = True
+                            continue
+                    if equals is False:
+                        new_patterns.append(new_p)
+
+            # compare generated patterns similarity with already existing patterns
+            if len(new_patterns) > 0:
+
+                print "\nNew patterns: ", len(new_patterns)
+
+                for pattern in new_patterns:
+                    added = False
+                    for i in range(0, len(self.patterns)):
+                        if added is True:
+                            break
+                        else:
+                            extraction_pattern = self.patterns[i]
+                            max_similarity = 0
+                            # each pattern has one or more vectors representing ReVerb patterns
+                            # compute the similarity between the instance vector and each vector from a pattern
+
+                            # 1 - compare similarity with all vectors, majority decides if is above threshold
+                            if self.config.similarity == "all":
+                                print "Similarity between: ", pattern.patterns_words, " and", extraction_pattern.patterns_words
+                                accept, score = similarity_all_dbscan(pattern, extraction_pattern, self.config)
+                                if accept is True and score > max_similarity:
+                                    max_similarity = score
+                                    max_similarity_cluster_index = i
+
+                            # 2 - similarity calculate with just one vector, representd by the sum of all
+                            #     tuple's vectors in a pattern/cluster
+                            elif self.config.similarity == "single-vector":
+                                score = similarity_sum(pattern.patterns_vectors[0], extraction_pattern, self.config)
+                                if score > max_similarity:
+                                    max_similarity = score
+                                    max_similarity_cluster_index = i
+
+                            # create new Pattern
+                            if max_similarity < self.config.threshold_similarity:
+                                print "New pattern created:", pattern
+                                self.patterns.append(pattern)
+                                added = True
+
+                            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
+                            else:
+                                self.patterns[max_similarity_cluster_index].add_pattern(pattern)
+                                print "New pattern added to:", self.patterns[max_similarity_cluster_index], pattern
+                                added = True
+
+                            print "\n"
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
@@ -315,7 +401,6 @@ class BREADS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # in two different ways:
                 # 1 - compare similarity with all vectors, if majority is above threshold
-                #     assume
                 if self.config.similarity == "all":
                     try:
                         accept, score = similarity_all(t, extraction_pattern, self.config)
@@ -382,6 +467,37 @@ def similarity_sum(t_pattern, extraction_pattern, config):
     return score
 
 
+def similarity_all_dbscan(pattern, extraction_pattern, config):
+    """
+    Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+    and the vector of a ReVerb pattern extracted from a sentence
+    """
+    good = 0
+    bad = 0
+    max_similarity = 0
+    for p in list(extraction_pattern.patterns_words):
+        tokens = tokenize(p)
+        vector_p = Word2VecWrapper.pattern2vector(tokens, config)
+        for w in pattern.patterns_words:
+            vector_w = Word2VecWrapper.pattern2vector(tokenize(w), config)
+            score = dot(matutils.unitvec(vector_w), matutils.unitvec(vector_p))
+            print "p:", p, "w:", w, score
+
+            if score > max_similarity:
+                max_similarity = score
+            if score >= config.threshold_similarity:
+                good += 1
+            else:
+                bad += 1
+
+    print "good", good
+    print "bad", bad
+    if good >= bad:
+        return True, max_similarity
+    else:
+        return False, 0.0
+
+
 def similarity_all(t, extraction_pattern, config):
     """
     Cosine similarity between all patterns part of a Cluster/Extraction Pattern
@@ -404,6 +520,10 @@ def similarity_all(t, extraction_pattern, config):
             return True, max_similarity
         else:
             return False, 0.0
+
+
+def tokenize(text):
+    return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
 
 
 def main():
