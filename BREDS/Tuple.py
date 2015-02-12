@@ -48,19 +48,21 @@ class Tuple(object):
             filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
             aux_verbs = ['be']
 
-            """ Extract ReVerb patterns and construct Word2Vec representations"""
+            """ Extract ReVerb patterns and construct Word2Vec representations """
             patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet)
 
-            for pattern in patterns_bet_tags:
-                if len(pattern) > 0:
-                    print "BET with several ReVerb patterns:", patterns_bet_tags
-                for i in range(0, len(pattern)):
-                    if pattern[i][1].startswith('V'):
-                        verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
-                        if verb in aux_verbs and i+2 <= len(pattern)-1:
-                            if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[i+2][0] == 'by':
-                                self.passive_voice = True
+            # detect passive voice in ReVerb patterns
+            if len(patterns_bet_tags) > 0:
+                for pattern in patterns_bet_tags:
+                    for i in range(0, len(pattern)):
+                        #TODO: contar com adjectivos pelo meio
+                        if pattern[i][1].startswith('V'):
+                            verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
+                            if verb in aux_verbs and i+2 <= len(pattern)-1:
+                                if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[i+2][0] == 'by':
+                                    self.passive_voice = True
 
+            # construct a word2vec representation
             if len(patterns_bet) > 0:
                 self.patterns_words = patterns_bet
                 pattern = [t[0] for t in patterns_bet_tags[0] if t[0].lower() not in config.stopwords and t[1] not in filter_pos]
