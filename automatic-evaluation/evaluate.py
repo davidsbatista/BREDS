@@ -44,12 +44,13 @@ all_in_freebase = manager.dict()
 
 
 class ExtractedFact(object):
-    def __init__(self, _e1, _e2, _score, _patterns, _sentence):
+    def __init__(self, _e1, _e2, _score, _patterns, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
         self.score = _score
         self.patterns = _patterns
         self.sentence = _sentence
+        self.passive_voice = _passive_voice
 
     def __hash__(self):
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.patterns) ^ hash(self.score) ^ hash(self.sentence)
@@ -96,7 +97,7 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
             break
 
 
-def process_output(data, threshold):
+def process_output(data, threshold, rel_type):
     """
     parses the file with the relationships extracted by the system
     each relationship is transformed into a ExtracteFact class
@@ -116,8 +117,18 @@ def process_output(data, threshold):
         if line.startswith('pattern'):
             patterns = line.split("pattern:")[1].strip()
 
+        if line.startswith('passive voice:'):
+            tmp = line.split("passive voice:")[1].strip()
+            if tmp == 'False':
+                passive_voice = False
+            elif tmp == 'True':
+                passive_voice = True
+
         if line.startswith('\n') and float(score) >= threshold:
-            r = ExtractedFact(e1, e2, score, patterns, sentence)
+            if passive_voice is True and rel_type in ['acquired', 'headquarters']:
+                r = ExtractedFact(e2, e1, score, patterns, sentence, passive_voice)
+            else:
+                r = ExtractedFact(e1, e2, score, patterns, sentence, passive_voice)
             system_output.append(r)
 
     fileinput.close()
@@ -752,12 +763,12 @@ def main():
 
     threhsold = float(sys.argv[1])
 
-    # load relationships extracted by the system
-    system_output = process_output(sys.argv[2], threhsold)
-    print len(system_output), "system output relationships loaded"
-
     # relationship type
     rel_type = sys.argv[3]
+
+    # load relationships extracted by the system
+    system_output = process_output(sys.argv[2], threhsold, rel_type)
+    print len(system_output), "system output relationships loaded"
 
     # load freebase relationships as the database
     database_1, database_2, database_3 = process_freebase(sys.argv[4], rel_type)

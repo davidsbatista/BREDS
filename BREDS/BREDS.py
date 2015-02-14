@@ -246,18 +246,9 @@ class BREADS(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
         for t in tmp:
-
-            if self.config.passive_voice is True:
-                if t.passive_voice is False:
-                    f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
-                elif t.passive_voice is True:
-                    f_output.write("instance: "+t.e2.encode("utf8")+'\t'+t.e1.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
-            else:
-                f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
-
+            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
             f_output.write("pattern: "+t.patterns_words[0]+'\n')
-
             if t.passive_voice is False:
                 f_output.write("passive voice: False\n")
             elif t.passive_voice is True:

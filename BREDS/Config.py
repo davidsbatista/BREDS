@@ -22,7 +22,6 @@ class Config(object):
         self.e2_type = None
         self.stopwords = stopwords.words('english')
         self.lmtzr = WordNetLemmatizer()
-        self.passive_voice = False
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -70,9 +69,6 @@ class Config(object):
             if line.startswith("word2vec_path"):
                 self.word2vecmodelpath = line.split("=")[1].strip()
 
-            if line.startswith("passive_voice"):
-                self.passive_voice = bool(line.split("=")[1].strip())
-
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
         fileinput.close()
@@ -89,14 +85,12 @@ class Config(object):
         print "iteration wUpdt:", self.wUpdt
         print "negative seeds wNeg:", self.wNeg
         print "unknown seeds wUnk:", self.wUnk
-        print "similarity:", self.similarity
         print "word2vecmodel: ", self.word2vecmodelpath
         print "context window:", self.context_window_size
         print "max tokens away:", self.max_tokens_away
         print "min tokens away:", self.min_tokens_away
         print "seeds:", len(self.seed_tuples)
         print "negative seeds:", len(self.negative_seed_tuples)
-        print "detect passive voice:", self.passive_voice
 
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
