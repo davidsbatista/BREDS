@@ -155,8 +155,9 @@ class Snowball(object):
                     if p.confidence > max_confidence:
                         max_confidence = p.confidence
 
-                for p in self.patterns:
-                    p.confidence = float(p.confidence) / float(max_confidence)
+                if max_confidence > 0:
+                    for p in self.patterns:
+                        p.confidence = float(p.confidence) / float(max_confidence)
 
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
