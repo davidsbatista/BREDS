@@ -13,7 +13,7 @@ from Seed import Seed
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
 
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
@@ -22,6 +22,8 @@ class Config(object):
         self.e2_type = None
         self.stopwords = stopwords.words('english')
         self.lmtzr = WordNetLemmatizer()
+        self.threshold_similarity = similarity
+        self.instance_confidance = confidance
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -54,11 +56,13 @@ class Config(object):
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
 
+            """
             if line.startswith("threshold_similarity"):
                 self.threshold_similarity = float(line.split("=")[1])
 
             if line.startswith("instance_confidance"):
                 self.instance_confidance = float(line.split("=")[1])
+            """
 
             if line.startswith("single_vector"):
                 self.single_vector = line.split("=")[1].strip()

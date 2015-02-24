@@ -24,11 +24,11 @@ PRINT_PATTERNS = True
 
 class Snowball(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file):
+    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file, similarity, confidance):
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds, sentences_file)
+        self.config = Config(config_file, seeds_file, negative_seeds, sentences_file, similarity, confidance)
 
     def generate_tuples(self, sentences_file):
         """
@@ -323,7 +323,9 @@ def main():
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
     negative_seeds = sys.argv[4]
-    snowball = Snowball(configuration, seeds_file, negative_seeds, sentences_file)
+    similarity = sys.argv[5]
+    confidance = sys.argv[6]
+    snowball = Snowball(configuration, seeds_file, negative_seeds, sentences_file, float(similarity), float(confidance))
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
         snowball.start(tuples=sentences_file)

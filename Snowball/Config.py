@@ -15,13 +15,15 @@ from VectorSpaceModel import VectorSpaceModel
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file):
+    def __init__(self, config_file, seeds_file, negative_seeds, sentences_file, similarity, confidance):
 
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words('english')
+        self.threshold_similarity = similarity
+        self.instance_confidance = confidance
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -54,11 +56,13 @@ class Config(object):
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
 
+            """
             if line.startswith("threshold_similarity"):
                 self.threshold_similarity = float(line.split("=")[1])
 
             if line.startswith("instance_confidance"):
                 self.instance_confidance = float(line.split("=")[1])
+            """
 
             if line.startswith("alpha"):
                 self.alpha = float(line.split("=")[1])
