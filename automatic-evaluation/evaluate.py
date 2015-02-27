@@ -768,7 +768,7 @@ def main():
 
     # load relationships extracted by the system
     system_output = process_output(sys.argv[2], threhsold, rel_type)
-    print len(system_output), "system output relationships loaded"
+    print len(system_output), "system output relationships loaded from", sys.argv[3]
 
     # load freebase relationships as the database
     database_1, database_2, database_3 = process_freebase(sys.argv[4], rel_type)
@@ -779,7 +779,7 @@ def main():
 
     # index to be used to estimate proximity PMI
     #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
-    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
+    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
     index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
@@ -864,15 +864,11 @@ def main():
         f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
     f.close()
 
+    """
     # Dump sets to file
-    f = open(rel_type+"_set_d.txt", "w")
-    for r in set(d):
-        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
-    f.close()
-
-    f = open(rel_type+"_set_c.txt", "w")
-    for r in set(c):
-        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
+    f = open(rel_type+"_set_a.txt", "w")
+    for r in set(a):
+        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
     f.close()
 
     f = open(rel_type+"_set_b.txt", "w")
@@ -880,9 +876,22 @@ def main():
         f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
     f.close()
 
-    f = open(rel_type+"_set_a.txt", "w")
+    f = open(rel_type+"_set_c.txt", "w")
+    for r in set(c):
+        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
+    f.close()
+
+    f = open(rel_type+"_set_d.txt", "w")
+    for r in set(d):
+        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
+    f.close()
+    """
+
+    # Write all correct relationships (sentence, entities and score) to file
+    f = open(rel_type+"correct_extractions.txt", "w")
     for r in set(a):
-        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+        f.write('instance:\t'+r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+        f.write(r.sentence+'\n')
     f.close()
 
     a = set(a)

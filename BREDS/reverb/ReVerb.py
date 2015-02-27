@@ -112,6 +112,13 @@ class Reverb(object):
         # W = (noun | adj | adv | pron | det)
         # P = (prep | particle | inf. marker)
         """
+        # TODO: The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
+        # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
+        # (e.g., has an atomic weight of).
+        # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible match is
+        # chosen. Finally, if the pattern matches multiple adjacent sequences, we merge them into a single relation
+        # phrase (e.g.,wants to extend). This refinement enables the model to readily handle relation phrases
+        # containing multiple verbs.
 
         # split text into tokens
         text_tokens = PunktWordTokenizer().tokenize(text)
