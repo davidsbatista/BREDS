@@ -7,8 +7,6 @@ import fileinput
 import sys
 import fnmatch
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 def main():
@@ -16,10 +14,6 @@ def main():
     directory = sys.argv[2]
     print relationship
     files = [filename for filename in os.listdir(directory) if fnmatch.fnmatch(filename, 'evaluation*'+relationship+'*.txt')]
-    print sorted(files)
-    similarity = list()
-    threshold = list()
-    f1 = list()
     print "Conf. Threshold\tSimilarity\tF1"
     for f in sorted(files):
         parts = f.split("_")
@@ -45,6 +39,8 @@ def main():
             if line.startswith("F1"):
                 f1 = line.split()[2]
         print str(threshold)+'\t'+str(similarity)+'\t'+str(f1)
+        if threshold==1.0:
+            print "\n"
         """
         fileinput.close()
         x = [row.split(' ')[0] for row in data]
