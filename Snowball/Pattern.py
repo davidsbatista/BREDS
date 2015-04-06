@@ -91,38 +91,41 @@ class Pattern(object):
     @staticmethod
     def calculate_centroid(self, context):
         centroid = deepcopy(self.tuples[0].get_vector(context))
-        # add all other words from other tuples
-        for t in range(1, len(self.tuples), 1):
-            current_words = [e[0] for e in centroid]
-            for word in self.tuples[t].get_vector(context):
-                # if word already exists in centroid, update its tf-idf
-                if word[0] in current_words:
-                    # get the current tf-idf for this word in the centroid
-                    for i in range(0, len(centroid), 1):
-                        if centroid[i][0] == word[0]:
-                            current_tf_idf = centroid[i][1]
-                            # sum the tf-idf from the tuple to the current tf_idf
-                            current_tf_idf += word[1]
-                            # update (w,tf-idf) in the centroid
-                            w_new = list(centroid[i])
-                            w_new[1] = current_tf_idf
-                            centroid[i] = tuple(w_new)
-                            break
-                # if it is not in the centroid, added it with the associated tf-idf score
-                else:
-                    centroid.append(word)
+        if centroid is not None:
+            # add all other words from other tuples
+            for t in range(1, len(self.tuples), 1):
+                current_words = [e[0] for e in centroid]
+                words = self.tuples[t].get_vector(context)
+                if words is not None:
+                    for word in words:
+                        # if word already exists in centroid, update its tf-idf
+                        if word[0] in current_words:
+                            # get the current tf-idf for this word in the centroid
+                            for i in range(0, len(centroid), 1):
+                                if centroid[i][0] == word[0]:
+                                    current_tf_idf = centroid[i][1]
+                                    # sum the tf-idf from the tuple to the current tf_idf
+                                    current_tf_idf += word[1]
+                                    # update (w,tf-idf) in the centroid
+                                    w_new = list(centroid[i])
+                                    w_new[1] = current_tf_idf
+                                    centroid[i] = tuple(w_new)
+                                    break
+                        # if it is not in the centroid, added it with the associated tf-idf score
+                        else:
+                            centroid.append(word)
 
-        # dividir o tf-idf de cada tuple (w,tf-idf), pelo numero de vectores
-        for i in range(0, len(centroid), 1):
-            tmp = list(centroid[i])
-            tmp[1] /= len(self.tuples)
-            # assure that the tf-idf values are still normalized
-            try:
-                assert tmp[1] <= 1.0
-                assert tmp[1] >= 0.0
-            except AssertionError:
-                "Error calculating extraction pattern centroid"
-                sys.exit(0)
-            centroid[i] = tuple(tmp)
+            # divide tf-idf score of tuple (w,tf-idf), by the number of vectors
+            for i in range(0, len(centroid), 1):
+                tmp = list(centroid[i])
+                tmp[1] /= len(self.tuples)
+                # assure that the tf-idf values are still normalized
+                try:
+                    assert tmp[1] <= 1.0
+                    assert tmp[1] >= 0.0
+                except AssertionError:
+                    "Error calculating extraction pattern centroid"
+                    sys.exit(0)
+                centroid[i] = tuple(tmp)
 
         return centroid

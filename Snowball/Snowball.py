@@ -235,13 +235,13 @@ class Snowball(object):
 
         (bef, bet, aft) = (0, 0, 0)
 
-        if t.bef_vector is not None:
+        if t.bef_vector is not None and extraction_pattern.centroid_bef is not None:
             bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
 
-        if t.bet_vector is not None:
+        if t.bet_vector is not None and extraction_pattern.centroid_bet is not None:
             bet = cossim(t.bet_vector, extraction_pattern.centroid_bet)
 
-        if t.aft_vector is not None:
+        if t.aft_vector is not None and extraction_pattern.centroid_aft is not None:
             aft = cossim(t.aft_vector, extraction_pattern.centroid_aft)
 
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
