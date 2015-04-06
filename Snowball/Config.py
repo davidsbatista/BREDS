@@ -8,8 +8,9 @@ import fileinput
 import os
 import cPickle
 
-from nltk.corpus import stopwords
 from Seed import Seed
+from nltk.corpus import stopwords
+from nltk import WordNetLemmatizer
 from VectorSpaceModel import VectorSpaceModel
 
 
@@ -21,6 +22,7 @@ class Config(object):
         self.negative_seed_tuples = set()
         self.e1_type = None
         self.e2_type = None
+        self.lmtzr = WordNetLemmatizer()
         self.stopwords = stopwords.words('english')
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
@@ -55,6 +57,9 @@ class Config(object):
 
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
+
+            if line.startswith("reverb"):
+                self.reverb = bool(line.split("=")[1])
 
             """
             if line.startswith("threshold_similarity"):
@@ -111,6 +116,7 @@ class Config(object):
         print "min tokens away:", self.min_tokens_away
         print "seeds:", len(self.seed_tuples)
         print "negative seeds:", len(self.negative_seed_tuples)
+        print "use ReVerb:", self.reverb
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):

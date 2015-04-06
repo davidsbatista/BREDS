@@ -59,6 +59,7 @@ class Snowball(object):
                         aft_tokens = self.tokenize(self, rel.after)
                         if not (bef_tokens == 0 and bet_tokens == 0 and aft_tokens == 0):
                             t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                            print "\n"
                         self.processed_tuples.append(t)
             f_sentences.close()
 
@@ -231,19 +232,22 @@ class Snowball(object):
         f_output.close()
 
     @staticmethod
-    def similarity(self, t, extraction_pattern):
-        (bef, bet, aft) = (0, 0, 0)
+    def similarity(self, t, extraction_pattern, config):
 
-        if t.bef_vector is not None:
-            bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
+        if config.reverb is False:
+            (bef, bet, aft) = (0, 0, 0)
+            if t.bef_vector is not None:
+                bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
+            if t.bet_vector is not None:
+                bet = cossim(t.bet_vector, extraction_pattern.centroid_bet)
+            if t.aft_vector is not None:
+                aft = cossim(t.aft_vector, extraction_pattern.centroid_aft)
+            return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
-        if t.bet_vector is not None:
+        else:
             bet = cossim(t.bet_vector, extraction_pattern.centroid_bet)
+            return bet
 
-        if t.aft_vector is not None:
-            aft = cossim(t.aft_vector, extraction_pattern.centroid_aft)
-
-        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
     @staticmethod
     def cluster_tuples(self, matched_tuples):
