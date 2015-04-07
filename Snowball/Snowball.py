@@ -162,8 +162,12 @@ class Snowball(object):
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
-                        p.merge_tuple_patterns()
-                        print "Pattern", p.tuple_patterns
+                        #p.merge_tuple_patterns()
+                        print "Patterns:"
+                        for t in self.tuples:
+                            print t.bef_words
+                            print t.bet_words
+                            print t.aft_words
                         print "Positive", p.positive
                         print "Negative", p.negative
                         print "Unknown", p.unknown
