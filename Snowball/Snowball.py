@@ -45,6 +45,8 @@ class Snowball(object):
 
         except IOError:
             print "\nGenerating relationship instances from sentences"
+            print "e1", self.config.e1_type
+            print "e2", self.config.e2_type
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
             for line in f_sentences:
@@ -162,12 +164,8 @@ class Snowball(object):
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
-                        #p.merge_tuple_patterns()
-                        print "Patterns:"
-                        for t in self.tuples:
-                            print t.bef_words
-                            print t.bet_words
-                            print t.aft_words
+                        p.merge_tuple_patterns()
+                        print "Patterns:", len(p.tuples)
                         print "Positive", p.positive
                         print "Negative", p.negative
                         print "Unknown", p.unknown
