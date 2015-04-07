@@ -25,6 +25,10 @@ class Tuple(object):
             self.patterns_words = list()
             self.extract_patterns(self, config)
 
+            #TODO: a média dos embeddings BEFORE; MIDDLE, e AFTER (e.g., usando duas palavras antes/depois da primeira/segunda entidade),
+            #TODO: e outro teste em que usas a média dos embeddings das palavras que estão no padrão de ReVerb.
+            #TODO: combinar as duas coisas, usando as palavras antes e depois em conjunto com o padrão de Reverb.
+
         def __str__(self):
             return str(self.patterns_words).encode("utf8")
 
@@ -82,6 +86,3 @@ class Tuple(object):
                     pattern_vector_bet = Word2VecWrapper.pattern2vector(pattern, config)
                     self.patterns_vectors.append(pattern_vector_bet)
                     self.patterns_words = pattern
-
-
-
