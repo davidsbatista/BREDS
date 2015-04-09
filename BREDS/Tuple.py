@@ -3,7 +3,6 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-from nltk.stem.wordnet import WordNetLemmatizer
 from nltk import PunktWordTokenizer, pos_tag
 from Word2VecWrapper import Word2VecWrapper
 from reverb.ReVerb import Reverb
@@ -23,16 +22,11 @@ class Tuple(object):
             self.bef = _before
             self.bet = _between
             self.aft = _after
-            self.bef_vector
-            self.bet_vector
-            self.aft_vector
+            self.vector = None
             self.passive_voice = False
             self.patterns_vectors = list()
             self.patterns_words = list()
             self.extract_patterns(self, config)
-
-            # TODO: e outro teste em que usas a média dos embeddings das palavras que estão no padrão de ReVerb.
-            # TODO: combinar as duas coisas, usando as palavras antes e depois em conjunto com o padrão de Reverb.
 
             # TODO: Em lugar de somares os vectores, penso que pode ser mais interessante fazeres a média.
             # Lembra-te que se somares, os teus vectores passam a estar influenciados também pelo tamanho dos padrões,
@@ -71,7 +65,10 @@ class Tuple(object):
             # remove stopwords and adjectives
             pattern = [t[0] for t in pattern_tags[0] if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
             if len(pattern) >= 1:
-                pattern_vector = Word2VecWrapper.pattern2vector(pattern, config)
+                if self.config.embeddings == 'average':
+                    pattern_vector = Word2VecWrapper.pattern2vector_average(pattern, config)
+                elif self.config.embeddings == 'sum':
+                    pattern_vector = Word2VecWrapper.pattern2vector_sum(pattern, config)
                 return pattern_vector
 
         def construct_words_vectors(self, words, config):
@@ -81,69 +78,97 @@ class Tuple(object):
             tags_ptb = pos_tag(text_tokens)
             pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
             if len(pattern) >= 1:
-                words_vector = Word2VecWrapper.pattern2vector(pattern, config)
+                if self.config.embeddings == 'average':
+                    words_vector = Word2VecWrapper.pattern2vector_average(pattern, config)
+                elif self.config.embeddings == 'sum':
+                    words_vector = Word2VecWrapper.pattern2vector_sum(pattern, config)
                 return words_vector
 
         @staticmethod
         def extract_patterns(self, config):
             """ Extract ReVerb patterns and construct Word2Vec representations """
-            patterns_bef, patterns_bef_tags = Reverb.extract_reverb_patterns_ptb(self.bef_words)
-            patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
-            patterns_aft, patterns_aft_tags = Reverb.extract_reverb_patterns_ptb(self.aft_words)
+            patterns_bef, patterns_bef_tags = Reverb.extract_reverb_patterns_ptb(self.bef)
+            patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet)
+            patterns_aft, patterns_aft_tags = Reverb.extract_reverb_patterns_ptb(self.aft)
 
             # detect passive voice in BET ReVerb pattern
             if len(patterns_bet_tags) > 0:
                 self.passive_voice = self.detect_passive_voice(config, patterns_bet_tags[0])
 
-            # Construct word2vec representation of the patterns/words
+            # Construct word2vec representations of the patterns/words
+            if config.vector == 'version_1':
+                ###################################################################
+                # Version 1: just a single vector with the BET ReVerb pattern/Words
+                ###################################################################
+                # BET context
+                if len(patterns_bet_tags) > 0:
+                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
+                else:
+                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
 
-            ##########################################################
-            # Version 1: just a single vector with the sum of the BET ReVerb pattern/Words
-            ##########################################################
+                self.vector = self.bet_vector
 
-            # BET context
-            if len(patterns_bet_tags) > 0:
-                self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-            else:
-                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
+            elif config.vector == 'version_2':
+                ##########################################################
+                # Version 2: ReVerb Pattern/Words in BEF, BET, and AFT
+                ##########################################################
 
-            ########################################################################################
-            # TODO: Version 2: just a single vector with the average of the BET ReVerb pattern/Words
-            ########################################################################################
+                all_words = list()
 
+                # BEF context
+                # first check if at least one pattern was found
+                if len(patterns_bef_tags) > 0:
+                    for e in patterns_bef_tags[0]:
+                        all_words.append(e)
+                else:
+                    text_tokens = PunktWordTokenizer().tokenize(self.bef)
+                    if len(text_tokens) >= 1:
+                        tags_ptb = pos_tag(text_tokens)
+                        for e in tags_ptb:
+                            all_words.append(e)
 
+                # BET context
+                if len(patterns_bet_tags) > 0:
+                    for e in patterns_bet_tags[0]:
+                        all_words.append(e)
+                else:
+                    text_tokens = PunktWordTokenizer().tokenize(self.bet)
+                    if len(text_tokens) >= 1:
+                        tags_ptb = pos_tag(text_tokens)
+                        for e in tags_ptb:
+                            all_words.append(e)
 
-            ##########################################################
-            # TODO: Version 3: average of the words in BEF, BET, and AFT
-            ##########################################################
+                # AFT context
+                if len(patterns_aft_tags) > 0:
+                    for e in patterns_aft_tags[0]:
+                        all_words.append(e)
+                else:
+                    text_tokens = PunktWordTokenizer().tokenize(self.aft)
+                    if len(text_tokens) >= 1:
+                        tags_ptb = pos_tag(text_tokens)
+                        for e in tags_ptb:
+                            all_words.append(e)
 
-            # BEF context
-            if len(patterns_bef_tags) > 0:
-                self.bef_vector = self.construct_pattern_vector(patterns_bef_tags, config)
-            else:
-                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
-
-            # BET context
-            if len(patterns_bet_tags) > 0:
-                self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-            else:
-                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-
-            # AFT context
-            if len(patterns_aft_tags) > 0:
-                self.aft_vector = self.construct_pattern_vector(patterns_aft_tags, config)
-            else:
-                self.aft_vector = self.construct_words_vectors(self.aft_words, config)
-
-            ##########################################################
-            # TODO: Version 4: combine Version 2 and 3
-            ##########################################################
-
+                # normalize: discard adjectives and aux verbs and construct a single vector representation
+                pattern = [t[0] for t in all_words if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
+                if len(pattern) >= 1:
+                    words_vector = None
+                    if config.embeddings == 'average':
+                        words_vector = Word2VecWrapper.pattern2vector_average(pattern, config)
+                    elif config.embeddings == 'sum':
+                        words_vector = Word2VecWrapper.pattern2vector_sum(pattern, config)
+                    self.vector = words_vector
 
             """
             print self.e1
             print self.e2
             print self.sentence
+            print "BEF", self.bef
+            print "BET", self.bet
+            print "AFT", self.aft
+            print "all_words:", all_words
+            print "pattern:", pattern
+            print "embeddings:", config.embeddings
             print "ReVerb Patterns BEF:", len(patterns_bef_tags)
             print "ReVerb Patterns BET:", len(patterns_bet_tags)
             print "ReVerb Patterns AFT:", len(patterns_aft_tags)
@@ -153,7 +178,6 @@ class Tuple(object):
                 print patterns_bet_tags[0]
             if len(patterns_aft_tags) > 0:
                 print patterns_aft_tags[0]
-            print "BEF:", self.bef_vector
-            print "BET:", self.bet_vector
-            print "AFT:", self.aft_vector
+            print "vector:", self.vector
+            print "\n"
             """

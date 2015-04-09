@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import copy
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import pairwise
-from nltk.corpus import stopwords
-import numpy
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -15,17 +10,21 @@ import os
 import codecs
 import operator
 
-from numpy import dot
-from gensim import matutils
-from nltk import PunktWordTokenizer
-from collections import defaultdict
-from Word2VecWrapper import Word2VecWrapper
-from Snowball.Sentence import Sentence
+from Sentence import Sentence
 from Pattern import Pattern
 from Config import Config
 from Tuple import Tuple
 from Seed import Seed
 
+from nltk import PunktWordTokenizer
+from nltk.corpus import stopwords
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import pairwise
+
+from Word2VecWrapper import Word2VecWrapper
+from numpy import dot
+from gensim import matutils
+from collections import defaultdict
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -474,9 +473,9 @@ def similarity_all_dbscan(pattern, extraction_pattern, config):
     max_similarity = 0
     for p in list(extraction_pattern.patterns_words):
         tokens = tokenize(p)
-        vector_p = Word2VecWrapper.pattern2vector(tokens, config)
+        vector_p = Word2VecWrapper.pattern2vector_sum(tokens, config)
         for w in pattern.patterns_words:
-            vector_w = Word2VecWrapper.pattern2vector(tokenize(w), config)
+            vector_w = Word2VecWrapper.pattern2vector_sum(tokenize(w), config)
             score = dot(matutils.unitvec(vector_w), matutils.unitvec(vector_p))
             print "p:", p, "w:", w, score
 
@@ -503,9 +502,24 @@ def similarity_all(t, extraction_pattern, config):
     good = 0
     bad = 0
     max_similarity = 0
+    """
     for p in list(extraction_pattern.patterns_words):
         tokens = PunktWordTokenizer().tokenize(p)
-        vector = Word2VecWrapper.pattern2vector(tokens, config)
+        vector = Word2VecWrapper.pattern2vector_sum(tokens, config)
+        score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
+        if score > max_similarity:
+            max_similarity = score
+        if score >= config.threshold_similarity:
+            good += 1
+        else:
+            bad += 1
+        if good >= bad:
+            return True, max_similarity
+        else:
+            return False, 0.0
+    """
+
+    for vector in list(extraction_pattern.vectors):
         score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
         if score > max_similarity:
             max_similarity = score

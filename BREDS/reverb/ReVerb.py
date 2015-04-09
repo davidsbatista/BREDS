@@ -215,7 +215,7 @@ class Reverb(object):
         #print "pattern  :",pattern
 
         # remove ADJ, ADV, and auxialiary VERB
-        for i in range(0,len(pattern)):
+        for i in range(0, len(pattern)):
             if pattern[i][1] == 'ADJ':
                 continue
             elif pattern[i][1] == 'ADV':

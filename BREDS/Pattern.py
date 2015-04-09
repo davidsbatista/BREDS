@@ -17,14 +17,15 @@ class Pattern(object):
         self.unknown = 0
         self.confidence = 0
         self.tuples = set()
+        self.vectors = set()
         self.patterns_words = set()
         if tuple is not None:
             self.tuples.add(t)
             for p in t.patterns_words:
                 self.patterns_words.add(p)
+            self.vectors.add(t.vector)
 
     def __hash__(self):
-        print "chamei o hash()"
         return hash((self.patterns_words, self.tuples))
 
     def __eq__(self, other):
@@ -68,7 +69,7 @@ class Pattern(object):
         pattern_vector = zeros(config.vec_dim)
         for p in self.patterns_words:
             tokens = PunktWordTokenizer().tokenize(p)
-            vector_p = Word2VecWrapper.pattern2vector(tokens, config)
+            vector_p = Word2VecWrapper.pattern2vector_sum(tokens, config)
             pattern_vector += vector_p
 
         self.single_vector = pattern_vector

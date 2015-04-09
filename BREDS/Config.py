@@ -56,13 +56,8 @@ class Config(object):
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
 
-            """
-            if line.startswith("threshold_similarity"):
-                self.threshold_similarity = float(line.split("=")[1])
-
-            if line.startswith("instance_confidance"):
-                self.instance_confidance = float(line.split("=")[1])
-            """
+            if line.startswith("embeddings"):
+                self.embeddings = line.split("=")[1].strip()
 
             if line.startswith("single_vector"):
                 self.single_vector = line.split("=")[1].strip()
@@ -72,6 +67,9 @@ class Config(object):
 
             if line.startswith("word2vec_path"):
                 self.word2vecmodelpath = line.split("=")[1].strip()
+
+            if line.startswith("vector"):
+                self.vector = line.split("=")[1].strip()
 
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
@@ -95,7 +93,9 @@ class Config(object):
         print "min tokens away:", self.min_tokens_away
         print "seeds:", len(self.seed_tuples)
         print "negative seeds:", len(self.negative_seed_tuples)
-
+        print "vector representation:", self.vector
+        print "embeddings:", self.embeddings
+        print "\n"
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
