@@ -64,8 +64,8 @@ class BREADS(object):
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        if len(t.patterns_vectors) >= 1:
-                            self.processed_tuples.append(t)
+                        #if len(t.patterns_vectors) >= 1:
+                        self.processed_tuples.append(t)
             f_sentences.close()
 
             print "\n", len(self.processed_tuples), "tuples generated"

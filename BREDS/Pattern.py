@@ -17,13 +17,13 @@ class Pattern(object):
         self.unknown = 0
         self.confidence = 0
         self.tuples = set()
-        self.vectors = set()
+        self.vectors = list()
         self.patterns_words = set()
         if tuple is not None:
             self.tuples.add(t)
             for p in t.patterns_words:
                 self.patterns_words.add(p)
-            self.vectors.add(t.vector)
+            self.vectors.append(t.vector)
 
     def __hash__(self):
         return hash((self.patterns_words, self.tuples))
@@ -54,6 +54,7 @@ class Pattern(object):
 
     def add_tuple(self, t):
         self.tuples.add(t)
+        self.vectrs.add(t.vector)
 
     def add_pattern(self, p):
         pass
