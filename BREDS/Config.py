@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from nltk import WordNetLemmatizer
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -9,6 +8,8 @@ import fileinput
 from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 from Seed import Seed
+from nltk import WordNetLemmatizer
+from Word2VecWrapper import Word2VecWrapper
 
 
 class Config(object):
@@ -24,6 +25,7 @@ class Config(object):
         self.lmtzr = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
+        self.word2vecwrapper = Word2VecWrapper()
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -71,6 +73,15 @@ class Config(object):
             if line.startswith("vector"):
                 self.vector = line.split("=")[1].strip()
 
+            if line.startswith("alpha"):
+                self.alpha = float(line.split("=")[1])
+
+            if line.startswith("beta"):
+                self.beta = float(line.split("=")[1])
+
+            if line.startswith("gamma"):
+                self.gamma = float(line.split("=")[1])
+
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
         fileinput.close()
@@ -95,6 +106,9 @@ class Config(object):
         print "negative seeds:", len(self.negative_seed_tuples)
         print "vector representation:", self.vector
         print "embeddings:", self.embeddings
+        print "alpha: ", self.alpha
+        print "beta : ", self.beta
+        print "gamma: ", self.gamma
         print "\n"
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)

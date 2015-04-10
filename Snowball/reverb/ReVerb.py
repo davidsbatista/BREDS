@@ -112,7 +112,7 @@ class Reverb(object):
         # W = (noun | adj | adv | pron | det)
         # P = (prep | particle | inf. marker)
         """
-        # TODO: The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
+        # The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
         # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
         # (e.g., has an atomic weight of).
         # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible match is
