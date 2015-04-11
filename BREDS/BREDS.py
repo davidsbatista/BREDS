@@ -115,7 +115,7 @@ class BREADS(object):
             # Looks for sentences macthing the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
 
-            #for t in self.processed_tuples:
+            """
             for t in matched_tuples:
                 print t.e1, '\t', t.e2
                 print t.sentence
@@ -123,6 +123,7 @@ class BREADS(object):
                 print t.bet_vector
                 print t.aft_vector
                 print "\n"
+            """
 
             if len(matched_tuples) == 0:
                 print "\nNo seed matches found"
@@ -131,33 +132,12 @@ class BREADS(object):
             else:
                 print "\nNumber of seed matches found"
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
-
-                """
-                for t in matched_tuples:
-                    print t.e1, '\t', t.e2
-                    print t.sentence
-                    print t.bef_vector
-                    print t.bet_vector
-                    print t.aft_vector
-                    print "\n"
-                """
-
                 for t in sorted_counts:
                     print t[0][0], '\t', t[0][1], t[1]
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
                 #self.cluster_dbscan(self, matched_tuples)
-                """
-                print "before clustering"
-                for t in matched_tuples:
-                    print t.e1, '\t', t.e2
-                    print t.sentence
-                    print t.bef_vector
-                    print t.bet_vector
-                    print t.aft_vector
-                    print "\n"
-                """
                 self.cluster_tuples(self, matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
@@ -191,8 +171,6 @@ class BREADS(object):
                 print "\nCollecting instances based on extraction patterns"
                 count = 0
                 for t in self.processed_tuples:
-                    if t.vector is None:
-                        continue
                     count += 1
                     if count % 1000 == 0:
                         sys.stdout.write(".")
@@ -423,14 +401,6 @@ class BREADS(object):
         """
         Single-pass Clustering
         """
-        for t in matched_tuples:
-            print t.e1,'\t',t.e2
-            print t.sentence
-            print t.bef_vector
-            print t.bet_vector
-            print t.aft_vector
-            print "\n"
-
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
             c1 = Pattern(self.config, matched_tuples[0])
@@ -504,11 +474,6 @@ class BREADS(object):
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
-                    print t.e1, '\t', t.e2
-                    print t.sentence
-                    print t.bef_vector
-                    print t.bet_vector
-                    print t.aft_vector
                     try:
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
@@ -560,6 +525,7 @@ def similarity_all_dbscan(pattern, extraction_pattern, config):
 
 def similarty_3_contexts(p, t, config):
     (bef, bet, aft) = (0, 0, 0)
+    """
     print "Tuple"
     print t.e1, '\t', t.e2
     print t.sentence
@@ -573,6 +539,7 @@ def similarty_3_contexts(p, t, config):
     print p.sentence
     print p.bet_vector
     print p.aft_vector
+    """
 
     if t.bef_vector is not None and p.bef_vector is not None:
         #bef = cossim(t.bef_vector, p.bef_vector)
