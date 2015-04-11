@@ -553,11 +553,13 @@ def similarty_3_contexts(p, t, config):
         #aft = cossim(t.aft_vector, p.aft_vector)
         aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
 
+    """
     print "bef", bef
     print "bet", bet
     print "aft", aft
     print "score", config.alpha*bef + config.beta*bet + config.gamma*aft
     print "\n"
+    """
     return config.alpha*bef + config.beta*bet + config.gamma*aft
 
 
@@ -573,6 +575,8 @@ def similarity_all(t, extraction_pattern, config):
     if config.vector == 'version_3':
         for p in list(extraction_pattern.tuples):
             score = similarty_3_contexts(t, p, config)
+            if score > max_similarity:
+                max_similarity = score
             if score >= config.threshold_similarity:
                 good += 1
             else:

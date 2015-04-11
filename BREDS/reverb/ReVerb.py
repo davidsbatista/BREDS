@@ -5,11 +5,9 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
-import re
 import StringIO
 
 from nltk import pos_tag
-from nltk import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
 from nltk.tokenize.punkt import PunktWordTokenizer
@@ -184,25 +182,6 @@ class Reverb(object):
         merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
         return merged_patterns_tags
 
-
-    @staticmethod
-    def test_reverb_patterns_extraction(sentences):
-        for line in fileinput.input(sentences):
-            #s = line.split('sentence:')[1].strip()
-            text_tokens = word_tokenize(re.sub(r"</?e[1-2]>|\"", "", line))
-            tagged = pos_tag(text_tokens)
-
-            # convert the tags to reduced tagset (Petrov et al. 2012)
-            # http://arxiv.org/pdf/1104.2086.pdf
-            tags = []
-            for t in tagged:
-                tag = map_tag('en-ptb', 'universal', t[1])
-                tags.append((t[0], tag))
-
-            #r = Relationship(None, s, None, None, None)
-            #extractRelationalWords(r)
-            print tags
-
     @staticmethod
     def normalize_reverb_patterns(pattern):
         """
@@ -211,8 +190,8 @@ class Reverb(object):
           detect passive voice
         """
         lmtzr = WordNetLemmatizer()
-        aux_verbs = ['be', 'do', 'have', 'will', 'would', 'can', 'could', 'may', \
-        'might', 'must', 'shall', 'should', 'will', 'would']
+        aux_verbs = ['be', 'do', 'have', 'will', 'would', 'can', 'could', 'may', 'might', 'must', 'shall', 'should',
+                     'will', 'would']
         norm_pattern = []
 
         #print rel_type
