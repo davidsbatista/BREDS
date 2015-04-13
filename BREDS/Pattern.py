@@ -65,16 +65,6 @@ class Pattern(object):
             for p in t.patterns_words:
                 self.patterns_words.add(p)
 
-    def calculate_single_vector(self, config):
-        self.merge_patterns()
-        pattern_vector = zeros(config.vec_dim)
-        for p in self.patterns_words:
-            tokens = PunktWordTokenizer().tokenize(p)
-            vector_p = Word2VecWrapper.pattern2vector_sum(tokens, config)
-            pattern_vector += vector_p
-
-        self.single_vector = pattern_vector
-
     def update_selectivity(self, t, config):
         for s in config.seed_tuples:
             if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():

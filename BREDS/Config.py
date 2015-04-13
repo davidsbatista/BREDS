@@ -88,7 +88,6 @@ class Config(object):
 
         print "Configuration parameters"
         print "========================"
-        print "similartiy:", self.similarity
         print "e1 type:", self.e1_type
         print "e2 type:", self.e2_type
         print "instance confience:", self.instance_confidance

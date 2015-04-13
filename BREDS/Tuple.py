@@ -120,10 +120,8 @@ class Tuple(object):
                 return words_vector
 
         def extract_patterns(self, config):
-            """ Extract ReVerb patterns and construct Word2Vec representations """
-            patterns_bef_tags = Reverb.extract_reverb_patterns_ptb(self.bef)
+            # extract ReVerb pattern
             patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet)
-            patterns_aft_tags = Reverb.extract_reverb_patterns_ptb(self.aft)
 
             # detect passive voice in BET ReVerb pattern
             if len(patterns_bet_tags) > 0:
@@ -139,64 +137,11 @@ class Tuple(object):
                     self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
                 else:
                     self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-
                 self.vector = self.bet_vector
 
             elif config.vector == 'version_2':
-                ##########################################################
-                # Version 2: just a single vector with ReVerb Pattern/Words in BEF, BET, and AFT
-                ##########################################################
-
-                all_words = list()
-
-                # BEF context
-                # first check if at least one pattern was found
-                if len(patterns_bef_tags) > 0:
-                    for e in patterns_bef_tags[0]:
-                        all_words.append(e)
-                else:
-                    text_tokens = PunktWordTokenizer().tokenize(self.bef)
-                    if len(text_tokens) >= 1:
-                        tags_ptb = pos_tag(text_tokens)
-                        for e in tags_ptb:
-                            all_words.append(e)
-
-                # BET context
-                if len(patterns_bet_tags) > 0:
-                    for e in patterns_bet_tags[0]:
-                        all_words.append(e)
-                else:
-                    text_tokens = PunktWordTokenizer().tokenize(self.bet)
-                    if len(text_tokens) >= 1:
-                        tags_ptb = pos_tag(text_tokens)
-                        for e in tags_ptb:
-                            all_words.append(e)
-
-                # AFT context
-                if len(patterns_aft_tags) > 0:
-                    for e in patterns_aft_tags[0]:
-                        all_words.append(e)
-                else:
-                    text_tokens = PunktWordTokenizer().tokenize(self.aft)
-                    if len(text_tokens) >= 1:
-                        tags_ptb = pos_tag(text_tokens)
-                        for e in tags_ptb:
-                            all_words.append(e)
-
-                # normalize: discard adjectives and aux verbs and construct a single vector representation
-                pattern = [t[0] for t in all_words if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-                self.patterns_words = pattern
-                if len(pattern) >= 1:
-                    words_vector = None
-                    if config.embeddings == 'average':
-                        words_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
-                    elif config.embeddings == 'sum':
-                        words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-                    self.vector = words_vector
-
-            elif config.vector == 'version_3':
                 ##################################################################################
-                # Version 3: three context vectors
+                # Version 2: three context vectors
                 #            BEF: 2 words
                 #            BET: ReVerb pattern
                 #            AFT: 2 words
