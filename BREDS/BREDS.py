@@ -38,8 +38,7 @@ class BREADS(object):
 
     def generate_tuples(self, sentences_file):
         """
-        Generate tuples instances from a text file with sentences
-        where named entities are already tagged
+        Generate tuples instances from a text file with sentences where named entities are already tagged
         """
         try:
             os.path.isfile("processed_tuples.pkl")
