@@ -27,7 +27,6 @@ class Tuple(object):
             self.bef_vector = None
             self.bet_vector = None
             self.aft_vector = None
-
             self.bef_reverb_vector = None
             self.bet_reverb_vector = None
             self.aft_reverb_vector = None

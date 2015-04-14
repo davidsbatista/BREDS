@@ -83,7 +83,7 @@ class Config(object):
                 self.gamma = float(line.split("=")[1])
 
             if line.startswith("semantic_drift"):
-                self.semantic_drift = line.split("=")[1]
+                self.semantic_drift = line.split("=")[1].strip()
 
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
@@ -91,26 +91,30 @@ class Config(object):
 
         print "Configuration parameters"
         print "========================"
-        print "e1 type:", self.e1_type
-        print "e2 type:", self.e2_type
-        print "threshold_similarity: ", self.threshold_similarity
-        print "instance confience:", self.instance_confidance
-        print "min_pattern_support", self.min_pattern_support
-        print "iterations: ", self.number_iterations
-        print "iteration wUpdt:", self.wUpdt
-        print "negative seeds wNeg:", self.wNeg
-        print "unknown seeds wUnk:", self.wUnk
-        print "word2vecmodel: ", self.word2vecmodelpath
-        print "context window:", self.context_window_size
-        print "max tokens away:", self.max_tokens_away
-        print "min tokens away:", self.min_tokens_away
-        print "seeds:", len(self.seed_tuples)
-        print "negative seeds:", len(self.negative_seed_tuples)
-        print "vector representation:", self.vector
-        print "embeddings:", self.embeddings
-        print "alpha: ", self.alpha
-        print "beta : ", self.beta
-        print "gamma: ", self.gamma
+        print "Relationship Representation"
+        print "e1 type              :", self.e1_type
+        print "e2 type              :", self.e2_type
+        print "context window       :", self.context_window_size
+        print "max tokens away      :", self.max_tokens_away
+        print "min tokens away      :", self.min_tokens_away
+        print "Word2Vec Model       :", self.word2vecmodelpath
+        print "\nVectors"
+        print "embeddings type      :", self.embeddings
+        print "alpha                :", self.alpha
+        print "beta                 :", self.beta
+        print "gamma                :", self.gamma
+        print "\nSeeds:"
+        print "negative seeds wNeg  :", self.wNeg
+        print "unknown seeds wUnk   :", self.wUnk
+        print "seeds                :", len(self.seed_tuples)
+        print "negative seeds       :", len(self.negative_seed_tuples)
+        print "\nParameters and Thresholds"
+        print "threshold_similarity :", self.threshold_similarity
+        print "instance confience   :", self.instance_confidance
+        print "semantic drift       :", self.semantic_drift
+        print "min_pattern_support  :", self.min_pattern_support
+        print "iterations           :", self.number_iterations
+        print "iteration wUpdt      :", self.wUpdt
         print "\n"
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
