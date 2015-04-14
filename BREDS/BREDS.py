@@ -115,26 +115,31 @@ class BREADS(object):
         for t in range(0, i):
             previous.update(self.candidate_tuples_by_iterations[t])
 
+        print "Current", len(self.candidate_tuples)
+
         # calculate similarity with previous
-        avg_sim_previous = 0
+        avg_sim_previous = 0.0
         for t in current:
             avg_sim_previous += self.similarty_3_contexts(t, r)
         avg_sim_previous /= len(previous)
 
         # calculate similarity with current
-        avg_sim_previous_current = 0
+        avg_sim_current = 0.0
         for t in previous:
-            avg_sim_previous_current += self.similarty_3_contexts(t, r)
-        avg_sim_previous_current /= len(avg_sim_previous_current)
+            avg_sim_current += self.similarty_3_contexts(t, r)
+        avg_sim_current /= len(current)
 
-        print r.ent1, '\t', r.ent2
+        print avg_sim_current
+        print avg_sim_previous
+        score = float(avg_sim_previous) / float(avg_sim_current)
+        print r.sentence
+        print r.e1, '\t', r.e2
         print r.bef
         print r.bet
         print r.aft
-
-        print "score:", avg_sim_previous / avg_sim_previous_current
-
-        return avg_sim_previous / avg_sim_previous_current
+        print "score:", score
+        print "\n"
+        return score
 
     @staticmethod
     def drift_two(r, i):
@@ -156,6 +161,11 @@ class BREADS(object):
 
         i = 0
         while i <= self.config.number_iterations:
+            if self.config.semantic_drift != "snowball":
+                # if semantic drift is controled with average similarity instead of snowblal mecahanism
+                # at every iteration generate a new set of candidate tuples (instances)
+                self.candidate_tuples = defaultdict(list)
+
             print "\nStarting iteration", i
             print "\nLooking for seed matches of:"
             for s in self.config.seed_tuples:
@@ -215,7 +225,7 @@ class BREADS(object):
                 count = 0
                 for t in self.processed_tuples:
                     count += 1
-                    if count % 1000 == 0:
+                    if count % 500 == 0:
                         sys.stdout.write(".")
                     sim_best = 0
                     for extraction_pattern in self.patterns:
@@ -227,15 +237,23 @@ class BREADS(object):
                                 pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
-                        # if this tuple was already extracted, check if this extraction pattern is already associated
-                        # with it. if not associate this pattern with it and similarity score
-                        patterns = self.candidate_tuples[t]
-                        if patterns is not None:
-                            if pattern_best not in [x[0] for x in patterns]:
+                        # if semantic drift is controled like in snowball
+                        # keep track of all extracted tuples, and perform updates
+                        if self.config.semantic_drift == "snowball":
+                            # if this tuple was already extracted, check if this extraction pattern is already associated
+                            # with it. if not associate this pattern with it and similarity score
+                            patterns = self.candidate_tuples[t]
+                            if patterns is not None:
+                                if pattern_best not in [x[0] for x in patterns]:
+                                    self.candidate_tuples[t].append((pattern_best, sim_best))
+
+                            # If this tuple was not extracted before, associate this pattern with the instance
+                            # and the similarity score
+                            else:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
 
-                        # If this tuple was not extracted before, associate this pattern with the instance
-                        # and the similarity score
+                        # if semantic drift is controled with average similarity
+                        # at every iteration generate a new set of candidate tuples (instances)
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
 
@@ -299,6 +317,8 @@ class BREADS(object):
                 if i == 0 or self.config.semantic_drift == "snowball":
                     # update seed set of tuples to use in next iteration
                     # seeds = { T | Conf(T) > min_tuple_confidence }
+                    if self.config.semantic_drift != "snowball":
+                        self.candidate_tuples_by_iterations[0] = set()
                     if i+1 < self.config.number_iterations:
                         print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
                         for t in self.candidate_tuples.keys():
@@ -318,7 +338,11 @@ class BREADS(object):
 
                         # added tuples with good scores to
                         if score > self.config.instance_confidance:
-                            self.candidate_tuples_by_iterations[i].add(t)
+                            if i in self.candidate_tuples_by_iterations:
+                                self.candidate_tuples_by_iterations[i].add(t)
+                            else:
+                                self.candidate_tuples_by_iterations[i] = set()
+                                self.candidate_tuples_by_iterations[i].add(t)
 
                 elif self.config.semantic_drift == "constrained":
                     pass
@@ -402,6 +426,81 @@ class BREADS(object):
                 return False, 0.0
         """
 
+    def cluster_tuples(self, matched_tuples):
+        """
+        Single-pass Clustering
+        """
+        # Initialize: if no patterns exist, first tuple goes to first cluster
+        if len(self.patterns) == 0:
+            c1 = Pattern(self.config, matched_tuples[0])
+            self.patterns.append(c1)
+            #print "Pattern Words", self.patterns[0].patterns_words
+
+        # Compute the similarity between an instance with each pattern
+        # go through all tuples
+        count = 0
+        for t in matched_tuples:
+            count += 1
+            if count % 500 == 0:
+                sys.stdout.write(".")
+            max_similarity = 0
+            max_similarity_cluster_index = 0
+
+            # go through all patterns(clusters of tuples) and find the one with the
+            # highest similarity score
+            for i in range(0, len(self.patterns), 1):
+                extraction_pattern = self.patterns[i]
+                # compute the similarity between the instance vector and each vector from a pattern
+                # if majority is above threshold
+                try:
+                    accept, score = self.similarity_all(t, extraction_pattern)
+                    if accept is True and score > max_similarity:
+                        max_similarity = score
+                        max_similarity_cluster_index = i
+                except Exception, e:
+                    print "Error! Tuple and Extraction pattern are empty!"
+                    print e
+                    print "tuple"
+                    print t.sentence
+                    print t.e1, '\t', t.e2
+                    print extraction_pattern
+                    sys.exit(0)
+
+            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
+            if max_similarity < self.config.threshold_similarity:
+                c = Pattern(self.config, t)
+                self.patterns.append(c)
+                #print "New Cluster", c.patterns_words
+                #print "\n"
+
+            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
+            else:
+                #print "\n"
+                #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
+                self.patterns[max_similarity_cluster_index].add_tuple(t)
+                #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
+
+    def match_seeds_tuples(self):
+        """
+        checks if an extracted tuple matches seeds tuples
+        """
+        matched_tuples = list()
+        count_matches = dict()
+        for t in self.processed_tuples:
+            for s in self.config.seed_tuples:
+                if t.e1 == s.e1 and t.e2 == s.e2:
+                    matched_tuples.append(t)
+                    try:
+                        count_matches[(t.e1, t.e2)] += 1
+                    except KeyError:
+                        count_matches[(t.e1, t.e2)] = 1
+
+        return count_matches, matched_tuples
+
+    @staticmethod
+    def tokenize(text):
+        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
+
     # TODO: use DBSCAN instead of Single-Pass Clustering
     @staticmethod
     def cluster_dbscan(self, matched_tuples):
@@ -478,7 +577,8 @@ class BREADS(object):
 
                             # 1 - compare similarity with all vectors, majority decides if is above threshold
                             if self.config.similarity == "all":
-                                print "Similarity between: ", pattern.patterns_words, " and", extraction_pattern.patterns_words
+                                print "Similarity between: ", pattern.patterns_words, " and",\
+                                extraction_pattern.patterns_words
                                 accept, score = similarity_all_dbscan(pattern, extraction_pattern, self.config)
                                 if accept is True and score > max_similarity:
                                     max_similarity = score
@@ -534,81 +634,6 @@ class BREADS(object):
         else:
             return False, 0.0
     """
-
-    def cluster_tuples(self, matched_tuples):
-        """
-        Single-pass Clustering
-        """
-        # Initialize: if no patterns exist, first tuple goes to first cluster
-        if len(self.patterns) == 0:
-            c1 = Pattern(self.config, matched_tuples[0])
-            self.patterns.append(c1)
-            print "Pattern Words", self.patterns[0].patterns_words
-
-        # Compute the similarity between an instance with each pattern
-        # go through all tuples
-        count = 0
-        for t in matched_tuples:
-            count += 1
-            if count % 500 == 0:
-                sys.stdout.write(".")
-            max_similarity = 0
-            max_similarity_cluster_index = 0
-
-            # go through all patterns(clusters of tuples) and find the one with the
-            # highest similarity score
-            for i in range(0, len(self.patterns), 1):
-                extraction_pattern = self.patterns[i]
-                # compute the similarity between the instance vector and each vector from a pattern
-                # if majority is above threshold
-                try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
-                    if accept is True and score > max_similarity:
-                        max_similarity = score
-                        max_similarity_cluster_index = i
-                except Exception, e:
-                    print "Error! Tuple and Extraction pattern are empty!"
-                    print e
-                    print "tuple"
-                    print t.sentence
-                    print t.e1, '\t', t.e2
-                    print extraction_pattern
-                    sys.exit(0)
-
-            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
-            if max_similarity < self.config.threshold_similarity:
-                c = Pattern(self.config, t)
-                self.patterns.append(c)
-                #print "New Cluster", c.patterns_words
-                #print "\n"
-
-            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
-            else:
-                #print "\n"
-                #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
-                self.patterns[max_similarity_cluster_index].add_tuple(t)
-                #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
-
-    def match_seeds_tuples(self):
-        """
-        checks if an extracted tuple matches seeds tuples
-        """
-        matched_tuples = list()
-        count_matches = dict()
-        for t in self.processed_tuples:
-            for s in self.config.seed_tuples:
-                if t.e1 == s.e1 and t.e2 == s.e2:
-                    matched_tuples.append(t)
-                    try:
-                        count_matches[(t.e1, t.e2)] += 1
-                    except KeyError:
-                        count_matches[(t.e1, t.e2)] = 1
-
-        return count_matches, matched_tuples
-
-    @staticmethod
-    def tokenize(text):
-        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
 
 
 def main():
