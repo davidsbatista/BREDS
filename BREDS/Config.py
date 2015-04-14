@@ -82,6 +82,9 @@ class Config(object):
             if line.startswith("gamma"):
                 self.gamma = float(line.split("=")[1])
 
+            if line.startswith("semantic_drift"):
+                self.semantic_drift = line.split("=")[1]
+
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
         fileinput.close()
@@ -90,10 +93,10 @@ class Config(object):
         print "========================"
         print "e1 type:", self.e1_type
         print "e2 type:", self.e2_type
+        print "threshold_similarity: ", self.threshold_similarity
         print "instance confience:", self.instance_confidance
         print "min_pattern_support", self.min_pattern_support
         print "iterations: ", self.number_iterations
-        print "threshold_similarity: ", self.threshold_similarity
         print "iteration wUpdt:", self.wUpdt
         print "negative seeds wNeg:", self.wNeg
         print "unknown seeds wUnk:", self.wUnk

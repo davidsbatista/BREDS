@@ -9,7 +9,6 @@ import sys
 import os
 import codecs
 import operator
-import numpy
 
 from Sentence import Sentence
 from Pattern import Pattern
@@ -19,10 +18,6 @@ from Seed import Seed
 
 from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import pairwise
-
-from Word2VecWrapper import Word2VecWrapper
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
@@ -38,6 +33,7 @@ class BREADS(object):
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
+        self.candidate_tuples_by_iterations = dict()
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
 
     def generate_tuples(self, sentences_file):
@@ -74,25 +70,78 @@ class BREADS(object):
             cPickle.dump(self.processed_tuples, f)
             f.close()
 
-    @staticmethod
-    def drift(r, i):
-        pass
-        #TODO:
-        # select all instances extracted in iterations < i
-        #   P = instances extracted at iteration in previous iterations
+    def similarty_3_contexts(self, p, t):
+        (bef, bet, aft) = (0, 0, 0)
+        """
+        print "Tuple"
+        print t.e1, '\t', t.e2
+        print t.sentence
+        print t.bef_vector
+        print t.bet_vector
+        print t.aft_vector
+
+        print "Pattern"
+        print p.e1, '\t', p.e2
+        print p.bef_vector
+        print p.sentence
+        print p.bet_vector
+        print p.aft_vector
+        """
+
+        if t.bef_vector is not None and p.bef_vector is not None:
+            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
+
+        if t.bet_vector is not None and p.bet_vector is not None:
+            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
+
+        if t.aft_vector is not None and p.aft_vector is not None:
+            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
+
+        """
+        print "bef", bef
+        print "bet", bet
+        print "aft", aft
+        print "score", config.alpha*bef + config.beta*bet + config.gamma*aft
+        print "\n"
+        """
+        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
+
+    def drift_one(self, r, i):
         # select all instances extracted in iteration i
-        #   Z = instances extracted at iteration i
+        current = self.candidate_tuples
 
-        # calculate similarity
-        # for t in P:
-        #   avg_sim += sim(t,r)
-        # avg_sim_P /= len(P)
+        # select all instances extracted in iterations < i
+        previous = set()
+        for t in range(0, i):
+            previous.update(self.candidate_tuples_by_iterations[t])
 
-        # for t in Z:
-        #   avg_sim += sim(t,r)
-        # avg_sim_Z /= len(Z)
+        # calculate similarity with previous
+        avg_sim_previous = 0
+        for t in current:
+            avg_sim_previous += self.similarty_3_contexts(t, r)
+        avg_sim_previous /= len(previous)
 
-        # return (avg_sim_P / avg_sim_Z)
+        # calculate similarity with current
+        avg_sim_previous_current = 0
+        for t in previous:
+            avg_sim_previous_current += self.similarty_3_contexts(t, r)
+        avg_sim_previous_current /= len(avg_sim_previous_current)
+
+        print r.ent1, '\t', r.ent2
+        print r.bef
+        print r.bet
+        print r.aft
+
+        print "score:", avg_sim_previous / avg_sim_previous_current
+
+        return avg_sim_previous / avg_sim_previous_current
+
+    @staticmethod
+    def drift_two(r, i):
+        # The third approach constrains the instances to be added to the seed set on two conditions. An extracted
+        # instance x is only added to the seed set if its similarity with at least N instances extracted in the previous
+        # i iteration is above a threshold τ sim ,where N is the number of instances extracted inthe previous iteration.
+        pass
 
     def start(self, tuples):
         """
@@ -128,7 +177,7 @@ class BREADS(object):
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
                 #self.cluster_dbscan(self, matched_tuples)
-                self.cluster_tuples(self, matched_tuples)
+                self.cluster_tuples(matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
@@ -170,7 +219,7 @@ class BREADS(object):
                         sys.stdout.write(".")
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        accept, score = similarity_all(t, extraction_pattern, self.config)
+                        accept, score = self.similarity_all(t, extraction_pattern)
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
                             if score > sim_best:
@@ -247,14 +296,32 @@ class BREADS(object):
                         print t.aft
                         print "=============="
 
-                # update seed set of tuples to use in next iteration
-                # seeds = { T | Conf(T) > min_tuple_confidence }
-                if i+1 < self.config.number_iterations:
-                    print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
+                if i == 0 or self.config.semantic_drift == "snowball":
+                    # update seed set of tuples to use in next iteration
+                    # seeds = { T | Conf(T) > min_tuple_confidence }
+                    if i+1 < self.config.number_iterations:
+                        print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
+                        for t in self.candidate_tuples.keys():
+                            if t.confidence >= self.config.instance_confidance:
+                                seed = Seed(t.e1, t.e2)
+                                self.config.seed_tuples.add(seed)
+
+                            # for methods that control semantic drfit by comparing with previous extractions
+                            # in the first iteration there is nothing to compare with
+                            # we just select the tuples with high confidence scores
+                            if self.config.semantic_drift != "snowball":
+                                self.candidate_tuples_by_iterations[0].add(t)
+
+                elif self.config.semantic_drift == "mcintosh":
                     for t in self.candidate_tuples.keys():
-                        if t.confidence >= self.config.instance_confidance:
-                            seed = Seed(t.e1, t.e2)
-                            self.config.seed_tuples.add(seed)
+                        score = self.drift_one(t, i)
+
+                        # added tuples with good scores to
+                        if score > self.config.instance_confidance:
+                            self.candidate_tuples_by_iterations[i].add(t)
+
+                elif self.config.semantic_drift == "constrained":
+                    pass
 
                 # increment the number of iterations
                 i += 1
@@ -280,8 +347,65 @@ class BREADS(object):
             f_output.write(str(p.patterns_words)+'\t'+str(p.confidence)+'\n')
         f_output.close()
 
+    def similarity_all(self, t, extraction_pattern):
+        """
+        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+        and the vector of a ReVerb pattern extracted from a sentence
+        """
+        good = 0
+        bad = 0
+        max_similarity = 0
+
+        if self.config.vector == 'version_2':
+            for p in list(extraction_pattern.tuples):
+                score = self.similarty_3_contexts(t, p)
+                if score > max_similarity:
+                    max_similarity = score
+                if score >= self.config.threshold_similarity:
+                    good += 1
+                else:
+                    bad += 1
+
+            if good >= bad:
+                return True, max_similarity
+            else:
+                return False, 0.0
+
+        elif self.config.vector == 'version_1':
+            for vector in list(extraction_pattern.vectors):
+                score = dot(matutils.unitvec(t.vector), matutils.unitvec(vector))
+                if score > max_similarity:
+                    max_similarity = score
+                if score >= self.config.threshold_similarity:
+                    good += 1
+                else:
+                    bad += 1
+            if good >= bad:
+                return True, max_similarity
+            else:
+                return False, 0.0
+
+        """
+        for p in list(extraction_pattern.patterns_words):
+            tokens = PunktWordTokenizer().tokenize(p)
+            vector = Word2VecWrapper.pattern2vector_sum(tokens, config)
+            score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
+            if score > max_similarity:
+                max_similarity = score
+            if score >= config.threshold_similarity:
+                good += 1
+            else:
+                bad += 1
+            if good >= bad:
+                return True, max_similarity
+            else:
+                return False, 0.0
+        """
+
+    # TODO: use DBSCAN instead of Single-Pass Clustering
     @staticmethod
     def cluster_dbscan(self, matched_tuples):
+        """
         #TODO: usar o self.config para ler os params eps=0.1, min_samples=2
         # add all bet_vectors
         vectors = []
@@ -310,11 +434,9 @@ class BREADS(object):
                 c.add_tuple(clusters[k][p])
             patterns_generated.append(c)
 
-        """
         print "\nPatterns generated in this iteration"
         for p in patterns_generated:
             print p, len(p.tuples)
-        """
 
         print "\nAlready existing patterns"
         for p in self.patterns:
@@ -384,7 +506,35 @@ class BREADS(object):
 
                             print "\n"
 
-    @staticmethod
+    def similarity_all_dbscan(pattern, extraction_pattern, config):
+        # Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+        # and the vector of a ReVerb pattern extracted from a sentence
+        good = 0
+        bad = 0
+        max_similarity = 0
+        for p in list(extraction_pattern.patterns_words):
+            tokens = tokenize(p)
+            vector_p = Word2VecWrapper.pattern2vector_sum(tokens, config)
+            for w in pattern.patterns_words:
+                vector_w = Word2VecWrapper.pattern2vector_sum(tokenize(w), config)
+                score = dot(matutils.unitvec(vector_w), matutils.unitvec(vector_p))
+                print "p:", p, "w:", w, score
+
+                if score > max_similarity:
+                    max_similarity = score
+                if score >= config.threshold_similarity:
+                    good += 1
+                else:
+                    bad += 1
+
+        print "good", good
+        print "bad", bad
+        if good >= bad:
+            return True, max_similarity
+        else:
+            return False, 0.0
+    """
+
     def cluster_tuples(self, matched_tuples):
         """
         Single-pass Clustering
@@ -393,7 +543,6 @@ class BREADS(object):
         if len(self.patterns) == 0:
             c1 = Pattern(self.config, matched_tuples[0])
             self.patterns.append(c1)
-
             print "Pattern Words", self.patterns[0].patterns_words
 
         # Compute the similarity between an instance with each pattern
@@ -413,7 +562,7 @@ class BREADS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
                 try:
-                    accept, score = similarity_all(t, extraction_pattern, self.config)
+                    accept, score = self.similarity_all(t, extraction_pattern)
                     if accept is True and score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i
@@ -457,144 +606,9 @@ class BREADS(object):
 
         return count_matches, matched_tuples
 
-
-def similarity_sum(t_pattern, extraction_pattern, config):
-    """
-    Cosine similarity between a Cluster/Extraction Pattern represented as a single vector
-    and the vector of a ReVerb pattern extracted from a sentence
-    """
-    extraction_pattern.calculate_single_vector(config)
-    score = dot(matutils.unitvec(t_pattern), matutils.unitvec(extraction_pattern.single_vector))
-    return score
-
-
-def similarity_all_dbscan(pattern, extraction_pattern, config):
-    """
-    Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-    and the vector of a ReVerb pattern extracted from a sentence
-    """
-    good = 0
-    bad = 0
-    max_similarity = 0
-    for p in list(extraction_pattern.patterns_words):
-        tokens = tokenize(p)
-        vector_p = Word2VecWrapper.pattern2vector_sum(tokens, config)
-        for w in pattern.patterns_words:
-            vector_w = Word2VecWrapper.pattern2vector_sum(tokenize(w), config)
-            score = dot(matutils.unitvec(vector_w), matutils.unitvec(vector_p))
-            print "p:", p, "w:", w, score
-
-            if score > max_similarity:
-                max_similarity = score
-            if score >= config.threshold_similarity:
-                good += 1
-            else:
-                bad += 1
-
-    print "good", good
-    print "bad", bad
-    if good >= bad:
-        return True, max_similarity
-    else:
-        return False, 0.0
-
-
-def similarty_3_contexts(p, t, config):
-    (bef, bet, aft) = (0, 0, 0)
-    """
-    print "Tuple"
-    print t.e1, '\t', t.e2
-    print t.sentence
-    print t.bef_vector
-    print t.bet_vector
-    print t.aft_vector
-
-    print "Pattern"
-    print p.e1, '\t', p.e2
-    print p.bef_vector
-    print p.sentence
-    print p.bet_vector
-    print p.aft_vector
-    """
-
-    if t.bef_vector is not None and p.bef_vector is not None:
-        bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
-
-    if t.bet_vector is not None and p.bet_vector is not None:
-        bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
-
-    if t.aft_vector is not None and p.aft_vector is not None:
-        aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
-
-    """
-    print "bef", bef
-    print "bet", bet
-    print "aft", aft
-    print "score", config.alpha*bef + config.beta*bet + config.gamma*aft
-    print "\n"
-    """
-    return config.alpha*bef + config.beta*bet + config.gamma*aft
-
-
-def similarity_all(t, extraction_pattern, config):
-    """
-    Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-    and the vector of a ReVerb pattern extracted from a sentence
-    """
-    good = 0
-    bad = 0
-    max_similarity = 0
-
-    if config.vector == 'version_2':
-        for p in list(extraction_pattern.tuples):
-            score = similarty_3_contexts(t, p, config)
-            if score > max_similarity:
-                max_similarity = score
-            if score >= config.threshold_similarity:
-                good += 1
-            else:
-                bad += 1
-
-        if good >= bad:
-            return True, max_similarity
-        else:
-            return False, 0.0
-
-    elif config.vector == 'version_1':
-        for vector in list(extraction_pattern.vectors):
-            score = dot(matutils.unitvec(t.vector), matutils.unitvec(vector))
-            if score > max_similarity:
-                max_similarity = score
-            if score >= config.threshold_similarity:
-                good += 1
-            else:
-                bad += 1
-        if good >= bad:
-            return True, max_similarity
-        else:
-            return False, 0.0
-
-    """
-    for p in list(extraction_pattern.patterns_words):
-        tokens = PunktWordTokenizer().tokenize(p)
-        vector = Word2VecWrapper.pattern2vector_sum(tokens, config)
-        score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
-        if score > max_similarity:
-            max_similarity = score
-        if score >= config.threshold_similarity:
-            good += 1
-        else:
-            bad += 1
-        if good >= bad:
-            return True, max_similarity
-        else:
-            return False, 0.0
-    """
-
-
-
-def tokenize(text):
-    return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
+    @staticmethod
+    def tokenize(text):
+        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
 
 
 def main():
@@ -602,7 +616,9 @@ def main():
     sentences_file = sys.argv[2]
     seeds_file = sys.argv[3]
     negative_seeds = sys.argv[4]
+    # threshold similarity for clustering/extracting instances
     similarity = sys.argv[5]
+    # confidence threshold of an instance to used as seed
     confidance = sys.argv[6]
     breads = BREADS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
     if sentences_file.endswith('.pkl'):

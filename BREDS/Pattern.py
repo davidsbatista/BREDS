@@ -1,10 +1,7 @@
-from nltk import PunktWordTokenizer
-
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 from numpy import zeros
-from Word2VecWrapper import Word2VecWrapper
 from math import log
 
 
@@ -58,7 +55,7 @@ class Pattern(object):
 
     def add_pattern(self, p):
         pass
-        #TODO: part of DBSCAN clustering
+        #part of DBSCAN clustering
 
     def merge_patterns(self):
         for t in self.tuples:
