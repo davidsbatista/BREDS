@@ -20,7 +20,7 @@ class Pattern(object):
             self.tuples.add(t)
             for p in t.patterns_words:
                 self.patterns_words.add(p)
-            self.vectors.append(t.vector)
+
 
     def __hash__(self):
         return hash((self.patterns_words, self.tuples))
@@ -51,7 +51,6 @@ class Pattern(object):
 
     def add_tuple(self, t):
         self.tuples.add(t)
-        self.vectors.append(t.vector)
 
     def add_pattern(self, p):
         pass

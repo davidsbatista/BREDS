@@ -30,11 +30,14 @@ PRINT_PATTERNS = False
 class BREADS(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
+        self.curr_iteration = 0
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.candidate_tuples_by_iterations = dict()
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
+
+        # to control the semantic drift using the seeds from different iterations
+        self.seeds_by_iteration = dict()
 
     def generate_tuples(self, sentences_file):
         """
@@ -70,22 +73,23 @@ class BREADS(object):
             cPickle.dump(self.processed_tuples, f)
             f.close()
 
-    def similarty_3_contexts(self, p, t):
+    def similarity_3_contexts(self, p, t):
         (bef, bet, aft) = (0, 0, 0)
+
         """
         print "Tuple"
         print t.e1, '\t', t.e2
         print t.sentence
-        print t.bef_vector
-        print t.bet_vector
-        print t.aft_vector
+        print t.bef_words
+        print t.bet_words
+        print t.aft_words
 
         print "Pattern"
         print p.e1, '\t', p.e2
-        print p.bef_vector
         print p.sentence
-        print p.bet_vector
-        print p.aft_vector
+        print p.bef_words
+        print p.bet_words
+        print p.aft_words
         """
 
         if t.bef_vector is not None and p.bef_vector is not None:
@@ -98,47 +102,53 @@ class BREADS(object):
             aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
 
         """
+        print "scores:"
         print "bef", bef
         print "bet", bet
         print "aft", aft
-        print "score", config.alpha*bef + config.beta*bet + config.gamma*aft
+        print "score", self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
         print "\n"
         """
+
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
-    def drift_one(self, r, i):
-        # select all instances extracted in iteration i
-        current = self.candidate_tuples
+    def drift_one(self, r):
 
-        # select all instances extracted in iterations < i
-        previous = set()
-        for t in range(0, i):
-            previous.update(self.candidate_tuples_by_iterations[t])
+        print "current iterations added tuple seeds:", len(self.seeds_by_iteration[self.curr_iteration])
 
-        print "Current", len(self.candidate_tuples)
+        previous = list()
+        print "self.curr_iteration", self.curr_iteration
+        for i in range(0, self.curr_iteration):
+            print "previous from", i
+            previous.extend(self.seeds_by_iteration[i])
 
-        # calculate similarity with previous
-        avg_sim_previous = 0.0
-        for t in current:
-            avg_sim_previous += self.similarty_3_contexts(t, r)
-        avg_sim_previous /= len(previous)
+        print "all previous tuple seeds:", len(previous)
 
         # calculate similarity with current
         avg_sim_current = 0.0
-        for t in previous:
-            avg_sim_current += self.similarty_3_contexts(t, r)
-        avg_sim_current /= len(current)
+        for t in self.seeds_by_iteration[self.curr_iteration]:
+            avg_sim_current += self.similarity_3_contexts(t, r)
+        avg_sim_current /= len(self.seeds_by_iteration[self.curr_iteration])
 
-        print avg_sim_current
-        print avg_sim_previous
+        # calculate similarity with previous
+        avg_sim_previous = 0.0
+        for t in previous:
+            avg_sim_previous += self.similarity_3_contexts(t, r)
+        avg_sim_previous /= len(previous)
+
+        print "avg similarity previous seeds:", avg_sim_previous
+        print "avg similarity current  seeds:", avg_sim_current
         score = float(avg_sim_previous) / float(avg_sim_current)
+        print "drift:", score
+        print "\n"
+
+        """
         print r.sentence
         print r.e1, '\t', r.e2
-        print r.bef
-        print r.bet
-        print r.aft
-        print "score:", score
-        print "\n"
+        print r.bef_words
+        print r.bet_words
+        print r.aft_words
+        """
         return score
 
     @staticmethod
@@ -159,14 +169,14 @@ class BREADS(object):
             f.close()
             print len(self.processed_tuples), "tuples loaded"
 
-        i = 0
-        while i <= self.config.number_iterations:
+        self.curr_iteration = 0
+        while self.curr_iteration <= self.config.number_iterations:
             if self.config.semantic_drift != "snowball":
                 # if semantic drift is controled with average similarity instead of snowblal mecahanism
                 # at every iteration generate a new set of candidate tuples (instances)
                 self.candidate_tuples = defaultdict(list)
 
-            print "\nStarting iteration", i
+            print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches of:"
             for s in self.config.seed_tuples:
                 print s.e1, '\t', s.e2
@@ -209,7 +219,7 @@ class BREADS(object):
                         print "Pattern Confidence", p.confidence
                         print "\n"
 
-                if i == 0 and len(self.patterns) == 0:
+                if self.curr_iteration == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
                     sys.exit(0)
 
@@ -237,23 +247,15 @@ class BREADS(object):
                                 pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
-                        # if semantic drift is controled like in snowball
-                        # keep track of all extracted tuples, and perform updates
-                        if self.config.semantic_drift == "snowball":
-                            # if this tuple was already extracted, check if this extraction pattern is already associated
-                            # with it. if not associate this pattern with it and similarity score
-                            patterns = self.candidate_tuples[t]
-                            if patterns is not None:
-                                if pattern_best not in [x[0] for x in patterns]:
-                                    self.candidate_tuples[t].append((pattern_best, sim_best))
-
-                            # If this tuple was not extracted before, associate this pattern with the instance
-                            # and the similarity score
-                            else:
+                        # if this tuple was already extracted, check if this extraction pattern is already associated
+                        # with it. if not associate this pattern with it and similarity score
+                        patterns = self.candidate_tuples[t]
+                        if patterns is not None:
+                            if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
 
-                        # if semantic drift is controled with average similarity
-                        # at every iteration generate a new set of candidate tuples (instances)
+                        # If this tuple was not extracted before, associate this pattern with the instance
+                        # and the similarity score
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
 
@@ -309,46 +311,50 @@ class BREADS(object):
                     for t in tuples_sorted:
                         #best_pattern = self.candidate_tuples[t]
                         print t.e1, t.e2, t.confidence
-                        print t.bef
-                        print t.bet
-                        print t.aft
+                        print t.bef_words
+                        print t.bet_words
+                        print t.aft_words
                         print "=============="
 
-                if i == 0 or self.config.semantic_drift == "snowball":
-                    # update seed set of tuples to use in next iteration
-                    # seeds = { T | Conf(T) > min_tuple_confidence }
-                    if self.config.semantic_drift != "snowball":
-                        self.candidate_tuples_by_iterations[0] = set()
-                    if i+1 < self.config.number_iterations:
-                        print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
-                        for t in self.candidate_tuples.keys():
-                            if t.confidence >= self.config.instance_confidance:
-                                seed = Seed(t.e1, t.e2)
-                                self.config.seed_tuples.add(seed)
-
-                            # for methods that control semantic drfit by comparing with previous extractions
-                            # in the first iteration there is nothing to compare with
-                            # we just select the tuples with high confidence scores
-                            if self.config.semantic_drift != "snowball":
-                                self.candidate_tuples_by_iterations[0].add(t)
-
-                elif self.config.semantic_drift == "mcintosh":
+                # update seed set of tuples to use in next iteration
+                # seeds = { T | Conf(T) > min_tuple_confidence }
+                if self.curr_iteration+1 < self.config.number_iterations:
+                    print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
                     for t in self.candidate_tuples.keys():
-                        score = self.drift_one(t, i)
+                        if t.confidence >= self.config.instance_confidance:
+                            print t.e1, '\t', t.e2
+                            print t.sentence
+                            seed = Seed(t.e1, t.e2)
+                            self.config.seed_tuples.add(seed)
 
-                        # added tuples with good scores to
-                        if score > self.config.instance_confidance:
-                            if i in self.candidate_tuples_by_iterations:
-                                self.candidate_tuples_by_iterations[i].add(t)
+                        # for methods that control semantic drfit by comparing with previous extractions
+                        # in the first iteration there is nothing to compare with
+                        # we just select the tuples with high confidence scores
+                        if self.curr_iteration == 0:
+                            self.seeds_by_iteration[0] = list()
+                            self.seeds_by_iteration[0].append(t)
+                        else:
+                            if self.curr_iteration in self.seeds_by_iteration:
+                                self.seeds_by_iteration[self.curr_iteration].append(t)
                             else:
-                                self.candidate_tuples_by_iterations[i] = set()
-                                self.candidate_tuples_by_iterations[i].add(t)
+                                self.seeds_by_iteration[self.curr_iteration] = list()
+                                self.seeds_by_iteration[self.curr_iteration].append(t)
 
-                elif self.config.semantic_drift == "constrained":
-                    pass
+                    print "seed tuples added", len(self.seeds_by_iteration[0])
+
+                    if self.curr_iteration > 0:
+                        if self.config.semantic_drift == "mcintosh":
+                            print "Using distributional similarity to filter seeds"
+                            print "previous:", len(self.seeds_by_iteration[self.curr_iteration-1])
+                            print "current :", len(self.seeds_by_iteration[self.curr_iteration])
+                            for r in self.seeds_by_iteration[self.curr_iteration]:
+                                score = self.drift_one(r)
+
+                        elif self.config.semantic_drift == "constrained":
+                            pass
 
                 # increment the number of iterations
-                i += 1
+                self.curr_iteration += 1
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
@@ -380,51 +386,19 @@ class BREADS(object):
         bad = 0
         max_similarity = 0
 
-        if self.config.vector == 'version_2':
-            for p in list(extraction_pattern.tuples):
-                score = self.similarty_3_contexts(t, p)
-                if score > max_similarity:
-                    max_similarity = score
-                if score >= self.config.threshold_similarity:
-                    good += 1
-                else:
-                    bad += 1
-
-            if good >= bad:
-                return True, max_similarity
-            else:
-                return False, 0.0
-
-        elif self.config.vector == 'version_1':
-            for vector in list(extraction_pattern.vectors):
-                score = dot(matutils.unitvec(t.vector), matutils.unitvec(vector))
-                if score > max_similarity:
-                    max_similarity = score
-                if score >= self.config.threshold_similarity:
-                    good += 1
-                else:
-                    bad += 1
-            if good >= bad:
-                return True, max_similarity
-            else:
-                return False, 0.0
-
-        """
-        for p in list(extraction_pattern.patterns_words):
-            tokens = PunktWordTokenizer().tokenize(p)
-            vector = Word2VecWrapper.pattern2vector_sum(tokens, config)
-            score = dot(matutils.unitvec(t.patterns_vectors[0]), matutils.unitvec(vector))
+        for p in list(extraction_pattern.tuples):
+            score = self.similarity_3_contexts(t, p)
             if score > max_similarity:
                 max_similarity = score
-            if score >= config.threshold_similarity:
+            if score >= self.config.threshold_similarity:
                 good += 1
             else:
                 bad += 1
-            if good >= bad:
-                return True, max_similarity
-            else:
-                return False, 0.0
-        """
+
+        if good >= bad:
+            return True, max_similarity
+        else:
+            return False, 0.0
 
     def cluster_tuples(self, matched_tuples):
         """

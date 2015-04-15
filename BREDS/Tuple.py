@@ -18,13 +18,12 @@ class Tuple(object):
             self.sentence = _sentence
             self.confidence = 0
             self.confidence_old = 0
-            self.bef = _before
-            self.bet = _between
-            self.aft = _after
+            self.bef_words = _before
+            self.bet_words = _between
+            self.aft_words = _after
             self.bef_vector = None
             self.bet_vector = None
             self.aft_vector = None
-            self.vector = None
             self.passive_voice = False
             self.patterns_vectors = list()
             self.patterns_words = list()
@@ -32,7 +31,7 @@ class Tuple(object):
             self.extract_patterns(config)
 
         def __str__(self):
-            return str(self.patterns_words).encode("utf8")
+            return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
 
         def __cmp__(self, other):
             if other.confidence > self.confidence:
@@ -120,85 +119,29 @@ class Tuple(object):
                 return words_vector
 
         def extract_patterns(self, config):
-            # extract ReVerb pattern
-            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet)
+            # extract ReVerb pattern from BET context
+            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
 
             # detect passive voice in BET ReVerb pattern
             if len(patterns_bet_tags) > 0:
                 self.passive_voice = self.detect_passive_voice(config, patterns_bet_tags)
 
             # Construct word2vec representations of the patterns/words
-            if config.vector == 'version_1':
-                ###################################################################
-                # Version 1: just a single vector with the BET ReVerb pattern/Words
-                ###################################################################
-                # BET context
-                if len(patterns_bet_tags) > 0:
-                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-                else:
-                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-                self.vector = self.bet_vector
+            # Three context vectors
+            #  BEF: 2 words
+            #  BET: ReVerb pattern
+            #  AFT: 2 words
 
-            elif config.vector == 'version_2':
-                ##################################################################################
-                # Version 2: three context vectors
-                #            BEF: 2 words
-                #            BET: ReVerb pattern
-                #            AFT: 2 words
-                ##################################################################################
+            # BEF context
+            if len(self.bef_words) > 0:
+                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
 
-                """
-                if (self.e1 == 'Nokia' and self.e2 == 'Espoo') or (self.e1 == 'Pfizer' and self.e2 == 'New York'):
-                    print self.sentence
-                    print "BEF", self.bef
-                    print "BET", self.bet
-                    print "AFT", self.aft
-                    self.debug = True
-                """
-
-                # BEF context
-                if len(self.bef) > 0:
-                    self.bef_vector = self.construct_words_vectors(self.bef, config)
-
-                # BET context
-                if len(patterns_bet_tags) > 0:
-                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-                elif len(self.bet) > 0:
-                    self.bet_vector = self.construct_words_vectors(self.bet, config)
-
-                # AFT context
-                if len(self.aft) > 0:
-                    self.aft_vector = self.construct_words_vectors(self.aft, config)
-
-                """
-                if self.debug is True:
-                    print self.bef_vector
-                    print self.bet_vector
-                    print self.aft_vector
-                """
-
-            """
-            print self.e1
-            print self.e2
-            print self.sentence
-            print "BEF", self.bef
-            print "BET", self.bet
-            print "AFT", self.aft
-            #print "BEF_vector", self.bef_vector
-            #print "BET_vector", self.bet_vector
-            #print "AFT_vector", self.aft_vector
-            #print "all_words:", all_words
-            #print "pattern:", pattern
-            print "embeddings:", config.embeddings
-            print "ReVerb Patterns BEF:", len(patterns_bef_tags)
-            print "ReVerb Patterns BET:", len(patterns_bet_tags)
-            print "ReVerb Patterns AFT:", len(patterns_aft_tags)
-            if len(patterns_bef_tags) > 0:
-                print patterns_bef_tags[0]
+            # BET context
             if len(patterns_bet_tags) > 0:
-                print patterns_bet_tags[0]
-            if len(patterns_aft_tags) > 0:
-                print patterns_aft_tags[0]
-            #print "vector:", self.vector
-            print "\n"
-            """
+                self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
+            elif len(self.bet_words) > 0:
+                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
+
+            # AFT context
+            if len(self.aft_words) > 0:
+                self.aft_vector = self.construct_words_vectors(self.aft_words, config)

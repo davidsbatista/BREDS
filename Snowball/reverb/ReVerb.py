@@ -5,11 +5,9 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
-import re
 import StringIO
 
 from nltk import pos_tag
-from nltk import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
 from nltk.tokenize.punkt import PunktWordTokenizer
@@ -105,20 +103,16 @@ class Reverb(object):
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
+        """
 
-        # extract ReVerb patterns:
+        # The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
+        # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
+        # (e.g., has an atomic weight of).
+
         # V | V P | V W*P
         # V = verb particle? adv?
         # W = (noun | adj | adv | pron | det)
         # P = (prep | particle | inf. marker)
-        """
-        # The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
-        # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
-        # (e.g., has an atomic weight of).
-        # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible match is
-        # chosen. Finally, if the pattern matches multiple adjacent sequences, we merge them into a single relation
-        # phrase (e.g.,wants to extend). This refinement enables the model to readily handle relation phrases
-        # containing multiple verbs.
 
         # split text into tokens
         text_tokens = PunktWordTokenizer().tokenize(text)
@@ -140,6 +134,8 @@ class Reverb(object):
         pronoun = ['WP', 'WP$', 'PRP', 'PRP$', 'PRP|VBP']
         determiner = ['DT', 'EX', 'PDT', 'WDT']
         adp = ['IN', 'IN|RP']
+
+        # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible match is chosen.
 
         while i <= limit:
             tmp = StringIO.StringIO()
@@ -179,25 +175,12 @@ class Reverb(object):
                 patterns_tags.append(tmp_tags)
             i += 1
 
-        return patterns, patterns_tags
+        # Finally, if the pattern matches multiple adjacent sequences, we merge them into a single relation phrase
+        # (e.g.,wants to extend). This refinement enables the model to readily handle relation phrases containing
+        # multiple verbs.
 
-    @staticmethod
-    def test_reverb_patterns_extraction(sentences):
-        for line in fileinput.input(sentences):
-            #s = line.split('sentence:')[1].strip()
-            text_tokens = word_tokenize(re.sub(r"</?e[1-2]>|\"", "", line))
-            tagged = pos_tag(text_tokens)
-
-            # convert the tags to reduced tagset (Petrov et al. 2012)
-            # http://arxiv.org/pdf/1104.2086.pdf
-            tags = []
-            for t in tagged:
-                tag = map_tag('en-ptb', 'universal', t[1])
-                tags.append((t[0], tag))
-
-            #r = Relationship(None, s, None, None, None)
-            #extractRelationalWords(r)
-            print tags
+        merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
+        return merged_patterns_tags
 
     @staticmethod
     def normalize_reverb_patterns(pattern):
@@ -207,15 +190,15 @@ class Reverb(object):
           detect passive voice
         """
         lmtzr = WordNetLemmatizer()
-        aux_verbs = ['be', 'do', 'have', 'will', 'would', 'can', 'could', 'may', \
-        'might', 'must', 'shall', 'should', 'will', 'would']
+        aux_verbs = ['be', 'do', 'have', 'will', 'would', 'can', 'could', 'may', 'might', 'must', 'shall', 'should',
+                     'will', 'would']
         norm_pattern = []
 
         #print rel_type
         #print "pattern  :",pattern
 
         # remove ADJ, ADV, and auxialiary VERB
-        for i in range(0,len(pattern)):
+        for i in range(0, len(pattern)):
             if pattern[i][1] == 'ADJ':
                 continue
             elif pattern[i][1] == 'ADV':
