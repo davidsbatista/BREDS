@@ -9,6 +9,7 @@ import time
 import sys
 import cPickle
 import jellyfish
+import Queue
 
 from whoosh.index import open_dir, os
 from whoosh.query import spans
@@ -18,7 +19,6 @@ from nltk.corpus import stopwords
 from collections import defaultdict
 
 from Snowball.Sentence import Sentence
-from Snowball.Sentence import Relationship
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
@@ -56,7 +56,8 @@ class ExtractedFact(object):
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.patterns) ^ hash(self.score) ^ hash(self.sentence)
 
     def __eq__(self, other):
-        if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.patterns == other.patterns and self.sentence == other.sentence:
+        if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.patterns == \
+                other.patterns and self.sentence == other.sentence:
             return True
         else:
             return False
@@ -201,8 +202,8 @@ def load_acronyms(data):
         if "/" in expanded:
             continue
         acronyms[acronym].append(expanded)
-    return acronyms
     fileinput.close()
+    return acronyms
 
 
 def load_dbpedia(data, database_1, database_2):
@@ -257,7 +258,8 @@ def calculate_a(output, incorrect, e1_type, e2_type, index):
     for r in incorrect:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i], not_found[i])) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i],
+                                                                       not_found[i])) for i in range(num_cpus)]
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -289,7 +291,10 @@ def calculate_b(output, database_1, database_2, database_3, e1_type, e2_type):
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i], database_1, database_2, database_3, queue, e1_type, e2_type)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i],
+                                                                                database_1, database_2, database_3,
+                                                                                queue, e1_type, e2_type))
+                 for i in range(num_cpus)]
 
     for proc in processes:
         proc.start()
@@ -342,7 +347,8 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 queue.put(l)
         print "Queue size:", queue.qsize()
 
-        processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type)) for _ in range(num_cpus)]
+        processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type))
+                     for _ in range(num_cpus)]
         print "Extracting all possible "+e1_type+","+e2_type+" relationships from the corpus"
         print "Running", len(processes), "threads"
 
@@ -379,11 +385,15 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         no_matches = [manager.list() for _ in range(num_cpus)]
         wrong = [manager.list() for _ in range(num_cpus)]
 
-        # passar tudo para a queue
+        # Load everything into a shared queue
         for r in g_dash_set:
             queue.put(r)
 
-        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], wrong[i], database_1, database_2, database_3, queue, e1_type, e2_type)) for i in range(num_cpus)]
+        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i],
+                                                                                    wrong[i], database_1, database_2,
+                                                                                    database_3, queue, e1_type,
+                                                                                    e2_type))
+                     for i in range(num_cpus)]
 
         for proc in processes:
             proc.start()
@@ -435,7 +445,9 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         rel_words = employment
 
     # calculate PMI for r not in database
-    processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index, results[i], rel_words)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index,
+                                                                              results[i], rel_words))
+                 for i in range(num_cpus)]
     for proc in processes:
         proc.start()
 
@@ -461,7 +473,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     :param queue:
     :param index:
     :param results:
-    :param rel_word:
+    :param rel_words:
     :return:
     """
     """
@@ -531,116 +543,120 @@ def string_matching_parallel(matches, no_matches, wrong, database_1, database_2,
     incorrect_1 = False
     incorrect_2 = False
     while True:
-        r = queue.get_nowait()
-        found = False
-        count += 1
-        if count % 500 == 0:
-            print multiprocessing.current_process(), "In Queue", queue.qsize()
+        try:
+            r = queue.get_nowait()
+            found = False
+            count += 1
+            if count % 500 == 0:
+                print multiprocessing.current_process(), "In Queue", queue.qsize()
 
-        # check if its in cache, i.e., if tuple was already matched
-        if (r.ent1, r.ent2) in all_in_freebase:
-            matches.append(r)
-            found = True
-
-        # check for a relationshi with a direct string matching
-        if found is False:
-            if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
+            # check if its in cache, i.e., if tuple was already matched
+            if (r.ent1, r.ent2) in all_in_freebase:
                 matches.append(r)
-                all_in_freebase[(r.ent1, r.ent2)] = "Found"
                 found = True
 
-        if found is False:
-            # database_2: arg_1 rel list(arg_2)
-            # check for a direct string matching with all possible arg2 entities
-            # FOUNDER   : r.ent1:ORG   r.ent2:PER
-            # DATABASE_1: (ORG,PER)
-            # DATABASE_2: ORG   list<PER>
-            # DATABASE_3: PER   list<ORG>
-
-            ent2 = database_2[r.ent1.decode("utf8")]
-            if len(ent2) > 0:
-                if r.ent2 in ent2:
-                    # found a match!
+            # check for a relationshi with a direct string matching
+            if found is False:
+                if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
                     matches.append(r)
                     all_in_freebase[(r.ent1, r.ent2)] = "Found"
                     found = True
 
-        # if a direct string matching occur with arg_2, check for a direct string matching
-        # with all possible arg1 entities
-        if found is False:
-            arg1_list = database_3[r.ent2]
-            if arg1_list is not None:
-                for arg1 in arg1_list:
-                    if e1_type == 'ORG':
-                        new_arg1 = re.sub(r" Corporation| Inc\.", "", arg1)
-                    else:
-                        new_arg1 = arg1
+            if found is False:
+                # database_2: arg_1 rel list(arg_2)
+                # check for a direct string matching with all possible arg2 entities
+                # FOUNDER   : r.ent1:ORG   r.ent2:PER
+                # DATABASE_1: (ORG,PER)
+                # DATABASE_2: ORG   list<PER>
+                # DATABASE_3: PER   list<ORG>
 
-                    # Jaccardi
-                    set_1 = set(new_arg1.split())
-                    set_2 = set(r.ent1.split())
-                    jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
-                    if jaccardi >= 0.5:
+                ent2 = database_2[r.ent1.decode("utf8")]
+                if len(ent2) > 0:
+                    if r.ent2 in ent2:
+                        # found a match!
                         matches.append(r)
                         all_in_freebase[(r.ent1, r.ent2)] = "Found"
                         found = True
 
-                    # Jaro Winkler
-                    elif jaccardi <= 0.5:
-                        score = jellyfish.jaro_winkler(new_arg1.upper(), r.ent1.upper())
-                        if score >= 0.9:
+            # if a direct string matching occur with arg_2, check for a direct string matching
+            # with all possible arg1 entities
+            if found is False:
+                arg1_list = database_3[r.ent2]
+                if arg1_list is not None:
+                    for arg1 in arg1_list:
+                        if e1_type == 'ORG':
+                            new_arg1 = re.sub(r" Corporation| Inc\.", "", arg1)
+                        else:
+                            new_arg1 = arg1
+
+                        # Jaccardi
+                        set_1 = set(new_arg1.split())
+                        set_2 = set(r.ent1.split())
+                        jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                        if jaccardi >= 0.5:
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
 
-                if found is False:
-                    incorrect_1 = True
+                        # Jaro Winkler
+                        elif jaccardi <= 0.5:
+                            score = jellyfish.jaro_winkler(new_arg1.upper(), r.ent1.upper())
+                            if score >= 0.9:
+                                matches.append(r)
+                                all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                                found = True
 
-        # if a direct string matching occur with arg_1, check for a direct string matching
-        # with all possible arg_2 entities
-        if found is False:
-            arg2_list = database_2[r.ent1]
-            if arg2_list is not None:
-                for arg2 in arg2_list:
-                    # Jaccardi
-                    if e1_type == 'ORG':
-                        new_arg2 = re.sub(r" Corporation| Inc\.", "", arg2)
-                    else:
-                        new_arg2 = arg2
-                    set_1 = set(new_arg2.split())
-                    set_2 = set(r.ent2.split())
-                    jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
-                    if jaccardi >= 0.5:
-                        matches.append(r)
-                        all_in_freebase[(r.ent1, r.ent2)] = "Found"
-                        found = True
+                    if found is False:
+                        incorrect_1 = True
 
-                    # Jaro Winkler
-                    elif jaccardi <= 0.5:
-                        score = jellyfish.jaro_winkler(new_arg2.upper(), r.ent2.upper())
-                        if score >= 0.9:
+            # if a direct string matching occur with arg_1, check for a direct string matching
+            # with all possible arg_2 entities
+            if found is False:
+                arg2_list = database_2[r.ent1]
+                if arg2_list is not None:
+                    for arg2 in arg2_list:
+                        # Jaccardi
+                        if e1_type == 'ORG':
+                            new_arg2 = re.sub(r" Corporation| Inc\.", "", arg2)
+                        else:
+                            new_arg2 = arg2
+                        set_1 = set(new_arg2.split())
+                        set_2 = set(r.ent2.split())
+                        jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                        if jaccardi >= 0.5:
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
                             found = True
 
-                if found is False:
-                    incorrect_2 = True
+                        # Jaro Winkler
+                        elif jaccardi <= 0.5:
+                            score = jellyfish.jaro_winkler(new_arg2.upper(), r.ent2.upper())
+                            if score >= 0.9:
+                                matches.append(r)
+                                all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                                found = True
 
-        if incorrect_1 is True and incorrect_2 is True and found is False:
-            """
-            print "INCORRECT", r.ent1, '\t', r.ent2
-            print r.sentence
-            print "\n"
-            """
-            wrong.append(r)
+                    if found is False:
+                        incorrect_2 = True
 
-        elif found is False:
-            # not found
-            no_matches.append(r)
-            if PRINT_NOT_FOUND is True:
-                print r.ent1, '\t', r.ent2
+            if incorrect_1 is True and incorrect_2 is True and found is False:
+                """
+                print "INCORRECT", r.ent1, '\t', r.ent2
+                print r.sentence
+                print "\n"
+                """
+                wrong.append(r)
 
-        if queue.empty() is True:
+            elif found is False:
+                # not found
+                no_matches.append(r)
+                if PRINT_NOT_FOUND is True:
+                    print r.ent1, '\t', r.ent2
+
+            if queue.empty() is True:
+                break
+
+        except Queue.Empty:
             break
 
 
@@ -649,7 +665,7 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
     #TODO: proximity_pmi with relation specific given relational words
     :param e1_type:
     :param e2_type:
-    :param queue:
+    :param queue: contains the extracted relationships as ExtractedFact
     :param index:
     :param results:
     :param rel_word:
@@ -666,74 +682,79 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
     q_limit = 500
     with idx.searcher() as searcher:
         while True:
-            r = queue.get_nowait()
-            count += 1
+            try:
+                r = queue.get_nowait()
+                count += 1
+                if count % 500 == 0:
+                    print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
 
-            if count % 500 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
+                if (r.ent1, r.ent2) not in all_in_freebase: # isto é necessário? nao foi já verificado?
+                    # if its not in the database calculate the PMI
+                    entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
+                    entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                    t1 = query.Term('sentence', entity1)
+                    t3 = query.Term('sentence', entity2)
 
-            if (r.ent1, r.ent2) not in all_in_freebase:
+                    # First count the proximity (MAX_TOKENS_AWAY) occurrences of entities r.e1 and r.e2
+                    q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
+                    hits = searcher.search(q1, limit=q_limit)
 
-                # if its not in the database calculate the PMI
-                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
-                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
-                t1 = query.Term('sentence', entity1)
-                t3 = query.Term('sentence', entity2)
+                    print q1
+                    print "hits", len(hits)
 
-                # Entities proximity query without relational words
-                q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
-                hits = searcher.search(q1, limit=q_limit)
+                    print r.ent1, '\t', r.ent2
+                    rel_words = [word for word in PunktWordTokenizer().tokenize(r.patterns.lower()) if word
+                                 not in stopwords.words('english')]
+                    rel_words = set(rel_words)
+                    print rel_words
+                    print "\n"
 
-                """
-                print "ent1", r.ent1
-                print "words", r.patterns
-                print "ent2", r.ent2
-                print q1
-                print "hits", len(hits)
-                """
-                rel_words = [word for word in PunktWordTokenizer().tokenize(r.patterns.lower()) if word not in stopwords.words('english')]
-                rel_words = set(rel_words)
-                """
-                print rel_words
-                """
+                    # Using all the hits above from the query above, count how many have between the entities
+                    # the relational word(s) contained in r.patterns. That is the same word(s) as extracted by a system
+                    #
+                    # If there more hits for the two entities containing the same relational word(s) as extracteb by a s
+                    # system than any other words, we consider this extraction positive.
+                    hits_with_r = 0
+                    for s in hits:
+                        sentence = s.get("sentence")
+                        s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+                        for s_r in s.relationships:
+                            if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
+                                for rel in rel_words:
+                                    if rel in s_r.between:
+                                        hits_with_r += 1
+                                        break
 
-                # Entities proximity considering relational words
-                # From the results above count how many contain a relational word
-                hits_with_r = 0
-                for s in hits:
-                    sentence = s.get("sentence")
-                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
-                    for s_r in s.relationships:
-                        if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
-                            for rel in rel_words:
-                                if rel in s_r.between:
-                                    hits_with_r += 1
-                                    break
+                        if not len(hits) >= hits_with_r:
+                            print "ERROR!"
+                            print "hits", len(hits)
+                            print "hits_with_r", hits_with_r
+                            print entity1, '\t', entity2
+                            print "\n"
+                            sys.exit(0)
 
-                    if not len(hits) >= hits_with_r:
-                        print "ERROR!"
-                        print "hits", len(hits)
-                        print "hits_with_r", hits_with_r
-                        print entity1, '\t', entity2
-                        print "\n"
-                        sys.exit(0)
-
-                if float(len(hits)) > 0:
-                    pmi = float(hits_with_r) / float(len(hits))
-                    if pmi >= PMI:
-                        results.append(r)
-                        """
-                        if isinstance(r, ExtractedFact):
-                            print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
-                        elif isinstance(r, Relationship):
-                            print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                        """
+                    if len(hits) > 0:
+                        pmi = float(hits_with_r) / float(len(hits))
+                        if pmi >= PMI:
+                            results.append(r)
+                            """
+                            if isinstance(r, ExtractedFact):
+                                print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
+                            elif isinstance(r, Relationship):
+                                print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                            """
+                        else:
+                            not_found.append((r, pmi))
                     else:
-                        not_found.append((r, pmi))
+                        not_found.append((r, None))
+
+                    if queue.empty() is True:
+                        break
                 else:
-                    not_found.append((r, None))
-                if queue.empty() is True:
-                    break
+                    print "Jah estah na database e apareceu aqui!"
+
+            except Queue.Empty:
+                break
 
 
 def main():
@@ -778,8 +799,8 @@ def main():
     corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
 
     # index to be used to estimate proximity PMI
-    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
-    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
+    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
+    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
     index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
@@ -909,4 +930,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
