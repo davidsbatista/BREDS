@@ -24,7 +24,7 @@ from Snowball.Sentence import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
-acquired = ['owns', 'acquired', 'bought', '']
+acquired = ['owns', 'acquired', 'bought']
 headquarters = ['headquarters', 'headquartered', 'based', 'located', 'offices']
 employment = ['chief', 'scientist', 'professor', 'biologist', 'ceo']
 
@@ -371,7 +371,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         print "Estimating G intersection with D"
         g_intersect_d = set()
         print "G':", len(g_dash_set)
-        print "Freebase:", len(database_1.keys())
+        print "Database:", len(database_1.keys())
 
         queue = manager.Queue()
         results = [manager.list() for _ in range(num_cpus)]
@@ -415,17 +415,8 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
     # by applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     #
-    # |G \ D|
+    # |G' \ D|
     # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
-
-    m = multiprocessing.Manager()
-    queue = m.Queue()
-    num_cpus = multiprocessing.cpu_count()
-    results = [m.list() for _ in range(num_cpus)]
-
-    print "Storing g_dash in a shared Queue"
-    for r in g_dash:
-        queue.put(r)
 
     if rel_type == "founded":
         rel_words = founded
@@ -439,19 +430,41 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         print rel_type, " is invalid"
         sys.exit(0)
 
-    # calculate PMI for r not in database
-    processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index,
-                                                                              results[i], rel_words))
-                 for i in range(num_cpus)]
-    for proc in processes:
-        proc.start()
+    # check if it was already calculated and stored in disk
+    if os.path.isfile(rel_type+"_high_pmi_not_in_database.pkl"):
+        f = open(rel_type+"_high_pmi_not_in_database.pkl")
+        print "\nLoading high PMI facts not in the database", rel_type+"_high_pmi_not_in_database.pkl"
+        g_minus_d = cPickle.load(f)
+        f.close()
 
-    for proc in processes:
-        proc.join()
+    else:
+        m = multiprocessing.Manager()
+        queue = m.Queue()
+        num_cpus = multiprocessing.cpu_count()
+        results = [m.list() for _ in range(num_cpus)]
 
-    g_minus_d = set()
-    for l in results:
-        g_minus_d.update(l)
+        for r in g_dash:
+            queue.put(r)
+
+        # calculate PMI for r not in database
+        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index,
+                                                                                  results[i], rel_words))
+                     for i in range(num_cpus)]
+        for proc in processes:
+            proc.start()
+
+        for proc in processes:
+            proc.join()
+
+        g_minus_d = set()
+        for l in results:
+            g_minus_d.update(l)
+
+        # dump high PMI facts not in the database
+        if len(g_minus_d) > 0:
+            f = open(rel_type+"_high_pmi_not_in_database.pkl", "wb")
+            cPickle.dump(g_minus_d, f)
+            f.close()
 
     return g_minus_d.difference(a)
 
@@ -482,54 +495,58 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     q_limit = 500
     with idx.searcher() as searcher:
         while True:
-            r = queue.get_nowait()
-            count += 1
-            if count % 100 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
-            if (r.ent1, r.ent2) not in all_in_freebase:
-                # if its not in the database calculate the PMI
-                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
-                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
-                t1 = query.Term('sentence', entity1)
-                t3 = query.Term('sentence', entity2)
+            try:
+                r = queue.get_nowait()
+                count += 1
+                if count % 100 == 0:
+                    print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
+                if (r.ent1, r.ent2) not in all_in_freebase:
+                    # if its not in the database calculate the PMI
+                    entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
+                    entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                    t1 = query.Term('sentence', entity1)
+                    t3 = query.Term('sentence', entity2)
 
-                # Entities proximity query without relational words
-                q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
-                hits = searcher.search(q1, limit=q_limit)
+                    # Entities proximity query without relational words
+                    q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
+                    hits = searcher.search(q1, limit=q_limit)
 
-                # Entities proximity considering relational words
-                # From the results above count how many contain a relational word
-                hits_with_r = 0
-                for s in hits:
-                    sentence = s.get("sentence")
-                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
-                    for s_r in s.relationships:
-                        if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
-                            for rel in rel_words:
-                                if rel in r.between:
-                                    hits_with_r += 1
-                                    break
+                    # Entities proximity considering relational words
+                    # From the results above count how many contain a relational word
+                    hits_with_r = 0
+                    for s in hits:
+                        sentence = s.get("sentence")
+                        s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+                        for s_r in s.relationships:
+                            if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
+                                for rel in rel_words:
+                                    if rel in r.between:
+                                        hits_with_r += 1
+                                        break
 
-                    if not len(hits) >= hits_with_r:
-                        print "ERROR!"
-                        print "hits", len(hits)
-                        print "hits_with_r", hits_with_r
-                        print entity1, '\t', entity2
-                        print "\n"
-                        sys.exit(0)
+                        if not len(hits) >= hits_with_r:
+                            print "ERROR!"
+                            print "hits", len(hits)
+                            print "hits_with_r", hits_with_r
+                            print entity1, '\t', entity2
+                            print "\n"
+                            sys.exit(0)
 
-                if float(len(hits)) > 0:
-                    pmi = float(hits_with_r) / float(len(hits))
-                    if pmi > PMI:
-                        results.append(r)
-                        """
-                        if isinstance(r, ExtractedFact):
-                            print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
-                        elif isinstance(r, Relationship):
-                            print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                        """
-                if queue.empty() is True:
-                    break
+                    if len(hits) > 0:
+                        pmi = float(hits_with_r) / float(len(hits))
+                        if pmi > PMI:
+                            results.append(r)
+                            """
+                            if isinstance(r, ExtractedFact):
+                                print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
+                            elif isinstance(r, Relationship):
+                                print r.ent1, '\t', r.between, '\t', r.ent2, pmi
+                            """
+                    if queue.empty() is True:
+                        break
+
+            except Queue.Empty:
+                break
 
 
 def string_matching_parallel(matches, no_matches, database_1, database_2, database_3, queue, e1_type, e2_type):
@@ -614,6 +631,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                         if jaccardi >= 0.5:
                             matches.append(r)
                             all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            found = True
 
                         # Jaro Winkler
                         elif jaccardi <= 0.5:
@@ -621,8 +639,9 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                             if score >= 0.9:
                                 matches.append(r)
                                 all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                                found = True
 
-            elif found is False:
+            if found is False:
                 no_matches.append(r)
                 if PRINT_NOT_FOUND is True:
                     print r.ent1, '\t', r.ent2
@@ -760,9 +779,9 @@ def main():
     corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
 
     # index to be used to estimate proximity PMI
-    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
+    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
     # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
-    index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
+    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
     if rel_type == 'founded' or rel_type == 'employment':
@@ -795,7 +814,7 @@ def main():
 
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
-    print "Not found    :", len(not_in_database)
+    print "Not found          :", len(not_in_database)
     assert len(system_output) == len(not_in_database) + len(b)
 
     print "\nCalculating set A: correct facts from system output not in the database (proximity PMI)"
