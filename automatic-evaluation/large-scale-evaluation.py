@@ -49,7 +49,7 @@ class ExtractedFact(object):
     def __init__(self, _e1, _e2, _score, _patterns, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
-        self.score = _score
+        self.score = _score.strip()
         self.patterns = _patterns
         self.sentence = _sentence
         self.passive_voice = _passive_voice
@@ -376,14 +376,13 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         queue = manager.Queue()
         results = [manager.list() for _ in range(num_cpus)]
         no_matches = [manager.list() for _ in range(num_cpus)]
-        wrong = [manager.list() for _ in range(num_cpus)]
 
         # Load everything into a shared queue
         for r in g_dash_set:
             queue.put(r)
 
         processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i],
-                                                                                    wrong[i], database_1, database_2,
+                                                                                    database_1, database_2,
                                                                                     database_3, queue, e1_type,
                                                                                     e2_type))
                      for i in range(num_cpus)]
@@ -463,6 +462,7 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         # dump high PMI facts not in the database
         if len(g_minus_d) > 0:
             f = open(rel_type+"_high_pmi_not_in_database.pkl", "wb")
+            print "Dumping high PMI facts not in the database to", rel_type+"_high_pmi_not_in_database.pkl"
             cPickle.dump(g_minus_d, f)
             f.close()
 
@@ -776,7 +776,8 @@ def main():
     print "Freebase relationships loaded :", len(database_1.keys())
 
     # corpus from which the system extracted relationships
-    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
+    # corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
+    corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
 
     # index to be used to estimate proximity PMI
     index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
@@ -869,16 +870,12 @@ def main():
         f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
     f.close()
 
-    f = open(rel_type+"_found.txt", "w")
-    for r in set(not_found):
-        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
-    f.close()
-
     # Write all correct relationships (sentence, entities and score) to file
-    f = open(rel_type+"correct_extractions.txt", "w")
+    f = open(rel_type+"_correct_extractions.txt", "w")
     for r in set(a):
-        f.write('instance:\t'+r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+        f.write('instance:\t'+r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\t'+r.score+'\n')
         f.write(r.sentence+'\n')
+        f.write('\n')
     f.close()
 
     a = set(a)
