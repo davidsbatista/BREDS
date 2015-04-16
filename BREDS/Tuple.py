@@ -53,7 +53,6 @@ class Tuple(object):
                     verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
                     if verb in aux_verbs and i + 2 <= len(pattern) - 1:
                         if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[-1][0] == 'by':
-                            print pattern
                             return True
                         else:
                             return False
