@@ -91,6 +91,7 @@ class Config(object):
 
         print "Configuration parameters"
         print "========================"
+
         print "Relationship Representation"
         print "e1 type              :", self.e1_type
         print "e2 type              :", self.e2_type
@@ -98,21 +99,26 @@ class Config(object):
         print "max tokens away      :", self.max_tokens_away
         print "min tokens away      :", self.min_tokens_away
         print "Word2Vec Model       :", self.word2vecmodelpath
+
         print "\nVectors"
         print "embeddings type      :", self.embeddings
         print "alpha                :", self.alpha
         print "beta                 :", self.beta
         print "gamma                :", self.gamma
-        print "\nSeeds:"
+
+        print "\nNumber of Seeds:"
+        print "positive seeds       :", len(self.seed_tuples)
+        print "negative seeds       :", len(self.negative_seed_tuples)
+
+        print "\nParameters and Thresholds"
         print "negative seeds wNeg  :", self.wNeg
         print "unknown seeds wUnk   :", self.wUnk
-        print "seeds                :", len(self.seed_tuples)
-        print "negative seeds       :", len(self.negative_seed_tuples)
-        print "\nParameters and Thresholds"
         print "threshold_similarity :", self.threshold_similarity
-        print "instance confience   :", self.instance_confidance
-        print "semantic drift       :", self.semantic_drift
+        print "instance confidence  :", self.instance_confidance
         print "min_pattern_support  :", self.min_pattern_support
+
+        print "\nOther"
+        print "semantic drift       :", self.semantic_drift
         print "iterations           :", self.number_iterations
         print "iteration wUpdt      :", self.wUpdt
         print "\n"
