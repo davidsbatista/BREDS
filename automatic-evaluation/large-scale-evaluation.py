@@ -426,7 +426,6 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
     print "Storing g_dash in a shared Queue"
     for r in g_dash:
         queue.put(r)
-    print "queue size", queue.qsize()
 
     if rel_type == "founded":
         rel_words = founded
@@ -720,8 +719,6 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                 break
 
 
-
-
 def main():
     # "Automatic Evaluation of Relation Extraction Systems on Large-scale"
     # https://akbcwekex2012.files.wordpress.com/2012/05/8_paper.pdf
@@ -748,8 +745,6 @@ def main():
         sys.exit(0)
 
     threhsold = float(sys.argv[1])
-
-    # relationship type
     rel_type = sys.argv[3]
 
     # load relationships extracted by the system
@@ -805,7 +800,6 @@ def main():
 
     print "\nCalculating set A: correct facts from system output not in the database (proximity PMI)"
     a, not_found = calculate_a(not_in_database, e1_type, e2_type, index)
-
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
     print "Correct in corpus  :", len(a)
@@ -832,6 +826,11 @@ def main():
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
     d = calculate_d(superset, a, e1_type, e2_type, index, rel_type)
+    print "System output      :", len(system_output)
+    print "Found in database  :", len(b)
+    print "Correct in corpus  :", len(a)
+    print "Not found          :", len(not_found)
+    print "\n"
     assert len(d) > 0
 
     uniq_d = set()
@@ -845,33 +844,16 @@ def main():
     print "|S| =", len(system_output)
     print "Relationships not evaluated", len(set(not_found))
 
+    # Write incorrect (i.e. not found) relationship sentences to disk
     f = open(rel_type+"_not_found.txt", "w")
     for r in set(not_found):
         f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
     f.close()
 
-    """
-    # Dump sets to file
-    f = open(rel_type+"_set_a.txt", "w")
-    for r in set(a):
-        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
+    f = open(rel_type+"_found.txt", "w")
+    for r in set(not_found):
+        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
     f.close()
-
-    f = open(rel_type+"_set_b.txt", "w")
-    for r in set(b):
-        f.write(r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\n')
-    f.close()
-
-    f = open(rel_type+"_set_c.txt", "w")
-    for r in set(c):
-        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
-    f.close()
-
-    f = open(rel_type+"_set_d.txt", "w")
-    for r in set(d):
-        f.write(r.ent1+'\t'+r.between+'\t'+r.ent2+'\n')
-    f.close()
-    """
 
     # Write all correct relationships (sentence, entities and score) to file
     f = open(rel_type+"correct_extractions.txt", "w")
@@ -891,7 +873,6 @@ def main():
     print "Recall   : ", recall
     print "F1   : ", f1
     print "\n"
-
 
 if __name__ == "__main__":
     main()
