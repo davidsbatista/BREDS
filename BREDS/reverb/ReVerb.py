@@ -6,7 +6,9 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
 import StringIO
+import sys
 
+from Sentence import Sentence
 from nltk import pos_tag
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
@@ -194,9 +196,6 @@ class Reverb(object):
                      'will', 'would']
         norm_pattern = []
 
-        #print rel_type
-        #print "pattern  :",pattern
-
         # remove ADJ, ADV, and auxialiary VERB
         for i in range(0, len(pattern)):
             if pattern[i][1] == 'ADJ':
@@ -277,17 +276,17 @@ def main():
     # auxiliary verb be + main verb past participle + 'by'
 
     for line in fileinput.input():
-        patterns, patterns_tags = reverb.extract_reverb_patterns_ptb(line)
-        #print patterns
-        #print "\n"
+        sentence = Sentence(line, "PER", "ORG", 9, 1, 2)
+        for r in sentence.relationships:
+            pattern_tags = reverb.extract_reverb_patterns_ptb(r.between)
+            for i in range(0, len(pattern_tags)):
+                if pattern_tags[i][1].startswith('V'):
+                    verb = lmtzr.lemmatize(pattern_tags[i][0], 'v')
+                    if verb in aux_verbs and i+2 <= len(pattern_tags)-1:
+                        if (pattern_tags[i+1][1] == 'VBN' or pattern_tags[i+1][1] == 'VBD') and pattern_tags[-1][0] == 'by':
+                            print line
+                            print pattern_tags
 
-        for pattern in patterns_tags:
-            for i in range(0, len(pattern)):
-                if pattern[i][1].startswith('V'):
-                    verb = lmtzr.lemmatize(pattern[i][0], 'v')
-                    if verb in aux_verbs and i+2 <= len(pattern)-1:
-                        if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[i+2][0] == 'by':
-                            print pattern
     fileinput.close()
 
 if __name__ == "__main__":

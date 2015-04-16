@@ -49,11 +49,11 @@ class Tuple(object):
         def detect_passive_voice(config, pattern):
             aux_verbs = ['be']
             for i in range(0, len(pattern)):
-                # TODO: contar com adjectivos pelo meio
                 if pattern[i][1].startswith('V'):
                     verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
                     if verb in aux_verbs and i + 2 <= len(pattern) - 1:
-                        if (pattern[i + 1][1] == 'VBN' or pattern[i + 1][1] == 'VBD') and pattern[i + 2][0] == 'by':
+                        if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[-1][0] == 'by':
+                            print pattern
                             return True
                         else:
                             return False

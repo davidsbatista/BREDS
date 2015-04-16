@@ -119,7 +119,6 @@ class BREADS(object):
         previous = list()
         print "self.curr_iteration", self.curr_iteration
         for i in range(0, self.curr_iteration):
-            print "previous from", i
             previous.extend(self.seeds_by_iteration[i])
 
         print "all previous tuple seeds:", len(previous)
@@ -142,13 +141,6 @@ class BREADS(object):
         print "drift:", score
         print "\n"
 
-        """
-        print r.sentence
-        print r.e1, '\t', r.e2
-        print r.bef_words
-        print r.bet_words
-        print r.aft_words
-        """
         return score
 
     @staticmethod
@@ -176,6 +168,7 @@ class BREADS(object):
                 # at every iteration generate a new set of candidate tuples (instances)
                 self.candidate_tuples = defaultdict(list)
 
+            print "=========================================="
             print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches of:"
             for s in self.config.seed_tuples:
@@ -193,6 +186,8 @@ class BREADS(object):
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
                 for t in sorted_counts:
                     print t[0][0], '\t', t[0][1], t[1]
+
+                print "\n", len(matched_tuples), "tuples matched"
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
@@ -231,12 +226,15 @@ class BREADS(object):
                 #
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
+                print "Number of tuples to be analyzed:", len(self.processed_tuples)
+                #TODO: isto pode ser paralelizado
                 print "\nCollecting instances based on extraction patterns"
                 count = 0
                 for t in self.processed_tuples:
                     count += 1
-                    if count % 500 == 0:
+                    if count % 1000 == 0:
                         sys.stdout.write(".")
+                        sys.stdout.flush()
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         accept, score = self.similarity_all(t, extraction_pattern)
@@ -290,7 +288,7 @@ class BREADS(object):
                         print "\n"
 
                 # update tuple confidence based on patterns confidence
-                print "\nCalculating tuples confidence"
+                print "\n\nCalculating tuples confidence"
                 for t in self.candidate_tuples.keys():
                     confidence = 1
                     t.confidence_old = t.confidence
@@ -323,13 +321,10 @@ class BREADS(object):
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
                             print t.e1, '\t', t.e2
-                            print t.sentence
                             seed = Seed(t.e1, t.e2)
                             self.config.seed_tuples.add(seed)
 
                         # for methods that control semantic drfit by comparing with previous extractions
-                        # in the first iteration there is nothing to compare with
-                        # we just select the tuples with high confidence scores
                         if self.curr_iteration == 0:
                             self.seeds_by_iteration[0] = list()
                             self.seeds_by_iteration[0].append(t)
@@ -340,15 +335,16 @@ class BREADS(object):
                                 self.seeds_by_iteration[self.curr_iteration] = list()
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
 
-                    print "seed tuples added", len(self.seeds_by_iteration[0])
-
                     if self.curr_iteration > 0:
                         if self.config.semantic_drift == "mcintosh":
+                            """
                             print "Using distributional similarity to filter seeds"
                             print "previous:", len(self.seeds_by_iteration[self.curr_iteration-1])
                             print "current :", len(self.seeds_by_iteration[self.curr_iteration])
+
                             for r in self.seeds_by_iteration[self.curr_iteration]:
                                 score = self.drift_one(r)
+                            """
 
                         elif self.config.semantic_drift == "constrained":
                             pass
@@ -415,8 +411,9 @@ class BREADS(object):
         count = 0
         for t in matched_tuples:
             count += 1
-            if count % 500 == 0:
-                sys.stdout.write(".")
+            if count % 1000 == 0:
+                sys.stdout.write(".", count)
+                sys.stdout.flush()
             max_similarity = 0
             max_similarity_cluster_index = 0
 
