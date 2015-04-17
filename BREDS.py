@@ -20,6 +20,7 @@ from BREDS.Pattern import Pattern
 from BREDS.Config import Config
 from BREDS.Tuple import Tuple
 from Common.Sentence import Sentence
+from Common.Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -162,11 +163,6 @@ class BREADS(object):
 
         self.curr_iteration = 0
         while self.curr_iteration <= self.config.number_iterations:
-            if self.config.semantic_drift != "snowball":
-                # if semantic drift is controled with average similarity instead of snowblal mecahanism
-                # at every iteration generate a new set of candidate tuples (instances)
-                self.candidate_tuples = defaultdict(list)
-
             print "=========================================="
             print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches of:"
@@ -226,9 +222,10 @@ class BREADS(object):
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
                 print "Number of tuples to be analyzed:", len(self.processed_tuples)
-                #TODO: isto pode ser paralelizado
+
                 print "\nCollecting instances based on extraction patterns"
                 count = 0
+                #TODO: paralellize this loop
                 for t in self.processed_tuples:
                     count += 1
                     if count % 1000 == 0:
@@ -477,7 +474,6 @@ class BREADS(object):
     def tokenize(text):
         return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
 
-    # TODO: use DBSCAN instead of Single-Pass Clustering
     @staticmethod
     def cluster_dbscan(self, matched_tuples):
         """

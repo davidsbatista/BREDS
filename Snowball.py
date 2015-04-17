@@ -9,6 +9,7 @@ import sys
 import os
 import codecs
 import operator
+
 from nltk import PunktWordTokenizer
 from collections import defaultdict
 from gensim.matutils import cossim
@@ -44,9 +45,6 @@ class Snowball(object):
 
         except IOError:
             print "\nGenerating relationship instances from sentences"
-            print "e1", self.config.e1_type
-            print "e2", self.config.e2_type
-            print "\n"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
             for line in f_sentences:
@@ -222,7 +220,11 @@ class Snowball(object):
                 patterns.add(pattern[0])
             for p in patterns:
                 p.merge_tuple_patterns()
-                f_output.write("pattern: " + ', '.join(p.tuple_patterns) + '\n')
+                f_output.write("pattern_bet: " + ', '.join(p.tuple_patterns) + '\n')
+            if t.passive_voice is False or t.passive_voice is None:
+                f_output.write("passive voice: False\n")
+            elif t.passive_voice is True:
+                f_output.write("passive voice: True\n")
             f_output.write("\n")
         f_output.close()
 
@@ -270,22 +272,9 @@ class Snowball(object):
 
             # go through all patterns(clusters of tuples) and find the one with the
             # highest similarity score
-
-            # TODO: vou estar a acrescentar novos patterns, à medida que faço as iterações, verificar que "
-            # TODO: novos patterns adicionados são tidos em consideração"
-
             for w in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[w]
                 score = self.similarity(self, t, extraction_pattern)
-                """
-                print "\ntuple     :"
-                print t
-                print t.e1, '\t', t.e2
-                print t.sentence
-                print "\nextraction:\n", extraction_pattern
-                print "score     :", score
-                print "\n"
-                """
                 if score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = w

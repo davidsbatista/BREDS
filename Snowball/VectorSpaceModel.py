@@ -23,22 +23,11 @@ class VectorSpaceModel(object):
         for line in f_sentences:
             line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
 
-            # remove common words and tokenize
+            # remove stop words and tokenize
             document = [word for word in PunktWordTokenizer().tokenize(line.lower()) if word not in stopwords]
             documents.append(document)
 
-            # TODO: avoid keeping all documents in memory
-            #dictionary = corpora.Dictionary(line.lower().split() for line in open('mycorpus.txt'))
         f_sentences.close()
-
-        # TODO: ver qual eh a frequencia de corte no word2vec, e fazer o mesmo
-        """
-        print "Removing tokens that appear only once"
-        # remove words that appear only once
-        all_tokens = sum(documents, [])
-        tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
-        documents = [[word for word in text if word not in tokens_once] for text in documents]
-        """
 
         self.dictionary = corpora.Dictionary(documents)
         self.corpus = [self.dictionary.doc2bow(text) for text in documents]

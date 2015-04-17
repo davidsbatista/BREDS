@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from Common import Sentence
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -21,6 +20,7 @@ from whoosh import query
 from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
 from collections import defaultdict
+from Common.Sentence import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
@@ -46,16 +46,20 @@ all_in_freebase = manager.dict()
 
 
 class ExtractedFact(object):
-    def __init__(self, _e1, _e2, _score, _patterns, _sentence, _passive_voice):
+    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
         self.score = _score.strip()
-        self.patterns = _patterns
+        self.bef_words = _bef
+        self.bet_words = _bet
+        self.aft_words = _aft
         self.sentence = _sentence
         self.passive_voice = _passive_voice
 
     def __hash__(self):
-        return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.patterns) ^ hash(self.score) ^ hash(self.sentence)
+        sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words) ^ \
+              hash(self.score) ^ hash(self.sentence)
+        return sig
 
     def __eq__(self, other):
         if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.patterns == \
@@ -119,8 +123,14 @@ def process_output(data, threshold, rel_type):
         if line.startswith('sentence'):
             sentence = line.split("sentence:")[1].strip()
 
-        if line.startswith('pattern'):
-            patterns = line.split("pattern:")[1].strip()
+        if line.startswith('pattern_bef:'):
+            bef = line.split("pattern_bef:")[1].strip()
+
+        if line.startswith('pattern_bet:'):
+            bet = line.split("pattern_bet:")[1].strip()
+
+        if line.startswith('pattern_aft:'):
+            aft = line.split("pattern_aft:")[1].strip()
 
         if line.startswith('passive voice:'):
             tmp = line.split("passive voice:")[1].strip()
@@ -130,10 +140,14 @@ def process_output(data, threshold, rel_type):
                 passive_voice = True
 
         if line.startswith('\n') and float(score) >= threshold:
+            if 'bef' not in locals():
+                bef = ''
+            if 'aft' not in locals():
+                aft = ''
             if passive_voice is True and rel_type in ['acquired', 'headquarters']:
-                r = ExtractedFact(e2, e1, score, patterns, sentence, passive_voice)
+                r = ExtractedFact(e2, e1, score, bef, bet, aft, sentence, passive_voice)
             else:
-                r = ExtractedFact(e1, e2, score, patterns, sentence, passive_voice)
+                r = ExtractedFact(e1, e2, score, bef, bet, aft, sentence, passive_voice)
             system_output.append(r)
 
     fileinput.close()
@@ -163,6 +177,7 @@ def process_freebase(data, rel_type):
     # regex used to clean entities
     numbered = re.compile('#[0-9]+$')
 
+    # for the 'founder' relationships don't load those from freebase, as it lists countries as founders and not persons
     founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union', 'United Nations']
 
     for line in fileinput.input(data):
@@ -174,7 +189,6 @@ def process_freebase(data, rel_type):
             continue
         if re.search(numbered, e1) or re.search(numbered, e2):
             continue
-        # for founder don't load those from freebase, lists countries as founders not persons
         if e2.strip() in founder_to_ignore:
             continue
         else:
@@ -513,6 +527,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
 
                     # Entities proximity considering relational words
                     # From the results above count how many contain a relational word
+                    #TODO: maybe the relational words can be in the BEF or AFT context
                     hits_with_r = 0
                     for s in hits:
                         sentence = s.get("sentence")
@@ -680,7 +695,8 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                 # First count the proximity (MAX_TOKENS_AWAY) occurrences of entities r.e1 and r.e2
                 q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
                 hits = searcher.search(q1, limit=q_limit)
-                rel_words = [word for word in PunktWordTokenizer().tokenize(r.patterns.lower()) if word
+                # TODO: maybe use other contexts for evaluation: rel.bef_words, rel.bet_words, rel.aft_words
+                rel_words = [word for word in PunktWordTokenizer().tokenize(r.bet_words) if word
                              not in stopwords.words('english')]
                 rel_words = set(rel_words)
 
@@ -693,9 +709,9 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                 """
 
                 # Using all the hits above from the query above, count how many have between the entities
-                # the relational word(s) contained in r.patterns. That is the same word(s) as extracted by a system
+                # the relational word(s) r.bef, r.bet, r.aft. That is the same word(s) as extracted by the system
                 #
-                # If there more hits for the two entities containing the same relational word(s) as extracteb by a s
+                # If there more hits for the two entities containing the same relational word(s) as extracted by a
                 # system than any other words, we consider this extraction positive.
                 hits_with_r = 0
                 for s in hits:
@@ -776,13 +792,13 @@ def main():
     print "Freebase relationships loaded :", len(database_1.keys())
 
     # corpus from which the system extracted relationships
-    # corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
-    corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
+    #corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
+    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
 
     # index to be used to estimate proximity PMI
-    index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
+    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
     # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
-    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
+    index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
     if rel_type == 'founded' or rel_type == 'employment':

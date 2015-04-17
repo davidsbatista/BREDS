@@ -118,11 +118,9 @@ class Config(object):
         print "threshold_similarity :", self.threshold_similarity
         print "instance confidence  :", self.instance_confidance
         print "min_pattern_support  :", self.min_pattern_support
-
-        print "\nOther"
-        print "semantic drift       :", self.semantic_drift
         print "iterations           :", self.number_iterations
         print "iteration wUpdt      :", self.wUpdt
+        print "semantic drift filter:", self.semantic_drift
         print "\n"
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)

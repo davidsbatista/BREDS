@@ -122,7 +122,6 @@ def main():
     for l in results:
         selected_sentences.update(l)
 
-    #TODO: for the AFP and APW collection outputs 'ascii' codec can't encode character u'\xf6' in position 33: ordinal not in range(128)
     print "Writing sentences to disk"
     f = open("sentences_matched_freebase.txt", "w")
     for s in selected_sentences:

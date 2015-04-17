@@ -72,6 +72,39 @@ class Config(object):
             if line.startswith("gamma"):
                 self.gamma = float(line.split("=")[1])
 
+        self.read_seeds(seeds_file)
+        self.read_negative_seeds(negative_seeds)
+        fileinput.close()
+
+        print "\nConfiguration parameters"
+        print "========================"
+        print "Relationship Representation"
+        print "e1 type              :", self.e1_type
+        print "e2 type              :", self.e2_type
+        print "context window       :", self.context_window_size
+        print "max tokens away      :", self.max_tokens_away
+        print "min tokens away      :", self.min_tokens_away
+        print "use ReVerb           :", self.use_reverb
+
+        print "\nVectors"
+        print "alpha                :", self.alpha
+        print "beta                 :", self.beta
+        print "gamma                :", self.gamma
+
+        print "\nNumber of Seeds:"
+        print "positive seeds       :", len(self.seed_tuples)
+        print "negative seeds       :", len(self.negative_seed_tuples)
+
+        print "\nParameters and Thresholds"
+        print "negative seeds wNeg  :", self.wNeg
+        print "unknown seeds wUnk   :", self.wUnk
+        print "threshold_similarity :", self.threshold_similarity
+        print "instance confidence  :", self.instance_confidance
+        print "min_pattern_support  :", self.min_pattern_support
+        print "iterations           :", self.number_iterations
+        print "iteration wUpdt      :", self.wUpdt
+        print "\n"
+
         try:
             os.path.isfile("vsm.pkl")
             f = open("vsm.pkl", "r")
@@ -86,31 +119,6 @@ class Config(object):
             f = open("vsm.pkl", "wb")
             cPickle.dump(self.vsm, f)
             f.close()
-
-        self.read_seeds(seeds_file)
-        self.read_negative_seeds(negative_seeds)
-        fileinput.close()
-
-        print "\nConfiguration parameters"
-        print "========================"
-        print "e1 type:", self.e1_type
-        print "e2 type:", self.e2_type
-        print "instance confience:", self.instance_confidance
-        print "min_pattern_support:", self.min_pattern_support
-        print "alpha: ", self.alpha
-        print "beta : ", self.beta
-        print "gamma: ", self.gamma
-        print "iterations: ", self.number_iterations
-        print "threshold_similarity: ", self.threshold_similarity
-        print "iteration wUpdt:", self.wUpdt
-        print "negative seeds wNeg:", self.wNeg
-        print "unknown seeds wUnk:", self.wUnk
-        print "context window:", self.context_window_size
-        print "max tokens away:", self.max_tokens_away
-        print "min tokens away:", self.min_tokens_away
-        print "seeds:", len(self.seed_tuples)
-        print "negative seeds:", len(self.negative_seed_tuples)
-        print "use ReVerb:", self.use_reverb
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):

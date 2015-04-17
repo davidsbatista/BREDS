@@ -201,153 +201,18 @@ class Reverb(object):
 
 
 def main():
-
-    lmtzr = WordNetLemmatizer()
-    aux_verbs = ['be']
     reverb = Reverb()
-
-    # simple passive voice
-    # auxiliary verb be + main verb past participle + 'by'
-
     for line in fileinput.input():
         sentence = Sentence(line, "PER", "ORG", 9, 1, 2)
         for r in sentence.relationships:
             pattern_tags = reverb.extract_reverb_patterns_ptb(r.between)
-            for i in range(0, len(pattern_tags)):
-                if pattern_tags[i][1].startswith('V'):
-                    verb = lmtzr.lemmatize(pattern_tags[i][0], 'v')
-                    if verb in aux_verbs and i+2 <= len(pattern_tags)-1:
-                        if (pattern_tags[i+1][1] == 'VBN' or pattern_tags[i+1][1] == 'VBD') and pattern_tags[-1][0] == \
-                                'by':
-                            print line
-                            print pattern_tags
-
+            # simple passive voice
+            # auxiliary verb be + main verb past participle + 'by'
+            if reverb.detect_passive_voice(pattern_tags):
+                print "Passive Voice: True"
+            else:
+                print "Passive Voice: False"
     fileinput.close()
 
 if __name__ == "__main__":
     main()
-
-
-"""
-- PoS-taggs a sentence
-- Extract ReVerB patterns
-- Splits the sentence into 3 contexts: BEFORE,BETWEEN,AFTER
-- Fills in the attributes in the Relationship class with this information
-def processSentencesSemEval(rel):
-    # remove the tags and extract tokens
-    text_tokens = word_tokenize(re.sub(r"</?e[1-2]>|\"", "", rel.sentence))
-    regex = re.compile(r'<e[1-2]>[^<]+</e[1-2]>',re.U)
-
-    # tag the sentence, using the default NTLK English tagger
-    # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-    tagged = pos_tag(text_tokens)
-
-    # convert the tags to reduced tagset (Petrov et al. 2012)
-    # http://arxiv.org/pdf/1104.2086.pdf
-    tags = []
-    for t in tagged:
-       tag = map_tag('en-ptb', 'universal', t[1])
-       tags.append((t[0],tag))
-
-    # extract contexts along with PoS-Tags
-    matches = []
-
-    for m in re.finditer(regex,rel.sentence):
-        matches.append(m)
-
-    for x in range(0,len(matches)-1):
-        if x == 0:
-            start = 0
-        if x>0:
-            start = matches[x-1].end()
-        try:
-            end = matches[x+2].start()
-        except:
-            end = len(rel.sentence)-1
-
-        before = rel.sentence[ start :matches[x].start()]
-        between = rel.sentence[matches[x].end():matches[x+1].start()]
-        after = rel.sentence[matches[x+1].end(): end ]
-        ent1 = matches[x].group()
-        ent2 = matches[x+1].group()
-
-        arg1 = re.sub("</?e[1-2]>","",ent1)
-        arg2 = re.sub("</?e[1-2]>","",ent2)
-
-        rel.arg1 = arg1
-        rel.arg2 = arg2
-
-        quote = False
-        bgn_e2 = rel.sentence.index("<e2>")
-        end_e2 = rel.sentence.index("</e2>")
-        if (rel.sentence[bgn_e2-1])=="'":
-            quote = True
-        if (rel.sentence[end_e2+len("</e2>")])=="'":
-            quote = True
-
-        arg1_parts = arg1.split()
-        arg2_parts = arg2.split()
-
-        if quote:
-            new = []
-            for e in arg2_parts:
-                if e.startswith("'") or e.endswith("'"):
-                    e = '"'+e+'"'
-                    new.append(e)
-            arg2_parts = new
-
-        rel.before = before
-        rel.between = between
-        rel.after = after
-
-        before_tags = []
-        between_tags = []
-        after_tags = []
-
-        # to split the tagged sentence into contexts, preserving the PoS-tags
-        # has to take into consideration multi-word entities
-        # NOTE: this works, but probably can be done in a much cleaner way
-
-        before_i = 0
-        for i in range(0,len(tags)):
-            j = i
-            z = 0
-            while ( (z<=len(arg1_parts)-1) and tags[j][0]==arg1_parts[z]):
-                j += 1
-                z += 1
-            if (z==len(arg1_parts)):
-                before_i = i
-                break;
-
-        for i in range(before_i,len(tags)):
-            j = i
-            z = 0
-            while ( (z<=len(arg2_parts)-1) and tags[j][0]==arg2_parts[z]):
-                j += 1
-                z += 1
-            if (z==len(arg2_parts)):
-                after_i = i
-                break;
-
-        before_tags = tags[:before_i]
-
-        if len(arg1_parts)>1:
-            between_tags = tags[before_i+2:after_i]
-            after_tags = tags[after_i+1:]
-
-        elif len(arg2_parts)>1:
-            between_tags = tags[before_i+1:after_i]
-            after_tags = tags[after_i+2:]
-
-        else:
-            between_tags = tags[before_i+1:after_i]
-            after_tags = tags[after_i+1:]
-
-        # fill attributes with contextual information in Relationship class
-        rel.before_tags  = before_tags
-        rel.between_tags = between_tags
-        rel.after_tags   = after_tags
-
-        # extract ReVerb patterns from each context
-        rel.patterns_bet, rel.patterns_bet_tags = extractReVerbPatterns(between_tags)
-"""

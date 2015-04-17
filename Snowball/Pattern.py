@@ -42,7 +42,9 @@ class Pattern(object):
 
     def update_confidence_2003(self, config):
         if self.positive > 0:
-            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive + self.unknown * config.wUnk + self.negative * config.wNeg))
+            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive + self.unknown
+                                                                                           * config.wUnk + self.negative
+                                                                                           * config.wNeg))
         elif self.positive == 0:
             self.confidence = 0
 
@@ -72,13 +74,13 @@ class Pattern(object):
         self.update_confidence_2003(config)
 
     def merge_tuple_patterns(self):
+        #TODO: fazer o merge tendo em consideração todos os contextos
         for t in self.tuples:
             self.tuple_patterns.add(t.bet_words)
 
     @staticmethod
     def centroid(self):
-        # it there just one tuple associated with this pattern
-        # centroid is the tuple
+        # it there just one tuple associated with this pattern centroid is the tuple
         if len(self.tuples) == 1:
             t = self.tuples[0]
             self.centroid_bef = t.bef_vector

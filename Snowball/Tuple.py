@@ -72,14 +72,8 @@ class Tuple(object):
 
         def construct_pattern_vector(self, pattern_tags, config):
             # construct TF-IDF representation for each context
-            try:
-                pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in
-                        self.filter_pos]
-            except IndexError, e:
-                print e
-                print pattern_tags
-                print self.sentence
-                sys.exit(0)
+            pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in
+                       self.filter_pos]
 
             if len(pattern) >= 1:
                 vect_ids = self.config.vsm.dictionary.doc2bow(pattern)
@@ -101,10 +95,6 @@ class Tuple(object):
             patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
             if len(patterns_bet_tags) > 0:
                 self.passive_voice = self.config.reverb.detect_passive_voice(patterns_bet_tags)
-                print self.sentence
-                print patterns_bet_tags
-                print self.passive_voice
-                print "\n"
 
             if len(patterns_bet_tags) > 0:
                 # forced hack since 's is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify a pattern
