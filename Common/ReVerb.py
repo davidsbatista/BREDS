@@ -201,6 +201,8 @@ class Reverb(object):
 
 
 def main():
+    # for testing, it extracts PER-ORG relationships from a file, where each line is a sentence with
+    # the named-entities tagged
     reverb = Reverb()
     for line in fileinput.input():
         sentence = Sentence(line, "PER", "ORG", 9, 1, 2)
