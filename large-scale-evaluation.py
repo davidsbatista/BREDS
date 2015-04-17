@@ -260,7 +260,7 @@ def load_dbpedia(data, database_1, database_2):
 
 # ########################################
 # Estimations of sets and intersections #
-#########################################
+# ########################################
 @timecall
 def calculate_a(output, e1_type, e2_type, index):
     m = multiprocessing.Manager()
@@ -882,18 +882,25 @@ def main():
     print "|S| =", len(system_output)
     print "Relationships not evaluated", len(set(not_found))
 
-    # Write incorrect (i.e. not found) relationship sentences to disk
+    # Write relationships not found in the Database nor with high PMI relatation words to disk
     f = open(rel_type + "_not_found.txt", "w")
     for r in set(not_found):
-        f.write(r[0].ent1 + '\t' + r[0].patterns + '\t' + r[0].ent2 + '\t' + str(r[1]) + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\n')
+        f.write('bef_words:' + r.bef_words + '\n')
+        f.write('bet_words:' + r.bet_words + '\n')
+        f.write('aft_words:' + r.aft_words + '\n')
+        f.write('sentence :' + r.sentence + '\n')
+        f.write('\n')
     f.close()
 
     # Write all correct relationships (sentence, entities and score) to file
     f = open(rel_type + "_correct_extractions.txt", "w")
     for r in set(a).union(b):
-        f.write('instance:\t' + r.ent1 + '\t' + r.patterns + '\t' + r.ent2 + '\t' + r.score + '\n')
-        f.write('pattern:' + r.patterns + '\n')
-        f.write('sentence:' + r.sentence + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\n')
+        f.write('bef_words:' + r.bef_words + '\n')
+        f.write('bet_words:' + r.bet_words + '\n')
+        f.write('aft_words:' + r.aft_words + '\n')
+        f.write('sentence :' + r.sentence + '\n')
         f.write('\n')
     f.close()
 
