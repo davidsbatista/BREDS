@@ -7,9 +7,10 @@ __email__ = "dsbatista@inesc-id.pt"
 import fileinput
 from nltk.corpus import stopwords
 from gensim.models import Word2Vec
-from Seed import Seed
 from nltk import WordNetLemmatizer
 from Word2VecWrapper import Word2VecWrapper
+from Common.Seed import Seed
+from Common.ReVerb import Reverb
 
 
 class Config(object):
@@ -26,6 +27,7 @@ class Config(object):
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
         self.word2vecwrapper = Word2VecWrapper()
+        self.reverb = Reverb()
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:

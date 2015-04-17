@@ -208,7 +208,6 @@ def headquarters():
                             found = True
                             break;
 
-                    #TODO
                     # if ground-truth (from DBpedia) is a city, and extracted location is a country
                     # check if that city is located in that country only
                     # elif
@@ -413,8 +412,7 @@ def main():
         loadAcronyms("/home/dsbatista/gigaword/ground-truth/wikipedia-acronyms.txt")
 
     # LOC - LOC
-    elif relationship=='part-of':
-        # TODO
+    elif relationship == 'part-of':
         sys.exit(0)
 
     else:

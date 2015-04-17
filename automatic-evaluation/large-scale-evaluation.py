@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from Common import Sentence
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -20,7 +21,6 @@ from whoosh import query
 from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
 from collections import defaultdict
-from Snowball.Sentence import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
@@ -872,9 +872,10 @@ def main():
 
     # Write all correct relationships (sentence, entities and score) to file
     f = open(rel_type+"_correct_extractions.txt", "w")
-    for r in set(a):
+    for r in set(a).union(b):
         f.write('instance:\t'+r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\t'+r.score+'\n')
-        f.write(r.sentence+'\n')
+        f.write('pattern:' + r.patterns+'\n')
+        f.write('sentence:' + r.sentence+'\n')
         f.write('\n')
     f.close()
 

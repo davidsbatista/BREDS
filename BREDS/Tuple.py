@@ -1,10 +1,10 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 from nltk import PunktWordTokenizer, pos_tag
-from reverb.ReVerb import Reverb
 
 
 class Tuple(object):
@@ -44,18 +44,6 @@ class Tuple(object):
         def __eq__(self, other):
             return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
                     self.bet_words == other.bet_words and self.aft_words == other.aft_words)
-
-        @staticmethod
-        def detect_passive_voice(config, pattern):
-            aux_verbs = ['be']
-            for i in range(0, len(pattern)):
-                if pattern[i][1].startswith('V'):
-                    verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
-                    if verb in aux_verbs and i + 2 <= len(pattern) - 1:
-                        if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[-1][0] == 'by':
-                            return True
-                        else:
-                            return False
 
         def construct_pattern_vector(self, pattern_tags, config):
             # remove stopwords and adjectives
@@ -119,11 +107,11 @@ class Tuple(object):
 
         def extract_patterns(self, config):
             # extract ReVerb pattern from BET context
-            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
+            patterns_bet_tags = config.reverb.extract_reverb_patterns_ptb(self.bet_words)
 
             # detect passive voice in BET ReVerb pattern
             if len(patterns_bet_tags) > 0:
-                self.passive_voice = self.detect_passive_voice(config, patterns_bet_tags)
+                self.passive_voice = config.reverb.detect_passive_voice(patterns_bet_tags)
 
             # Construct word2vec representations of the patterns/words
             # Three context vectors

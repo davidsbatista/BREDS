@@ -8,10 +8,11 @@ import fileinput
 import os
 import cPickle
 
-from Seed import Seed
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
-from VectorSpaceModel import VectorSpaceModel
+from Snowball.VectorSpaceModel import VectorSpaceModel
+from Common.Seed import Seed
+from Common.ReVerb import Reverb
 
 
 class Config(object):
@@ -26,6 +27,7 @@ class Config(object):
         self.stopwords = stopwords.words('english')
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
+        self.reverb = Reverb()
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -58,16 +60,8 @@ class Config(object):
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
 
-            if line.startswith("reverb"):
-                self.reverb = bool(line.split("=")[1])
-
-            """
-            if line.startswith("threshold_similarity"):
-                self.threshold_similarity = float(line.split("=")[1])
-
-            if line.startswith("instance_confidance"):
-                self.instance_confidance = float(line.split("=")[1])
-            """
+            if line.startswith("use_reverb"):
+                self.use_reverb = line.split("=")[1].strip()
 
             if line.startswith("alpha"):
                 self.alpha = float(line.split("=")[1])
@@ -116,7 +110,7 @@ class Config(object):
         print "min tokens away:", self.min_tokens_away
         print "seeds:", len(self.seed_tuples)
         print "negative seeds:", len(self.negative_seed_tuples)
-        print "use ReVerb:", self.reverb
+        print "use ReVerb:", self.use_reverb
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):

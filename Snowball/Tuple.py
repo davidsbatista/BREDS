@@ -1,11 +1,13 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import sys
+
 from nltk import PunktWordTokenizer, pos_tag
-from reverb.ReVerb import Reverb
+from Common.ReVerb import Reverb
 
 
 class Tuple(object):
@@ -32,15 +34,23 @@ class Tuple(object):
             self.aft_reverb_vector = None
             self.passive_voice = None
 
-            if config.reverb is True:
+            if config.use_reverb == 'yes':
                 # construct TF-IDF vectors with the words part of a ReVerb pattern
                 # or if no ReVerb patterns with selected words from the contexts
                 self.extract_patterns(config)
 
-            elif config.reverb is False:
+            elif config.reverb == 'no':
                 self.bef_vector = self.create_vector(self.bef_words)
                 self.bet_vector = self.create_vector(self.bet_words)
                 self.aft_vector = self.create_vector(self.aft_words)
+
+        def __str__(self):
+            return str(self.bef_words.encode("utf8")+' '+self.bet_words.encode("utf8")+' '+
+                       self.aft_words.encode("utf8"))
+
+        def __eq__(self, other):
+            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
+                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
 
         def get_vector(self, context):
             if context == "bef":
@@ -60,28 +70,17 @@ class Tuple(object):
         def tokenize(self, text):
             return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in self.config.stopwords]
 
-        def __str__(self):
-            return str(self.bef_words.encode("utf8")+' '+self.bet_words.encode("utf8")+' '+self.aft_words.encode("utf8"))
-
-        def __eq__(self, other):
-            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
-                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
-
-        @staticmethod
-        def detect_passive_voice(config, pattern):
-            aux_verbs = ['be']
-            for i in range(0, len(pattern)):
-                if pattern[i][1].startswith('V'):
-                    verb = config.lmtzr.lemmatize(pattern[i][0], 'v')
-                    if verb in aux_verbs and i + 2 <= len(pattern) - 1:
-                        if (pattern[i+1][1] == 'VBN' or pattern[i+1][1] == 'VBD') and pattern[i-1][0] == 'by':
-                            return True
-                        else:
-                            return False
-
         def construct_pattern_vector(self, pattern_tags, config):
             # construct TF-IDF representation for each context
-            pattern = [t[0] for t in pattern_tags[0] if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
+            try:
+                pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in
+                        self.filter_pos]
+            except IndexError, e:
+                print e
+                print pattern_tags
+                print self.sentence
+                sys.exit(0)
+
             if len(pattern) >= 1:
                 vect_ids = self.config.vsm.dictionary.doc2bow(pattern)
                 return self.config.vsm.tf_idf_model[vect_ids]
@@ -97,46 +96,29 @@ class Tuple(object):
                 return self.config.vsm.tf_idf_model[vect_ids]
 
         def extract_patterns(self, config):
-            patterns_bef, patterns_bef_tags = Reverb.extract_reverb_patterns_ptb(self.bef_words)
-            patterns_bet, patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
-            patterns_aft, patterns_aft_tags = Reverb.extract_reverb_patterns_ptb(self.aft_words)
 
-            # detect passive voice in BET ReVerb pattern
+            # extract ReVerb pattern and detect the presence of the passive voice
+            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
             if len(patterns_bet_tags) > 0:
-                self.passive_voice = self.detect_passive_voice(config, patterns_bet_tags[0])
+                self.passive_voice = self.config.reverb.detect_passive_voice(patterns_bet_tags)
+                print self.sentence
+                print patterns_bet_tags
+                print self.passive_voice
+                print "\n"
 
-            # BEF context
-            if len(patterns_bef_tags) > 0:
-                self.bef_vector = self.construct_pattern_vector(patterns_bef_tags, config)
-            else:
-                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
-
-            # BET context
             if len(patterns_bet_tags) > 0:
-                self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
+                # forced hack since 's is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify a pattern
+                # which is wrong, if this happens, ignore that a pattern was extracted
+                if patterns_bet_tags[0][0] == "'s":
+                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
+                else:
+                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
             else:
                 self.bet_vector = self.construct_words_vectors(self.bet_words, config)
 
-            # AFT context
-            if len(patterns_aft_tags) > 0:
-                self.aft_vector = self.construct_pattern_vector(patterns_aft_tags, config)
-            else:
-                self.aft_vector = self.construct_words_vectors(self.aft_words, config)
+            # extract two words before the first entity, and two words after the second entity
+            if len(self.bef_words) > 0:
+                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
 
-            """
-            print self.e1
-            print self.e2
-            print self.sentence
-            print "ReVerb Patterns BEF:", len(patterns_bef_tags)
-            print "ReVerb Patterns BET:", len(patterns_bet_tags)
-            print "ReVerb Patterns AFT:", len(patterns_aft_tags)
-            if len(patterns_bef_tags) > 0:
-                print patterns_bef_tags[0]
-            if len(patterns_bet_tags) > 0:
-                print patterns_bet_tags[0]
-            if len(patterns_aft_tags) > 0:
-                print patterns_aft_tags[0]
-            print "BEF:", self.bef_vector
-            print "BET:", self.bet_vector
-            print "AFT:", self.aft_vector
-            """
+            if len(self.aft_words) > 0:
+                self.aft_vector = self.construct_words_vectors(self.aft_words, config)

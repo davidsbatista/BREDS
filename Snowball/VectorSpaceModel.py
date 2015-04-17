@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
@@ -20,7 +23,6 @@ class VectorSpaceModel(object):
         for line in f_sentences:
             line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
 
-            # TODO: remove punctuation, commas, etc.
             # remove common words and tokenize
             document = [word for word in PunktWordTokenizer().tokenize(line.lower()) if word not in stopwords]
             documents.append(document)
@@ -29,10 +31,10 @@ class VectorSpaceModel(object):
             #dictionary = corpora.Dictionary(line.lower().split() for line in open('mycorpus.txt'))
         f_sentences.close()
 
+        # TODO: ver qual eh a frequencia de corte no word2vec, e fazer o mesmo
         """
         print "Removing tokens that appear only once"
         # remove words that appear only once
-        # TODO: ver qual eh a frequencia de corte no word2vec, e fazer o mesmo
         all_tokens = sum(documents, [])
         tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
         documents = [[word for word in text if word not in tokens_once] for text in documents]
