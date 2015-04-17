@@ -42,7 +42,7 @@ PRINT_NOT_FOUND = False
 
 # stores all variations matched with database
 manager = multiprocessing.Manager()
-all_in_freebase = manager.dict()
+all_in_database = manager.dict()
 
 
 class ExtractedFact(object):
@@ -262,14 +262,14 @@ def load_dbpedia(data, database_1, database_2):
 # Estimations of sets and intersections #
 # ########################################
 @timecall
-def calculate_a(output, e1_type, e2_type, index):
+def calculate_a(not_in_database, e1_type, e2_type, index):
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
     results = [m.list() for _ in range(num_cpus)]
     not_found = [m.list() for _ in range(num_cpus)]
 
-    for r in output:
+    for r in not_in_database:
         queue.put(r)
 
     processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i],
@@ -515,7 +515,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                 count += 1
                 if count % 100 == 0:
                     print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
-                if (r.ent1, r.ent2) not in all_in_freebase:
+                if (r.ent1, r.ent2) not in all_in_database:
                     # if its not in the database calculate the PMI
                     entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
                     entity2 = "<" + e2_type + ">" + r.ent2 + "</" + e2_type + ">"
@@ -577,7 +577,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                 print multiprocessing.current_process(), "In Queue", queue.qsize()
 
             # check if its in cache, i.e., if tuple was already matched
-            if (r.ent1, r.ent2) in all_in_freebase:
+            if (r.ent1, r.ent2) in all_in_database:
                 matches.append(r)
                 found = True
 
@@ -585,7 +585,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
             if found is False:
                 if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
                     matches.append(r)
-                    all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                    all_in_database[(r.ent1, r.ent2)] = "Found"
                     found = True
 
             if found is False:
@@ -600,7 +600,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                 if len(ent2) > 0:
                     if r.ent2 in ent2:
                         matches.append(r)
-                        all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                        all_in_database[(r.ent1, r.ent2)] = "Found"
                         found = True
 
             # if a direct string matching occur with arg_2, check for a direct string matching
@@ -620,7 +620,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                         jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                         if jaccardi >= 0.5:
                             matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            all_in_database[(r.ent1, r.ent2)] = "Found"
                             found = True
 
                         # Jaro Winkler
@@ -628,7 +628,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                             score = jellyfish.jaro_winkler(new_arg1.upper(), r.ent1.upper())
                             if score >= 0.9:
                                 matches.append(r)
-                                all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                                all_in_database[(r.ent1, r.ent2)] = "Found"
                                 found = True
 
             # if a direct string matching occur with arg_1, check for a direct string matching
@@ -647,7 +647,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                         jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
                         if jaccardi >= 0.5:
                             matches.append(r)
-                            all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                            all_in_database[(r.ent1, r.ent2)] = "Found"
                             found = True
 
                         # Jaro Winkler
@@ -655,7 +655,7 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                             score = jellyfish.jaro_winkler(new_arg2.upper(), r.ent2.upper())
                             if score >= 0.9:
                                 matches.append(r)
-                                all_in_freebase[(r.ent1, r.ent2)] = "Found"
+                                all_in_database[(r.ent1, r.ent2)] = "Found"
                                 found = True
 
             if found is False:
@@ -738,16 +738,10 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                     pmi = float(hits_with_r) / float(len(hits))
                     if pmi >= PMI:
                         results.append(r)
-                        """
-                        if isinstance(r, ExtractedFact):
-                            print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
-                        elif isinstance(r, Relationship):
-                            print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                        """
                     else:
-                        not_found.append((r, pmi))
+                        not_found.append(r)
                 else:
-                    not_found.append((r, None))
+                    not_found.append(r)
 
                 if queue.empty() is True:
                     break
@@ -845,10 +839,6 @@ def main():
     print "\n"
     assert len(system_output) == len(a) + len(b) + len(not_found)
 
-    if PRINT_NOT_FOUND is True:
-        for r in sorted(set(not_found)):
-            print r.ent1, '\t', r.patterns, '\t', r.ent2
-
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
@@ -880,27 +870,27 @@ def main():
     print "|c| =", len(c), "(", len(uniq_c), ")"
     print "|d| =", len(d), "(", len(uniq_d), ")"
     print "|S| =", len(system_output)
-    print "Relationships not evaluated", len(set(not_found))
+    print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
     f = open(rel_type + "_not_found.txt", "w")
     for r in set(not_found):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
+        f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
         f.write('aft_words:' + r.aft_words + '\n')
-        f.write('sentence :' + r.sentence + '\n')
         f.write('\n')
     f.close()
 
     # Write all correct relationships (sentence, entities and score) to file
-    f = open(rel_type + "_correct_extractions.txt", "w")
+    f = open(rel_type + "_found_extractions.txt", "w")
     for r in set(a).union(b):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
+        f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
         f.write('aft_words:' + r.aft_words + '\n')
-        f.write('sentence :' + r.sentence + '\n')
         f.write('\n')
     f.close()
 
