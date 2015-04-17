@@ -225,7 +225,15 @@ class BREADS(object):
 
                 print "\nCollecting instances based on extraction patterns"
                 count = 0
+
                 #TODO: paralellize this loop
+                #   processed_tuples = at each iteration copy into a Queue
+                #   patterns  = shared list
+                #   candidate_tuples = shared dict of lists
+                #
+                # processes = [multiprocessing.Process(target=collect_instances,args=(processed_tuples, patterns,
+                # candidate_tuples)) for i in range(num_cpus)]
+
                 for t in self.processed_tuples:
                     count += 1
                     if count % 1000 == 0:
