@@ -62,16 +62,17 @@ class ExtractedFact(object):
         return sig
 
     def __eq__(self, other):
-        if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.patterns == \
-                other.patterns and self.sentence == other.sentence:
+        if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.bef_words == \
+                other.bef_words and self.bet_words == other.bet_words and self.aft_words == other.aft_words \
+                and self.sentence == other.sentence:
             return True
         else:
             return False
 
 
-############################################
+# ###########################################
 # Misc., Utils, parsing corpus into memory #
-############################################
+# ###########################################
 
 def timecall(f):
     @functools.wraps(f)
@@ -79,9 +80,10 @@ def timecall(f):
         start = time.time()
         result = f(*args, **kw)
         end = time.time()
-        #print "%s %.2f seconds" % (f.__name__, end - start)
+        # print "%s %.2f seconds" % (f.__name__, end - start)
         print "Time taken: %.2f seconds" % (end - start)
         return result
+
     return wrapper
 
 
@@ -256,12 +258,11 @@ def load_dbpedia(data, database_1, database_2):
     return database_1, database_2
 
 
-#########################################
+# ########################################
 # Estimations of sets and intersections #
 #########################################
 @timecall
 def calculate_a(output, e1_type, e2_type, index):
-
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
@@ -338,9 +339,9 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
     # check if superset G' for e1_type, e2_type already exists
     # if it exists load into g_dash_set
-    if os.path.isfile("superset_"+e1_type+"_"+e2_type+".pkl"):
-        f = open("superset_"+e1_type+"_"+e2_type+".pkl")
-        print "\nLoading superset G'", "superset_"+e1_type+"_"+e2_type+".pkl"
+    if os.path.isfile("superset_" + e1_type + "_" + e2_type + ".pkl"):
+        f = open("superset_" + e1_type + "_" + e2_type + ".pkl")
+        print "\nLoading superset G'", "superset_" + e1_type + "_" + e2_type + ".pkl"
         g_dash_set = cPickle.load(f)
         f.close()
 
@@ -356,7 +357,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
         processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type))
                      for _ in range(num_cpus)]
-        print "Extracting all possible "+e1_type+","+e2_type+" relationships from the corpus"
+        print "Extracting all possible " + e1_type + "," + e2_type + " relationships from the corpus"
         print "Running", len(processes), "threads"
 
         for proc in processes:
@@ -368,16 +369,16 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         print len(g_dash), "relationships built"
         g_dash_set = set(g_dash)
         print len(g_dash_set), "unique relationships"
-        print "Dumping into file", "superset_"+e1_type+"_"+e2_type+".pkl"
-        f = open("superset_"+e1_type+"_"+e2_type+".pkl", "wb")
+        print "Dumping into file", "superset_" + e1_type + "_" + e2_type + ".pkl"
+        f = open("superset_" + e1_type + "_" + e2_type + ".pkl", "wb")
         cPickle.dump(g_dash_set, f)
         f.close()
 
     # Estimate G \in D, look for facts in G' that a match a fact in the database
     # check if already exists for this particular relationship
-    if os.path.isfile(rel_type+"_g_intersection_d.pkl"):
-        f = open(rel_type+"_g_intersection_d.pkl", "r")
-        print "\nLoading G intersected with D'", rel_type+"_g_intersection_d.pkl"
+    if os.path.isfile(rel_type + "_g_intersection_d.pkl"):
+        f = open(rel_type + "_g_intersection_d.pkl", "r")
+        print "\nLoading G intersected with D'", rel_type + "_g_intersection_d.pkl"
         g_intersect_d = cPickle.load(f)
         f.close()
 
@@ -412,7 +413,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
-            f = open(rel_type+"_g_intersection_d.pkl", "wb")
+            f = open(rel_type + "_g_intersection_d.pkl", "wb")
             cPickle.dump(g_intersect_d, f)
             f.close()
 
@@ -444,9 +445,9 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         sys.exit(0)
 
     # check if it was already calculated and stored in disk
-    if os.path.isfile(rel_type+"_high_pmi_not_in_database.pkl"):
-        f = open(rel_type+"_high_pmi_not_in_database.pkl")
-        print "\nLoading high PMI facts not in the database", rel_type+"_high_pmi_not_in_database.pkl"
+    if os.path.isfile(rel_type + "_high_pmi_not_in_database.pkl"):
+        f = open(rel_type + "_high_pmi_not_in_database.pkl")
+        print "\nLoading high PMI facts not in the database", rel_type + "_high_pmi_not_in_database.pkl"
         g_minus_d = cPickle.load(f)
         f.close()
 
@@ -475,8 +476,8 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
 
         # dump high PMI facts not in the database
         if len(g_minus_d) > 0:
-            f = open(rel_type+"_high_pmi_not_in_database.pkl", "wb")
-            print "Dumping high PMI facts not in the database to", rel_type+"_high_pmi_not_in_database.pkl"
+            f = open(rel_type + "_high_pmi_not_in_database.pkl", "wb")
+            print "Dumping high PMI facts not in the database to", rel_type + "_high_pmi_not_in_database.pkl"
             cPickle.dump(g_minus_d, f)
             f.close()
 
@@ -516,8 +517,8 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
                 if (r.ent1, r.ent2) not in all_in_freebase:
                     # if its not in the database calculate the PMI
-                    entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
-                    entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                    entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
+                    entity2 = "<" + e2_type + ">" + r.ent2 + "</" + e2_type + ">"
                     t1 = query.Term('sentence', entity1)
                     t3 = query.Term('sentence', entity2)
 
@@ -564,6 +565,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                 break
 
 
+#TODO: this can be improved, lookt at failed matches to understand what is missing
 def string_matching_parallel(matches, no_matches, database_1, database_2, database_3, queue, e1_type, e2_type):
     count = 0
     while True:
@@ -687,8 +689,8 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                     print multiprocessing.current_process(), "To Process", queue.qsize(), "Correct found:", len(results)
 
                 # if its not in the database calculate the PMI
-                entity1 = "<"+e1_type+">"+r.ent1+"</"+e1_type+">"
-                entity2 = "<"+e2_type+">"+r.ent2+"</"+e2_type+">"
+                entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
+                entity2 = "<" + e2_type + ">" + r.ent2 + "</" + e2_type + ">"
                 t1 = query.Term('sentence', entity1)
                 t3 = query.Term('sentence', entity2)
 
@@ -881,17 +883,17 @@ def main():
     print "Relationships not evaluated", len(set(not_found))
 
     # Write incorrect (i.e. not found) relationship sentences to disk
-    f = open(rel_type+"_not_found.txt", "w")
+    f = open(rel_type + "_not_found.txt", "w")
     for r in set(not_found):
-        f.write(r[0].ent1+'\t'+r[0].patterns+'\t'+r[0].ent2+'\t'+str(r[1])+'\n')
+        f.write(r[0].ent1 + '\t' + r[0].patterns + '\t' + r[0].ent2 + '\t' + str(r[1]) + '\n')
     f.close()
 
     # Write all correct relationships (sentence, entities and score) to file
-    f = open(rel_type+"_correct_extractions.txt", "w")
+    f = open(rel_type + "_correct_extractions.txt", "w")
     for r in set(a).union(b):
-        f.write('instance:\t'+r.ent1+'\t'+r.patterns+'\t'+r.ent2+'\t'+r.score+'\n')
-        f.write('pattern:' + r.patterns+'\n')
-        f.write('sentence:' + r.sentence+'\n')
+        f.write('instance:\t' + r.ent1 + '\t' + r.patterns + '\t' + r.ent2 + '\t' + r.score + '\n')
+        f.write('pattern:' + r.patterns + '\n')
+        f.write('sentence:' + r.sentence + '\n')
         f.write('\n')
     f.close()
 
@@ -900,12 +902,13 @@ def main():
     output = set(system_output)
     precision = float(len(a) + len(b)) / float(len(output))
     recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
-    f1 = 2*(precision*recall)/(precision+recall)
+    f1 = 2 * (precision * recall) / (precision + recall)
 
     print "\nPrecision: ", precision
     print "Recall   : ", recall
     print "F1   : ", f1
     print "\n"
+
 
 if __name__ == "__main__":
     main()
