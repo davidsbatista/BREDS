@@ -187,15 +187,6 @@ class Snowball(object):
                     if iter > 0:
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
-                    """
-                    if t.confidence == 0:
-                        print t.e1, '\t', t.e2
-                        print t.sentence
-                        for p in self.candidate_tuples.get(t):
-                            print p[0].confidence
-                            print p[1]
-                    """
-
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
                 if i+1 < self.config.number_iterations:

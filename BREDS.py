@@ -150,7 +150,7 @@ class BREADS(object):
         # i iteration is above a threshold τ sim ,where N is the number of instances extracted inthe previous iteration.
         pass
 
-    def start(self, tuples):
+    def init_bootstrapp(self, tuples):
         """
         starts a bootstrap iteration
         """
@@ -422,7 +422,7 @@ class BREADS(object):
         for t in matched_tuples:
             count += 1
             if count % 1000 == 0:
-                sys.stdout.write(".", count)
+                sys.stdout.write(".")
                 sys.stdout.flush()
             max_similarity = 0
             max_similarity_cluster_index = 0
@@ -628,10 +628,10 @@ def main():
     breads = BREADS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
-        breads.start(tuples=sentences_file)
+        breads.init_bootstrapp(tuples=sentences_file)
     else:
         breads.generate_tuples(sentences_file)
-        breads.start(tuples=None)
+        breads.init_bootstrapp(tuples=None)
 
 
 if __name__ == "__main__":

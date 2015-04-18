@@ -58,7 +58,7 @@ class ExtractedFact(object):
 
     def __hash__(self):
         sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words) ^ \
-              hash(self.score) ^ hash(self.sentence)
+            hash(self.score) ^ hash(self.sentence)
         return sig
 
     def __eq__(self, other):
