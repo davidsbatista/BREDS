@@ -815,7 +815,7 @@ def main():
         e2_type = "LOC"
     else:
         print "Invalid relationship type", rel_type
-        print "Use: founded, acquired, headquarters, contained_by"
+        print "Use: founded, acquired, headquarters, employment"
         sys.exit(0)
 
     print "\nRelationship Type:", rel_type
