@@ -5,6 +5,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 from nltk import PunktWordTokenizer, pos_tag
+from Common.ReVerb import Reverb
 
 
 class Tuple(object):
@@ -106,29 +107,25 @@ class Tuple(object):
                 return words_vector
 
         def extract_patterns(self, config):
-            # extract ReVerb pattern from BET context
-            patterns_bet_tags = config.reverb.extract_reverb_patterns_ptb(self.bet_words)
 
-            # detect passive voice in BET ReVerb pattern
+            # extract ReVerb pattern and detect the presence of the passive voice
+            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
             if len(patterns_bet_tags) > 0:
-                self.passive_voice = config.reverb.detect_passive_voice(patterns_bet_tags)
+                self.passive_voice = self.config.reverb.detect_passive_voice(patterns_bet_tags)
 
-            # Construct word2vec representations of the patterns/words
-            # Three context vectors
-            #  BEF: 2 words
-            #  BET: ReVerb pattern
-            #  AFT: 2 words
+            if len(patterns_bet_tags) > 0:
+                # forced hack since _'s_ is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify
+                # a pattern which is wrong, if this happens, ignore that a pattern was extracted
+                if patterns_bet_tags[0][0] == "'s":
+                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
+                else:
+                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
+            else:
+                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
 
-            # BEF context
+            # extract two words before the first entity, and two words after the second entity
             if len(self.bef_words) > 0:
                 self.bef_vector = self.construct_words_vectors(self.bef_words, config)
 
-            # BET context
-            if len(patterns_bet_tags) > 0:
-                self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-            elif len(self.bet_words) > 0:
-                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-
-            # AFT context
             if len(self.aft_words) > 0:
                 self.aft_vector = self.construct_words_vectors(self.aft_words, config)
