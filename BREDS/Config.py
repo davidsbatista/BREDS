@@ -108,13 +108,13 @@ class Config(object):
         print "beta                 :", self.beta
         print "gamma                :", self.gamma
 
-        print "\nNumber of Seeds:"
+        print "\nSeeds:"
         print "positive seeds       :", len(self.seed_tuples)
         print "negative seeds       :", len(self.negative_seed_tuples)
-
-        print "\nParameters and Thresholds"
         print "negative seeds wNeg  :", self.wNeg
         print "unknown seeds wUnk   :", self.wUnk
+
+        print "\nParameters and Thresholds"
         print "threshold_similarity :", self.threshold_similarity
         print "instance confidence  :", self.instance_confidance
         print "min_pattern_support  :", self.min_pattern_support
