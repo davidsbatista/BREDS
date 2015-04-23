@@ -19,7 +19,7 @@ from Snowball.Tuple import Tuple
 from Common.Sentence import Sentence
 from Common.Seed import Seed
 
-PRINT_PATTERNS = True
+PRINT_PATTERNS = False
 
 
 class Snowball(object):
