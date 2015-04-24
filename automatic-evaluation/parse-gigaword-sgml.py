@@ -21,7 +21,7 @@ class ExtractText(sgmllib.SGMLParser):
         self.doc_id = attrs[0][1]
 
     def end_doc(self):
-        if len(self.paragraphs)>0:
+        if len(self.paragraphs) > 0:
             f = open(self.doc_id+'.txt','w')
             for p in self.paragraphs:
                 f.write(p+'\n')
