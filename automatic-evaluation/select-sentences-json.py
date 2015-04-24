@@ -64,11 +64,13 @@ def load_sentences(directory):
                         except KeyError:
                             pass
                     if number_valid_entities >= 2:
+                        # TODO: before printing check the entities type
+                        # match the types we want: org, loc, per
                         for e in valid_entities:
                             s = s.replace(e, entities_data[e]['url'])
-                        print "dbpedia url"
+                        #print "dbpedia url"
                         print urllib2.unquote(s.encode("utf8"))
-                        print "==================================="
+                        #print "==================================="
 
 
 def main():
