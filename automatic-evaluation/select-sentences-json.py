@@ -44,17 +44,31 @@ def load_sentences(directory):
             print join(directory, f)
             with open(join(directory, f)) as data_file:
                 data = json.load(data_file)
-                #print type(data)
-                #data.dumps(u"ברי צקלה", ensure_ascii=False).encode('utf8')
+                # load the entities identified
+                entities_data = data['entityMetadata']
+
+                # select only sentences that have at least two entities grounded to dbpedia/wikipedia
+                # and whose type is organisation, person or location
                 sentences = data['annotatedText'].split('\n')
                 for s in sentences:
-                    print urllib2.unquote(s.encode("utf8"))
+                    number_valid_entities = 0
+                    valid_entities = set()
                     wikilink_rx = re.compile(r'\[\[[^\]]+\]\]')
                     entities = re.findall(wikilink_rx, s)
-                    if entities is not None:
-                        for e in entities:
-                            print e.split('|')[0]
-                        print "\n"
+                    for e in entities:
+                        entity_id = e.split('[[')[1].split('|')[0]
+                        try:
+                            if 'url' in entities_data[entity_id]:
+                                valid_entities.add(entity_id)
+                                number_valid_entities += 1
+                        except KeyError:
+                            pass
+                    if number_valid_entities >= 2:
+                        for e in valid_entities:
+                            s = s.replace(e, entities_data[e]['url'])
+                        print "dbpedia url"
+                        print urllib2.unquote(s.encode("utf8"))
+                        print "==================================="
 
 
 def main():
