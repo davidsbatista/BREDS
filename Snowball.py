@@ -122,8 +122,13 @@ class Snowball(object):
                 # Each candidate tuple will then have a number of patterns that helped generate it,
                 # each with an associated de gree of match. Snowball uses this infor
                 print "\nCollecting instances based on extraction patterns"
+                count = 0
                 pattern_best = None
                 for t in self.processed_tuples:
+                    count += 1
+                    if count % 1000 == 0:
+                        sys.stdout.write(".")
+                        sys.stdout.flush()
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         score = self.similarity(self, t, extraction_pattern)
