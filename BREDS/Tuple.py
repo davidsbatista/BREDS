@@ -48,29 +48,13 @@ class Tuple(object):
 
         def construct_pattern_vector(self, pattern_tags, config):
             # remove stopwords and adjectives
-            """
-            if self.debug is True:
-                print "pattern"
-                print "original", pattern_tags
-            """
-
             pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-
-            """
-            if self.debug is True:
-                print "after filtering", pattern
-            """
 
             if len(pattern) >= 1:
                 if config.embeddings == 'average':
                     pattern_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
                 elif config.embeddings == 'sum':
                     pattern_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
-                """
-                if (self.e1 == 'Nokia' and self.e2 == 'Espoo') or (self.e1 == 'Pfizer' and self.e2 == 'New York'):
-                    print "vector", pattern_vector
-                """
 
                 return pattern_vector
 
@@ -80,29 +64,12 @@ class Tuple(object):
             text_tokens = PunktWordTokenizer().tokenize(words)
             tags_ptb = pos_tag(text_tokens)
 
-            """
-            if (self.e1 == 'Nokia' and self.e2 == 'Espoo') or (self.e1 == 'Pfizer' and self.e2 == 'New York'):
-                print "words"
-                print "original", words
-            """
-
             pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
             if len(pattern) >= 1:
-
-                """
-                if (self.e1 == 'Nokia' and self.e2 == 'Espoo') or (self.e1 == 'Pfizer' and self.e2 == 'New York'):
-                    print "after filtering", pattern
-                """
-
                 if config.embeddings == 'average':
                     words_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
                 elif config.embeddings == 'sum':
                     words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
-                """
-                if (self.e1 == 'Nokia' and self.e2 == 'Espoo') or (self.e1 == 'Pfizer' and self.e2 == 'New York'):
-                    print words_vector
-                """
 
                 return words_vector
 
