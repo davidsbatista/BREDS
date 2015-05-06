@@ -206,7 +206,7 @@ class Snowball(object):
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples, key=lambda tuple: tuple.confidence, reverse=True)
+        tmp = sorted(self.candidate_tuples, key=lambda tpl: tpl.confidence, reverse=True)
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')

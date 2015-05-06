@@ -33,9 +33,9 @@ PMI = 0.7
 
 # Parameters for relationship extraction from Sentence
 # 9 tokens away, cause it was indexed was done without removing stop-words...
-MAX_TOKENS_AWAY = 9
+MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1
-CONTEXT_WINDOW = 2
+CONTEXT_WINDOW = 3
 
 # DEBUG stuff
 PRINT_NOT_FOUND = False
