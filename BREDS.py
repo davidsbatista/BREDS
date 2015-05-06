@@ -226,14 +226,6 @@ class BREADS(object):
                 print "\nCollecting instances based on extraction patterns"
                 count = 0
 
-                #TODO: paralellize this loop
-                #   processed_tuples = at each iteration copy into a Queue
-                #   patterns  = shared list
-                #   candidate_tuples = shared dict of lists
-                #
-                # processes = [multiprocessing.Process(target=collect_instances,args=(processed_tuples, patterns,
-                # candidate_tuples)) for i in range(num_cpus)]
-
                 for t in self.processed_tuples:
                     count += 1
                     if count % 1000 == 0:
@@ -310,7 +302,7 @@ class BREADS(object):
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
                     extracted_tuples = self.candidate_tuples.keys()
-                    tuples_sorted = sorted(extracted_tuples, key=lambda t: t.confidence, reverse=True)
+                    tuples_sorted = sorted(extracted_tuples, key=lambda tpl: tpl.confidence, reverse=True)
                     for t in tuples_sorted:
                         #best_pattern = self.candidate_tuples[t]
                         print t.e1, t.e2, t.confidence
