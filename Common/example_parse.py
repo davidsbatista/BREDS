@@ -28,6 +28,8 @@ def main():
         print s
         t = parser.raw_parse(s)
         print t
+        # note: http://www.nltk.org/_modules/nltk/parse/stanford.html
+        # the wrapper for StanfordParser does not give syntatic dependencies
         sent = sd.convert_tree(str(t[0]))
         for token in sent:
             print token
