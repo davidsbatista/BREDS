@@ -27,7 +27,7 @@ PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
-class BREADS(object):
+class BREDS(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
         self.curr_iteration = 0
@@ -617,7 +617,7 @@ def main():
     similarity = sys.argv[5]
     # confidence threshold of an instance to used as seed
     confidance = sys.argv[6]
-    breads = BREADS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
+    breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
         breads.init_bootstrapp(tuples=sentences_file)
