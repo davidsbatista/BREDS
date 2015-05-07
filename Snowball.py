@@ -132,7 +132,7 @@ class Snowball(object):
                         sys.stdout.flush()
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        score = self.similarity(self, t, extraction_pattern)
+                        score = self.similarity(t, extraction_pattern)
                         if score > self.config.threshold_similarity:
                             extraction_pattern.update_selectivity(t, self.config)
                         if score > sim_best:
@@ -235,10 +235,6 @@ class Snowball(object):
     def similarity(self, t, extraction_pattern):
 
         (bef, bet, aft) = (0, 0, 0)
-
-        print "t.bef_vector", t.bef_vector
-        print "t.bet_vector", t.bet_vector
-        print "t.aft_vector", t.aft_vector
 
         if t.bef_vector is not None and extraction_pattern.centroid_bef is not None:
             bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
