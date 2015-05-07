@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import sys
 import codecs
 import re
 
@@ -19,6 +21,7 @@ class VectorSpaceModel(object):
         self.corpus = None
         f_sentences = codecs.open(sentences_file, encoding='utf-8')
         documents = list()
+        count = 0
         print "Gathering sentences and removing stopwords"
         for line in f_sentences:
             line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
@@ -26,6 +29,9 @@ class VectorSpaceModel(object):
             # remove stop words and tokenize
             document = [word for word in PunktWordTokenizer().tokenize(line.lower()) if word not in stopwords]
             documents.append(document)
+            count += 1
+            if count % 10000 == 0:
+                sys.stdout.write(".")
 
         f_sentences.close()
 

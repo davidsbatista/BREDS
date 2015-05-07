@@ -53,6 +53,7 @@ class Snowball(object):
                     sys.stdout.write(".")
                 sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
                                     self.config.min_tokens_away, self.config.context_window_size)
+
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                         bef_tokens = self.tokenize(self, rel.before)
@@ -231,10 +232,13 @@ class Snowball(object):
             f_output.write(str([str(t) for t in p.tuples])+'\t'+str(p.confidence)+'\n')
         f_output.close()
 
-    @staticmethod
     def similarity(self, t, extraction_pattern):
 
         (bef, bet, aft) = (0, 0, 0)
+
+        print "t.bef_vector", t.bef_vector
+        print "t.bet_vector", t.bet_vector
+        print "t.aft_vector", t.aft_vector
 
         if t.bef_vector is not None and extraction_pattern.centroid_bef is not None:
             bef = cossim(t.bef_vector, extraction_pattern.centroid_bef)
@@ -270,7 +274,7 @@ class Snowball(object):
             # highest similarity score
             for w in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[w]
-                score = self.similarity(self, t, extraction_pattern)
+                score = self.similarity(t, extraction_pattern)
                 if score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = w

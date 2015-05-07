@@ -39,7 +39,7 @@ class Tuple(object):
                 # or if no ReVerb patterns with selected words from the contexts
                 self.extract_patterns(config)
 
-            elif config.reverb == 'no':
+            elif config.use_reverb == 'no':
                 self.bef_vector = self.create_vector(self.bef_words)
                 self.bet_vector = self.create_vector(self.bet_words)
                 self.aft_vector = self.create_vector(self.aft_words)
