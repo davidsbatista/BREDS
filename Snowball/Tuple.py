@@ -44,6 +44,10 @@ class Tuple(object):
                 self.bet_vector = self.create_vector(self.bet_words)
                 self.aft_vector = self.create_vector(self.aft_words)
 
+            else:
+                print "use_reverb configuration parameter not set"
+                sys.exit(0)
+
         def __str__(self):
             return str(self.bef_words.encode("utf8")+' '+self.bet_words.encode("utf8")+' '+
                        self.aft_words.encode("utf8"))
