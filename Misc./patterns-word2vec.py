@@ -85,9 +85,9 @@ def mean_rep(v1, v2):
 
 
 def compare_patterns(pattern1, pattern2, model):
-    # TODO: incluir proposições e stopwords?
-    # TODO: proposições fazem sentido quando um verbo está presente
-    # TODO: dar um peso maior aos verbos e nouns,
+    # incluir proposições e stopwords?
+    # proposições fazem sentido quando um verbo está presente ?
+    # dar um peso maior aos verbos e nouns ?
 
     # sum everything
     v1 = get_words_vector(pattern1, model, include_stopwords=True)
