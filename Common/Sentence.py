@@ -104,6 +104,9 @@ class Sentence:
                     arg1type = arg1match.group()[1:-1]
                     arg2type = arg2match.group()[1:-1]
 
+                    if ent1 == ent2:
+                        continue
+
                     if e1_type is not None and arg2type is not e2_type:
                         # restrict relationships by the arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
