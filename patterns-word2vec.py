@@ -1,25 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import re
-from gensim import matutils
-from nltk import PunktWordTokenizer, pos_tag, map_tag
-from BREDS.Tuple import Tuple
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
 
+import re
 import random
 import fileinput
 import sys
 
+from nltk import PunktWordTokenizer, pos_tag, map_tag
+from nltk.corpus import stopwords
+
+from BREDS.Tuple import Tuple
 from Common.ReVerb import Reverb
 from Common.Sentence import Sentence
 
 from numpy.linalg import norm
 from numpy import dot, zeros
-from gensim.models import Word2Vec
 
-from nltk.corpus import stopwords
+from gensim.models import Word2Vec
+from gensim import matutils
+
 
 VECTOR_DIM = 200
 # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
@@ -103,33 +105,28 @@ def construct_pattern_vector(pattern_tags):
     return words_vector
 
 
-#TODO: usar isto
 def process_sentence(rel):
     """
     - PoS-taggs a sentence
-    - Extract ReVerB patterns
     - Splits the sentence into 3 contexts: BEFORE,BETWEEN,AFTER
-    - Fills in the attributes in the Relationship class with this information
     """
 
+    print rel.sentence
     # tag the sentence, using the default NTLK English tagger
     # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
     entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
     tags_regex = re.compile('</?[A-Z]+>', re.U)
 
-    print rel.sentence
     sentence_no_tags = re.sub(tags_regex, "", rel.sentence)
-    print sentence_no_tags
-
     text_tokens = PunktWordTokenizer().tokenize(sentence_no_tags)
     tagged = pos_tag(text_tokens)
 
-    # convert the tags to reduced tagset (Petrov et al. 2012)
-    # http://arxiv.org/pdf/1104.2086.pdf
+    # List of PoS-tags here: http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
     tags = []
     for t in tagged:
-        tag = map_tag('en-ptb', 'universal', t[1])
-        tags.append((t[0], tag))
+        #tag = map_tag('en-ptb', 'universal', t[1])
+        #tags.append((t[0], tag))
+        tags.append((t[0], t[1]))
 
     # find named-entities offset
     matches = []
@@ -158,6 +155,8 @@ def process_sentence(rel):
         rel.arg2 = arg2
         quote = False
         #TODO: isto tem que ser generalizado
+        #TODO: testar este caso
+        # "Private equity firm <ORG>Terra Firma Capital Partners</ORG> acquired <ORG>EMI</ORG> last week for $ 4.9 billion ( euro3 .55 billion ) ."
         bgn_e2 = rel.sentence.index("<ORG>")
         end_e2 = rel.sentence.index("</ORG>")
         if (rel.sentence[bgn_e2-1]) == "'":
@@ -176,9 +175,6 @@ def process_sentence(rel):
         rel.before = before
         rel.between = between
         rel.after = after
-        before_tags = []
-        between_tags = []
-        after_tags = []
 
         # to split the tagged sentence into contexts, preserving the PoS-tags
         # has to take into consideration multi-word entities
@@ -214,6 +210,8 @@ def process_sentence(rel):
             between_tags = tags[before_i+1:after_i]
             after_tags = tags[after_i+1:]
 
+        print ent1
+        print ent2
         print "BEF", before_tags
         print "BET", between_tags
         print "AFT", after_tags
