@@ -874,8 +874,7 @@ def main():
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
     #TODO: escrever para um ficheiro com base no ficheiro de entrada
-    # sys.argv[2]
-    # results_acquired_arg1_arg2_0.5_0.5.txt
+    #   sys.argv[2] tem o nome do ficheiro, por exemplo: results_acquired_arg1_arg2_0.5_0.5.txt
     f = open(rel_type + "_not_found.txt", "w")
     for r in set(not_found):
         f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
