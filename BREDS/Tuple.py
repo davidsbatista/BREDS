@@ -79,8 +79,6 @@ class Tuple(object):
             patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
             if len(patterns_bet_tags) > 0:
                 self.passive_voice = self.config.reverb.detect_passive_voice(patterns_bet_tags)
-
-            if len(patterns_bet_tags) > 0:
                 # forced hack since _'s_ is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify
                 # a pattern which is wrong, if this happens, ignore that a pattern was extracted
                 if patterns_bet_tags[0][0] == "'s":
