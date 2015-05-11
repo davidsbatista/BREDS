@@ -873,6 +873,9 @@ def main():
     print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
+    #TODO: escrever para um ficheiro com base no ficheiro de entrada
+    # sys.argv[2]
+    # results_acquired_arg1_arg2_0.5_0.5.txt
     f = open(rel_type + "_not_found.txt", "w")
     for r in set(not_found):
         f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
@@ -897,14 +900,25 @@ def main():
     a = set(a)
     b = set(b)
     output = set(system_output)
-    precision = float(len(a) + len(b)) / float(len(output))
-    recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
-    f1 = 2 * (precision * recall) / (precision + recall)
+    if len(output) == 0:
+        print "\nPrecision: 0.0"
+        print "Recall   : 0.0"
+        print "F1   : 0.0"
+        print "\n"
+    elif float(len(a) + len(b)) == 0:
+        print "\nPrecision: 0.0"
+        print "Recall   : 0.0"
+        print "F1   : 0.0"
+        print "\n"
+    else:
+        precision = float(len(a) + len(b)) / float(len(output))
+        recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
+        f1 = 2 * (precision * recall) / (precision + recall)
 
-    print "\nPrecision: ", precision
-    print "Recall   : ", recall
-    print "F1   : ", f1
-    print "\n"
+        print "\nPrecision: ", precision
+        print "Recall   : ", recall
+        print "F1   : ", f1
+        print "\n"
 
 
 if __name__ == "__main__":
