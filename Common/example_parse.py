@@ -23,6 +23,7 @@ def main():
     """
     examples = ["Amazon.com founder and chief executive Jeff Bezos."]
     examples = ["Google based in Mountain View, California."]
+    examples = ["NBC is currently a poor third in the ratings of the four US networks , having slipped from first place when General Electric acquired it from RCA in 1985 ."]
 
     for s in examples:
         print s
