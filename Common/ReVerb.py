@@ -188,6 +188,8 @@ class Reverb(object):
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
+        #TODO: isto é passive voice!
+        " sentence: <ORG>Reebok</ORG> , recently acquired by <ORG>Adidas</ORG> , will retain the right to market NBA-branded shoes ."
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
