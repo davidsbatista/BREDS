@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
 
-import pylab
+import sys
 import random
 import re
 import fileinput
+import matplotlib as mpl
+## agg backend is used to create plot as a .png file
+mpl.use('agg')
+import matplotlib.pyplot as plt
 
 from nltk import PunktWordTokenizer, pos_tag
 from nltk.corpus import stopwords
@@ -141,9 +144,9 @@ def process_sentence(sentence):
         except IndexError:
             end = len(sentence)-1
 
-        before = sentence[start:matches[x].start()]
-        between = sentence[matches[x].end():matches[x+1].start()]
-        after = sentence[matches[x+1].end(): end]
+        #before = sentence[start:matches[x].start()]
+        #between = sentence[matches[x].end():matches[x+1].start()]
+        #after = sentence[matches[x+1].end(): end]
         ent1 = matches[x].group()
         ent2 = matches[x+1].group()
         arg1 = re.sub("</?[A-Z]+>", "", ent1)
@@ -202,9 +205,7 @@ def process_sentence(sentence):
         after_tags = tagged[after_i+len(arg2_parts):]
         before_tags_cut = before_tags[-WINDOW_SIZE:]
         after_tags_cut = after_tags[:WINDOW_SIZE]
-
         t = TupleVectors(before_tags_cut, between_tags, after_tags_cut, sentence, ent1, ent2)
-
         return t
 
 
@@ -224,7 +225,6 @@ def construct_vectors(relationships, reverb):
 
             if len(r.after) > 0:
                 r.aft_vector = construct_words_vectors(r.after)
-
         """
         print r.sentence
         print "BEF", r.before
@@ -234,7 +234,6 @@ def construct_vectors(relationships, reverb):
         print "ReVerb:", patterns_bet_tags
         print "\n"
         """
-
         vectors.append(r)
 
     return vectors
@@ -242,13 +241,11 @@ def construct_vectors(relationships, reverb):
 
 def similarity_3_contexts(p1, p2):
         (bef, bet, aft) = (0, 0, 0)
-
         """
         alpha = 0.2
         beta = 0.6
         gamma = 0.2
         """
-
         alpha = 0.0
         beta = 1.0
         gamma = 0.0
@@ -289,6 +286,9 @@ def main():
 
     correct_s = sample(positive, 10)
     incorrect_s = sample(negative, 10)
+
+    data_to_plot = list()
+
     # for positive versus negative patterns:
     #   find a configuration where the global scores in a boxplot where similairity is minimum
     print "Correct with Incorrect"
@@ -300,8 +300,9 @@ def main():
             else:
                 score = similarity_3_contexts(p1, p2)
                 scores.append(score)
-                #print p1, p2, score
-    pylab.boxplot(scores)
+                #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
+                print p1.between, '\t', p2.between, '\t', score
+    data_to_plot.append(scores)
 
     print "Correct with Correct"
     scores = list()
@@ -312,8 +313,9 @@ def main():
             else:
                 score = similarity_3_contexts(p1, p2)
                 scores.append(score)
-                #print p1, p2, score
-    pylab.boxplot(scores)
+                #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
+                print p1.between, '\t', p2.between, '\t', score
+    data_to_plot.append(scores)
 
     print "Incorrect with Incorrect"
     for p1 in incorrect_s:
@@ -323,8 +325,21 @@ def main():
             else:
                 score = similarity_3_contexts(p1, p2)
                 scores.append(score)
-                #print p1, p2, score
-    pylab.boxplot(scores)
+                #print p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
+                print p1.between, '\t', p2.between, '\t', score
+    data_to_plot.append(scores)
+
+    # Create a figure instance
+    fig = plt.figure(1, figsize=(9, 6))
+
+    # Create an axes instance
+    ax = fig.add_subplot(111)
+
+    # Create the boxplot
+    bp = ax.boxplot(data_to_plot)
+
+    # Save the figure
+    fig.savefig('fig1.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":
