@@ -873,9 +873,7 @@ def main():
     print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
-    #TODO: escrever para um ficheiro com base no ficheiro de entrada
-    #   sys.argv[2] tem o nome do ficheiro, por exemplo: results_acquired_arg1_arg2_0.5_0.5.txt
-    f = open(rel_type + "_not_found.txt", "w")
+    f = open(rel_type + sys.argv[2][-11:] + "_not_found.txt", "w")
     for r in set(not_found):
         f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
         f.write('sentence :' + r.sentence + '\n')
@@ -886,7 +884,7 @@ def main():
     f.close()
 
     # Write all correct relationships (sentence, entities and score) to file
-    f = open(rel_type + "_found_extractions.txt", "w")
+    f = open(rel_type + sys.argv[2][-11:] + "_found_extractions.txt", "w")
     for r in set(a).union(b):
         f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
         f.write('sentence :' + r.sentence + '\n')
