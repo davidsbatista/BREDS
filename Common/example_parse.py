@@ -25,6 +25,8 @@ def main():
     examples = ["Google based in Mountain View, California."]
     examples = ["NBC is currently a poor third in the ratings of the four US networks , having slipped from first place when General Electric acquired it from RCA in 1985 ."]
     examples = ["The new channel will focus on `` people , contemporary and historical , in and out of the headlines '' according to Westinghouse Electric , the company that acquired CBS last year for 5.4 billion dollars ."]
+    #sentence: In favour of the deal were <PER>Ted Turner</PER> , founder and boss of <ORG>TBS</ORG> , a cable-based business , and <ORG>Time Warner</ORG> chairman <PER>Gerald Levin</PER> , whose empire already held an 18 percent stake in <ORG>TBS</ORG> .
+    #sentence: Including the roughly 1,500 workers picked up in the <ORG>DoubleClick</ORG> acquisition , <ORG>Google</ORG> now has more than 18,000 employees worldwide .
 
     for s in examples:
         print s

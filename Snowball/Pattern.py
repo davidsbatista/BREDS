@@ -74,7 +74,7 @@ class Pattern(object):
         self.update_confidence_2003(config)
 
     def merge_tuple_patterns(self):
-        #TODO: fazer o merge tendo em consideração todos os contextos
+        #fazer o merge tendo em consideração todos os contextos
         for t in self.tuples:
             self.tuple_patterns.add(t.bet_words)
 
