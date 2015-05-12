@@ -21,8 +21,11 @@ from gensim.models import Word2Vec
 from gensim import matutils
 
 
+SAMPLE_SIZE = 27
+THRESHOLD = 0.6
 WINDOW_SIZE = 2
 VECTOR_DIM = 200
+
 # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
 # select everything except stopwords, ADJ and ADV
 filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
@@ -241,7 +244,7 @@ def construct_vectors(relationships, reverb):
 
 def similarity_3_contexts(p1, p2):
         (bef, bet, aft) = (0, 0, 0)
-        """
+
         alpha = 0.2
         beta = 0.6
         gamma = 0.2
@@ -249,6 +252,7 @@ def similarity_3_contexts(p1, p2):
         alpha = 0.0
         beta = 1.0
         gamma = 0.0
+        """
 
         if p1.bef_vector is not None and p2.bef_vector is not None:
             bef = dot(matutils.unitvec(p1.bef_vector), matutils.unitvec(p2.bef_vector))
@@ -284,8 +288,8 @@ def main():
     print "positive instances", len(positive)
     print "negative insances", len(negative)
 
-    correct_s = sample(positive, 10)
-    incorrect_s = sample(negative, 10)
+    correct_s = sample(positive, SAMPLE_SIZE)
+    incorrect_s = sample(negative, SAMPLE_SIZE)
 
     data_to_plot = list()
 
@@ -293,17 +297,26 @@ def main():
     #   find a configuration where the global scores in a boxplot where similairity is minimum
     print "Correct with Incorrect"
     scores = list()
+    above = 0
+    total = 0
     for p1 in correct_s:
         for p2 in incorrect_s:
             if p1 == p2:
                 continue
             else:
+                total += 1
                 score = similarity_3_contexts(p1, p2)
                 scores.append(score)
                 #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
-                print p1.between, '\t', p2.between, '\t', score
+                if score >= THRESHOLD:
+                    above += 1
+                    print p1.sentence
+                    print p2.sentence
+                    print p1.between, '\t', p2.between, '\t', score
+                    print "\n"
     data_to_plot.append(scores)
 
+    """
     print "Correct with Correct"
     scores = list()
     for p1 in correct_s:
@@ -315,6 +328,7 @@ def main():
                 scores.append(score)
                 #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
                 print p1.between, '\t', p2.between, '\t', score
+                print "\n"
     data_to_plot.append(scores)
 
     print "Incorrect with Incorrect"
@@ -327,7 +341,12 @@ def main():
                 scores.append(score)
                 #print p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
                 print p1.between, '\t', p2.between, '\t', score
+                print "\n"
     data_to_plot.append(scores)
+    """
+
+    high_sim = (float(above) / float(total)) * 100
+    sys.stdout.write(str(high_sim)+"% percent above threshold "+str(THRESHOLD)+"\n")
 
     # Create a figure instance
     fig = plt.figure(1, figsize=(9, 6))
