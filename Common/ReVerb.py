@@ -133,6 +133,9 @@ class Reverb(object):
         determiner = ['DT', 'EX', 'PDT', 'WDT']
         adp = ['IN', 'IN|RP']
 
+        # TODO: detect negations
+        # ('rejected', 'VBD'), ('a', 'DT'), ('takeover', 'NN')
+
         # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible
         # match is chosen.
 
