@@ -28,7 +28,7 @@ def main():
     #sentence: In favour of the deal were <PER>Ted Turner</PER> , founder and boss of <ORG>TBS</ORG> , a cable-based business , and <ORG>Time Warner</ORG> chairman <PER>Gerald Levin</PER> , whose empire already held an 18 percent stake in <ORG>TBS</ORG> .
     #sentence: Including the roughly 1,500 workers picked up in the <ORG>DoubleClick</ORG> acquisition , <ORG>Google</ORG> now has more than 18,000 employees worldwide .
     examples = ["The story was first seen at Techcrunch , the picked up by the Wall Street Journal and has since been the subject of much talk , posts and thoughts over the past few days and finally it has been confirmed that <p1> Google </p1> have purchased <p2> Youtube </p2> for $ 1.65 billion in an official statement ."]
-
+    examples = ["For KFC , whose Louisville headquarters resemble a white-columned mansion , the recipe is more than a treasured link to its roots"]
     for s in examples:
         print s
         t = parser.raw_parse(s)
