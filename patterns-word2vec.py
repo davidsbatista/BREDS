@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import defaultdict
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
@@ -21,10 +22,12 @@ from gensim.models import Word2Vec
 from gensim import matutils
 
 
-SAMPLE_SIZE = 27
+SAMPLE_SIZE = 1
 THRESHOLD = 0.6
 WINDOW_SIZE = 2
-VECTOR_DIM = 200
+ALPHA = 0.2
+BETA = 0.6
+GAMMA = 0.2
 
 # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
 # select everything except stopwords, ADJ and ADV
@@ -38,6 +41,9 @@ class TupleVectors(object):
         self.before = _before
         self.between = _between
         self.after = _after
+        self.bef_words = list()
+        self.bet_words = list()
+        self.aft_words = list()
         self.sentence = _sentence
         self.ent1 = _ent1
         self.ent2 = _ent2
@@ -63,6 +69,107 @@ def read_sentences(data):
     return sentences
 
 
+def read_sentences_bunescu(data):
+    # Dataset created by Bunescu et al. 2007 (http://www.cs.utexas.edu/~ml/papers/bunescu-acl07.pdf)
+    # Available at: http://knowitall.cs.washington.edu/hlt-naacl08-data.txt
+    for line in fileinput.input(data):
+        if line.startswith('#'):
+            print line
+        else:
+            """
+            - PoS-taggs a sentence
+            - Splits the sentence into 3 contexts: BEFORE,BETWEEN,AFTER
+            """
+            # tag the sentence, using the default NTLK English tagger
+            # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
+            entities_regex = re.compile(r'<p[1-2]>[^<]+</p[1-2]>', re.U)
+
+            # find named-entities
+            matches = []
+            for m in re.finditer(entities_regex, line):
+                matches.append(m)
+
+            tags_regex = re.compile('</?p[1-2]>', re.U)
+            sentence_no_tags = re.sub(tags_regex, "", line)
+            text_tokens = PunktWordTokenizer().tokenize(sentence_no_tags)
+
+            entities_indices = list()
+            for e in matches:
+                entity = e.group()
+                arg = re.sub("</?p[1-2]>", "", entity).strip()
+                indices = text_tokens.index(arg)
+                """
+                print indices
+                if len(indices) > 1:
+                    print "entity found more than 1 time"
+                    print line.encode("utf8")
+                    sys.exit(0)
+                elif len(indices) == 0:
+                    print "entity not found"
+                    print line.encode("utf8")
+                    print arg.encode("utf8")
+                    sys.exit(0)
+                else:
+                """
+                entities_indices.append(indices)
+
+            tagged = pos_tag(text_tokens)
+            assert len(tagged) == len(text_tokens)
+
+            before = tagged[0:entities_indices[0]]
+            between = tagged[entities_indices[0]+1:entities_indices[1]]
+            after = tagged[entities_indices[1]+1:]
+
+            print line
+            print "BEF", before
+            print "BET", between
+            print "AFT", after
+            print "\n"
+
+            #print
+            """
+            if len(matches) > 2:
+                print sentence
+                print "\n"
+                    matches = []
+                    for m in re.finditer(regex, line):
+                        matches.append(m)
+
+                    for x in range(0,len(matches)-1):
+                        ent1 = matches[x].group()
+                        ent2 = matches[x+1].group()
+
+                        arg1 = re.sub("</?p[1-2]>","", ent1)
+                        arg2 = re.sub("</?p[1-2]>","", ent2)
+                        arg1 = arg1.lower().strip()
+                        arg2 = arg2.lower().strip()
+
+                        r = (arg1,arg2)
+                        sentence = line
+
+                        if r in acquired:
+                            rel = Relationship(id,sentence,'acquired',None,None)
+                            relationships['acquired'].append(rel)
+
+                        elif r in born_in:
+                            rel = Relationship(id,sentence,'born_in',None,None)
+                            relationships['born_in'].append(rel)
+
+                        elif r in created:
+                            rel = Relationship(id,sentence,'created',None,None)
+                            relationships['created'].append(rel)
+
+                        elif r in awarded:
+                            rel = Relationship(id,sentence,'awarded',None,None)
+                            relationships['awarded'].append(rel)
+
+                        else:
+                            rel = Relationship(id,sentence,'false',None,None)
+                            relationships['false'].append(rel)
+    return relationships
+        """
+
+
 def sample(patterns, n):
     samples = list()
     for i in range(0, n):
@@ -83,33 +190,56 @@ def pattern2vector_sum(tokens):
     if len(tokens) > 1:
         for t in tokens:
             try:
-                vector = word2vec[t.strip()]
+                vector = word2vec[t[0].strip()]
                 pattern_vector += vector
             except KeyError:
                 continue
 
     elif len(tokens) == 1:
         try:
-            pattern_vector = word2vec[tokens[0].strip()]
+            pattern_vector = word2vec[tokens[0][0].strip()]
         except KeyError:
             pass
 
     return pattern_vector
 
 
-def construct_words_vectors(tagged_words):
-    pattern = [t[0] for t in tagged_words if t[0].lower() not in stopwords and t[1] not in filter_pos]
-    words_vector = pattern2vector_sum(pattern)
+def construct_words_vectors(r, tagged_words, context):
+    # remove stopwords and adjective
+    words_vector = zeros(VECTOR_DIM)
+    pattern = [t for t in tagged_words if t[0].lower() not in stopwords and t[1] not in filter_pos]
+    if len(pattern) >= 1:
+        words_vector = pattern2vector_sum(pattern)
+        if context == 'before':
+            r.bef_words = pattern
+        elif context == 'between':
+            r.bet_words = pattern
+        elif context == 'after':
+            r.aft_words = pattern
+
     return words_vector
 
 
-def construct_pattern_vector(pattern_tags):
+def construct_pattern_vector(r, pattern_tags):
     # remove stopwords and adjectives
     words_vector = zeros(VECTOR_DIM)
     pattern = [t[0] for t in pattern_tags if t[0].lower() not in stopwords and t[1] not in filter_pos]
     if len(pattern) >= 1:
         words_vector = pattern2vector_sum(pattern)
+        r.bet_words = pattern
     return words_vector
+
+
+def all_indices(value, qlist):
+    indices = []
+    idx = -1
+    while True:
+        try:
+            idx = qlist.index(value, idx+1)
+            indices.append(idx)
+        except ValueError:
+            break
+    return indices
 
 
 def process_sentence(sentence):
@@ -121,16 +251,26 @@ def process_sentence(sentence):
     # tag the sentence, using the default NTLK English tagger
     # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
     entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
-    tags_regex = re.compile('</?[A-Z]+>', re.U)
 
-    sentence_no_tags = re.sub(tags_regex, "", sentence)
-    text_tokens = PunktWordTokenizer().tokenize(sentence_no_tags)
-    tagged = pos_tag(text_tokens)
-
-    # find named-entities offset
+    # find named-entities
     matches = []
     for m in re.finditer(entities_regex, sentence):
         matches.append(m)
+
+    tags_regex = re.compile('</?[A-Z]+>', re.U)
+    sentence_no_tags = re.sub(tags_regex, "", sentence)
+    text_tokens = PunktWordTokenizer().tokenize(sentence_no_tags)
+
+    print text_tokens
+
+    for e in matches:
+        entity = e.group()
+        print entity
+        arg = re.sub("</?[A-Z]+>", "", entity)
+        indices = all_indices(arg, text_tokens)
+        print indices
+
+    tagged = pos_tag(text_tokens)
 
     if len(matches) > 2:
         print sentence
@@ -208,6 +348,7 @@ def process_sentence(sentence):
         after_tags = tagged[after_i+len(arg2_parts):]
         before_tags_cut = before_tags[-WINDOW_SIZE:]
         after_tags_cut = after_tags[:WINDOW_SIZE]
+
         t = TupleVectors(before_tags_cut, between_tags, after_tags_cut, sentence, ent1, ent2)
         return t
 
@@ -218,16 +359,16 @@ def construct_vectors(relationships, reverb):
         patterns_bet_tags = reverb.extract_reverb_patterns_tagged_ptb(r.between)
         if len(patterns_bet_tags) > 0:
             r.passive = reverb.detect_passive_voice(patterns_bet_tags)
-            r.bet_vector = construct_pattern_vector(patterns_bet_tags)
+            r.bet_vector = construct_pattern_vector(r, patterns_bet_tags)
         else:
             r.passive = False
-            r.bet_vector = construct_words_vectors(r.between)
+            r.bet_vector = construct_words_vectors(r, r.between, "between")
             # extract words before the first entity, and words after the second entity
             if len(r.before) > 0:
-                r.bef_vector = construct_words_vectors(r.before)
+                r.bef_vector = construct_words_vectors(r, r.before, "before")
 
             if len(r.after) > 0:
-                r.aft_vector = construct_words_vectors(r.after)
+                r.aft_vector = construct_words_vectors(r, r.after, "after")
         """
         print r.sentence
         print "BEF", r.before
@@ -245,15 +386,6 @@ def construct_vectors(relationships, reverb):
 def similarity_3_contexts(p1, p2):
         (bef, bet, aft) = (0, 0, 0)
 
-        alpha = 0.2
-        beta = 0.6
-        gamma = 0.2
-        """
-        alpha = 0.0
-        beta = 1.0
-        gamma = 0.0
-        """
-
         if p1.bef_vector is not None and p2.bef_vector is not None:
             bef = dot(matutils.unitvec(p1.bef_vector), matutils.unitvec(p2.bef_vector))
 
@@ -263,7 +395,7 @@ def similarity_3_contexts(p1, p2):
         if p1.aft_vector is not None and p2.aft_vector is not None:
             aft = dot(matutils.unitvec(p1.aft_vector), matutils.unitvec(p2.aft_vector))
 
-        return alpha*bef + beta*bet + gamma*aft
+        return ALPHA*bef + BETA*bet + GAMMA*aft, bef, bet, aft
 
 
 def main():
@@ -272,15 +404,23 @@ def main():
     #word2vec_path=/home/dsbatista/gigaword/word2vec/afp_apw_vectors.bin
     #word2vec_path=/home/dsbatista/gigaword/word2vec/afp_apw_xing_vectors.bin
 
+    """
     model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
     print "Loading word2vec model"
     global word2vec
     word2vec = Word2Vec.load_word2vec_format(model, binary=True)
+    global VECTOR_DIM
+    VECTOR_DIM = word2vec.layer1_size
     reverb = Reverb()
     print "Processing positive sentences..."
-    correct = read_sentences(sys.argv[1])
+    """
+    correct = read_sentences_bunescu(sys.argv[1])
+
+
+    """
     print "Processing negative sentences..."
     incorrect = read_sentences(sys.argv[2])
+
     print "Constructing vector representations for positive..."
     positive = construct_vectors(correct, reverb)
     print "Constructing vector representations for negative..."
@@ -290,8 +430,8 @@ def main():
 
     correct_s = sample(positive, SAMPLE_SIZE)
     incorrect_s = sample(negative, SAMPLE_SIZE)
-
     data_to_plot = list()
+
 
     # for positive versus negative patterns:
     #   find a configuration where the global scores in a boxplot where similairity is minimum
@@ -305,45 +445,19 @@ def main():
                 continue
             else:
                 total += 1
-                score = similarity_3_contexts(p1, p2)
-                scores.append(score)
+                score_total, score_bef, score_bet, score_aft = similarity_3_contexts(p1, p2)
+                scores.append(score_total)
                 #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
-                if score >= THRESHOLD:
+                if score_total >= THRESHOLD:
                     above += 1
                     print p1.sentence
                     print p2.sentence
-                    print p1.between, '\t', p2.between, '\t', score
+                    print score_total
+                    print p1.bef_words, '\t', p2.bef_words, '\t', score_bef
+                    print p1.bet_words, '\t', p2.bet_words, '\t', score_bet
+                    print p1.aft_words, '\t', p2.aft_words, '\t', score_aft
                     print "\n"
     data_to_plot.append(scores)
-
-    """
-    print "Correct with Correct"
-    scores = list()
-    for p1 in correct_s:
-        for p2 in correct_s:
-            if p1 == p2:
-                continue
-            else:
-                score = similarity_3_contexts(p1, p2)
-                scores.append(score)
-                #print p1.before, p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
-                print p1.between, '\t', p2.between, '\t', score
-                print "\n"
-    data_to_plot.append(scores)
-
-    print "Incorrect with Incorrect"
-    for p1 in incorrect_s:
-        for p2 in incorrect_s:
-            if p1 == p2:
-                continue
-            else:
-                score = similarity_3_contexts(p1, p2)
-                scores.append(score)
-                #print p1.between, p1.after, '\t', p2.before, p2.between, p2.after, '\t', score
-                print p1.between, '\t', p2.between, '\t', score
-                print "\n"
-    data_to_plot.append(scores)
-    """
 
     high_sim = (float(above) / float(total)) * 100
     sys.stdout.write(str(high_sim)+"% percent above threshold "+str(THRESHOLD)+"\n")
@@ -359,6 +473,7 @@ def main():
 
     # Save the figure
     fig.savefig('fig1.png', bbox_inches='tight')
+    """
 
 
 if __name__ == "__main__":
