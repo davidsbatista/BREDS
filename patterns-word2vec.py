@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from collections import defaultdict
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
@@ -14,6 +13,7 @@ import matplotlib as mpl
 mpl.use('agg')
 import matplotlib.pyplot as plt
 
+from collections import defaultdict
 from nltk import PunktWordTokenizer, pos_tag
 from nltk.corpus import stopwords
 from Common.ReVerb import Reverb
@@ -22,7 +22,7 @@ from gensim.models import Word2Vec
 from gensim import matutils
 
 
-SAMPLE_SIZE = 1
+SAMPLE_SIZE = 40
 THRESHOLD = 0.6
 WINDOW_SIZE = 2
 ALPHA = 0.2
@@ -35,7 +35,7 @@ filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
 stopwords = stopwords.words('english')
 
 
-class TupleVectors(object):
+class Relationship(object):
 
     def __init__(self, _before, _between, _after, _sentence, _ent1, _ent2):
         self.before = _before
@@ -72,9 +72,13 @@ def read_sentences(data):
 def read_sentences_bunescu(data):
     # Dataset created by Bunescu et al. 2007 (http://www.cs.utexas.edu/~ml/papers/bunescu-acl07.pdf)
     # Available at: http://knowitall.cs.washington.edu/hlt-naacl08-data.txt
+    relationships = defaultdict(list)
+    rel_type = None
     for line in fileinput.input(data):
-        if line.startswith('#'):
-            print line
+        if len(line) == 1:
+            continue
+        elif line.startswith('#'):
+            rel_type = line.split("#")[1].strip()
         else:
             """
             - PoS-taggs a sentence
@@ -116,58 +120,17 @@ def read_sentences_bunescu(data):
             tagged = pos_tag(text_tokens)
             assert len(tagged) == len(text_tokens)
 
-            before = tagged[0:entities_indices[0]]
-            between = tagged[entities_indices[0]+1:entities_indices[1]]
-            after = tagged[entities_indices[1]+1:]
+            try:
+                before = tagged[0:entities_indices[0]]
+                between = tagged[entities_indices[0]+1:entities_indices[1]]
+                after = tagged[entities_indices[1]+1:]
+                rel = Relationship(before, between, after, line, matches[0], matches[1])
+                relationships[rel_type].append(rel)
+            except IndexError:
+                print "error processing file"
+                sys.exit(0)
 
-            print line
-            print "BEF", before
-            print "BET", between
-            print "AFT", after
-            print "\n"
-
-            #print
-            """
-            if len(matches) > 2:
-                print sentence
-                print "\n"
-                    matches = []
-                    for m in re.finditer(regex, line):
-                        matches.append(m)
-
-                    for x in range(0,len(matches)-1):
-                        ent1 = matches[x].group()
-                        ent2 = matches[x+1].group()
-
-                        arg1 = re.sub("</?p[1-2]>","", ent1)
-                        arg2 = re.sub("</?p[1-2]>","", ent2)
-                        arg1 = arg1.lower().strip()
-                        arg2 = arg2.lower().strip()
-
-                        r = (arg1,arg2)
-                        sentence = line
-
-                        if r in acquired:
-                            rel = Relationship(id,sentence,'acquired',None,None)
-                            relationships['acquired'].append(rel)
-
-                        elif r in born_in:
-                            rel = Relationship(id,sentence,'born_in',None,None)
-                            relationships['born_in'].append(rel)
-
-                        elif r in created:
-                            rel = Relationship(id,sentence,'created',None,None)
-                            relationships['created'].append(rel)
-
-                        elif r in awarded:
-                            rel = Relationship(id,sentence,'awarded',None,None)
-                            relationships['awarded'].append(rel)
-
-                        else:
-                            rel = Relationship(id,sentence,'false',None,None)
-                            relationships['false'].append(rel)
     return relationships
-        """
 
 
 def sample(patterns, n):
@@ -177,7 +140,6 @@ def sample(patterns, n):
         samples.append(e)
         del patterns[patterns.index(e)]
     return samples
-
 
 def pattern2vector_sum(tokens):
     """
@@ -220,10 +182,10 @@ def construct_words_vectors(r, tagged_words, context):
     return words_vector
 
 
-def construct_pattern_vector(r, pattern_tags):
+def construct_pattern_vector(r):
     # remove stopwords and adjectives
     words_vector = zeros(VECTOR_DIM)
-    pattern = [t[0] for t in pattern_tags if t[0].lower() not in stopwords and t[1] not in filter_pos]
+    pattern = [t[0] for t in r.patterns_bet_tags if t[0].lower() not in stopwords and t[1] not in filter_pos]
     if len(pattern) >= 1:
         words_vector = pattern2vector_sum(pattern)
         r.bet_words = pattern
@@ -349,38 +311,31 @@ def process_sentence(sentence):
         before_tags_cut = before_tags[-WINDOW_SIZE:]
         after_tags_cut = after_tags[:WINDOW_SIZE]
 
-        t = TupleVectors(before_tags_cut, between_tags, after_tags_cut, sentence, ent1, ent2)
+        t = Relationship(before_tags_cut, between_tags, after_tags_cut, sentence, ent1, ent2)
         return t
 
 
-def construct_vectors(relationships, reverb):
-    vectors = list()
-    for r in relationships:
-        patterns_bet_tags = reverb.extract_reverb_patterns_tagged_ptb(r.between)
-        if len(patterns_bet_tags) > 0:
-            r.passive = reverb.detect_passive_voice(patterns_bet_tags)
-            r.bet_vector = construct_pattern_vector(r, patterns_bet_tags)
-        else:
-            r.passive = False
-            r.bet_vector = construct_words_vectors(r, r.between, "between")
-            # extract words before the first entity, and words after the second entity
-            if len(r.before) > 0:
-                r.bef_vector = construct_words_vectors(r, r.before, "before")
+def construct_vector(rel, reverb):
+    rel.patterns_bet_tags = reverb.extract_reverb_patterns_tagged_ptb(rel.between)
+    if len(rel.patterns_bet_tags) > 0:
+        rel.passive = reverb.detect_passive_voice(rel.patterns_bet_tags)
+        rel.bet_vector = construct_pattern_vector(rel)
+    else:
+        rel.passive = False
+        rel.bet_vector = construct_words_vectors(rel, rel.between, "between")
+        # extract words before the first entity, and words after the second entity
+        if len(rel.before) > 0:
+            rel.bef_vector = construct_words_vectors(rel, rel.before, "before")
+        if len(rel.after) > 0:
+            rel.aft_vector = construct_words_vectors(rel, rel.after, "after")
 
-            if len(r.after) > 0:
-                r.aft_vector = construct_words_vectors(r, r.after, "after")
-        """
-        print r.sentence
-        print "BEF", r.before
-        print "BET", r.between
-        print "AFT", r.after
-        print "passive", r.passive
-        print "ReVerb:", patterns_bet_tags
-        print "\n"
-        """
-        vectors.append(r)
-
-    return vectors
+    print rel.sentence
+    print "BEF", rel.before
+    print "BET", rel.between
+    print "AFT", rel.after
+    print "passive", rel.passive
+    print "ReVerb:", rel.patterns_bet_tags
+    print "\n"
 
 
 def similarity_3_contexts(p1, p2):
@@ -395,7 +350,7 @@ def similarity_3_contexts(p1, p2):
         if p1.aft_vector is not None and p2.aft_vector is not None:
             aft = dot(matutils.unitvec(p1.aft_vector), matutils.unitvec(p2.aft_vector))
 
-        return ALPHA*bef + BETA*bet + GAMMA*aft, bef, bet, aft
+        return ALPHA*bef+BETA*bet+GAMMA*aft, bef, bet, aft
 
 
 def main():
@@ -409,25 +364,23 @@ def main():
     print "Loading word2vec model"
     global word2vec
     word2vec = Word2Vec.load_word2vec_format(model, binary=True)
+    """
     global VECTOR_DIM
-    VECTOR_DIM = word2vec.layer1_size
+    #VECTOR_DIM = word2vec.layer1_size
+    VECTOR_DIM = 200
+
     reverb = Reverb()
-    print "Processing positive sentences..."
+    print "Processing sentences..."
+    sentences = read_sentences_bunescu(sys.argv[1])
+    for rel_type in sentences.keys():
+        print rel_type, len(sentences[rel_type])
+
+    print "Constructing vector representations"
+    for rel in sentences.keys():
+        print rel in sentences[rel_type]
+        construct_vector(rel, reverb)
+
     """
-    correct = read_sentences_bunescu(sys.argv[1])
-
-
-    """
-    print "Processing negative sentences..."
-    incorrect = read_sentences(sys.argv[2])
-
-    print "Constructing vector representations for positive..."
-    positive = construct_vectors(correct, reverb)
-    print "Constructing vector representations for negative..."
-    negative = construct_vectors(incorrect, reverb)
-    print "positive instances", len(positive)
-    print "negative insances", len(negative)
-
     correct_s = sample(positive, SAMPLE_SIZE)
     incorrect_s = sample(negative, SAMPLE_SIZE)
     data_to_plot = list()
