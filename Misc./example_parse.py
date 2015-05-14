@@ -42,6 +42,7 @@ def main():
             print token
         t[0].draw()
         print "\n"
+        #TODO: compute shortest dependency path
 
 
 if __name__ == "__main__":
