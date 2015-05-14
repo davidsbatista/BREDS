@@ -23,7 +23,7 @@ from Common.Sentence import Sentence
 from Common.Seed import Seed
 
 # usefull stuff for debugging
-PRINT_TUPLES = False
+PRINT_TUPLES = True
 PRINT_PATTERNS = False
 
 
@@ -233,7 +233,8 @@ class BREDS(object):
                         sys.stdout.flush()
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        accept, score = self.similarity_all(t, extraction_pattern)
+                        #accept, score = self.similarity_all_1(t, extraction_pattern)
+                        accept, score = self.similarity_all_2(t, extraction_pattern)
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
                             if score > sim_best:
@@ -375,10 +376,11 @@ class BREDS(object):
             f_output.write("=================================\n")
         f_output.close()
 
-    def similarity_all(self, t, extraction_pattern):
+    def similarity_all_1(self, t, extraction_pattern):
         """
         Cosine similarity between all patterns part of a Cluster/Extraction Pattern
         and the vector of a ReVerb pattern extracted from a sentence
+        returns the max
         """
         good = 0
         bad = 0
@@ -395,6 +397,33 @@ class BREDS(object):
 
         if good >= bad:
             return True, max_similarity
+        else:
+            return False, 0.0
+
+    def similarity_all_2(self, t, extraction_pattern):
+        """
+        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+        and the vector of a ReVerb pattern extracted from a sentence
+        returns the average
+        """
+        good = 0
+        bad = 0
+        max_similarity = 0
+        similarities = list()
+
+        for p in list(extraction_pattern.tuples):
+            score = self.similarity_3_contexts(t, p)
+            if score > max_similarity:
+                max_similarity = score
+            if score >= self.config.threshold_similarity:
+                good += 1
+                similarities.append(score)
+            else:
+                bad += 1
+
+        if good >= bad:
+            assert good == len(similarities)
+            return True, float(sum(similarities)) / float(good)
         else:
             return False, 0.0
 
@@ -426,7 +455,8 @@ class BREDS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
                 try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
+                    #accept, score = self.similarity_all_1(t, extraction_pattern)
+                    accept, score = self.similarity_all_2(t, extraction_pattern)
                     if accept is True and score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i
