@@ -307,9 +307,9 @@ class BREDS(object):
                     for t in tuples_sorted:
                         #best_pattern = self.candidate_tuples[t]
                         print t.e1, t.e2, t.confidence
-                        print t.bef_words
-                        print t.bet_words
-                        print t.aft_words
+                        print "BEF", t.bef_words
+                        print "BET", t.bet_words
+                        print "AFT", t.aft_words
                         print "=============="
 
                 # update seed set of tuples to use in next iteration
