@@ -209,14 +209,9 @@ def main():
 
 
     #examples.append(Relationship("In favour of the deal were Ted Turner, founder and boss of TBS, a cable-based business, and Time Warner chairman Gerald Levin, whose empire already held an 18 percent stake in TBS.", "Ted Turner", "TBS"))
-    #examples.append(Relationship("Amazon.com founder and chief executive Jeff Bezos, said that he is happy to announce new gains.", "Amazon", "Jeff Bezos"))
-    #examples.append(Relationship("But Richard Klein, a paleoanthropology professor at Stanford University , said the evidence is `` pretty sparse . ''", "", ""))
-    #examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "Protesters", "stations"))
-    #examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "workers", "stations"))
-    #examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "Troops", "churches"))
-    #examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "ministers", "churches"))
 
     examples = list()
+    """
     # negative - no relationship
     examples.append(Relationship("Anthony Shadid is an Associated Press newsman based in Cairo .", "Associated Press", "Cairo"))
     examples.append(Relationship("The timing of Merrill 's investment enabled Enron to book sales income of 12 million dollars in its 1999 financial statements for its African division .", "Merrill", "Enron"))
@@ -245,7 +240,16 @@ def main():
     examples.append(Relationship("The story was first seen at Techcrunch , the picked up by the Wall Street Journal and has since been the subject of much talk , posts and thoughts over the past few days and finally it has been confirmed that Google have purchased Youtube for $ 1.65 billion in an official statement .","Google", "Youtube"))
 
     examples.append(Relationship("Bob is a history professor at Stanford", "Bob", "Stanford"))
-    #examples.append(Relationship("Bob studied journalism at Stanford, and is currently working for Microsoft", "Bob", "Stanford"))
+    examples.append(Relationship("Bob studied journalism at Stanford, and is currently working for Microsoft", "Bob", "Stanford"))
+    """
+
+    examples.append(Relationship("Amazon.com founder and chief executive Jeff Bezos, said that he is happy to announce new gains.", "Amazon", "Jeff Bezos"))
+    examples.append(Relationship("But Richard Klein, a paleoanthropology professor at Stanford University , said the evidence is `` pretty sparse . ''", "", ""))
+    examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "Protesters", "stations"))
+    examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "workers", "stations"))
+    examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "Troops", "churches"))
+    examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "ministers", "churches"))
+
 
     """
     for line in fileinput.input("golden_standard/acquired_negative_sentences.txt"):
