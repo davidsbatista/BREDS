@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
-import fileinput
 
+import fileinput
 import os
+import Queue
 import re
 import sys
-from nltk import PunktWordTokenizer
 import xdot
 import graphviz
 import StanfordDependencies
+
 from nltk.parse.stanford import StanfordParser
+from nltk import PunktWordTokenizer
 
 
 class Relationship(object):
@@ -75,39 +77,86 @@ def find_index_named_entity(entity, dependencies):
 
 
 def get_heads(dependencies, token, heads):
-    head_idx = dependencies[token.index-1].head
-    if head_idx == 0:
-        heads.append(dependencies[head_idx-1])
+    if dependencies[token.index-1].head == 0:
+        heads.append(dependencies[token.index-1])
         return heads
     else:
+        head_idx = dependencies[token.index-1].head
         heads.append(dependencies[head_idx-1])
         head_index = dependencies[token.index-1].head-1
         get_heads(dependencies, dependencies[head_index], heads)
 
 
+def get_dependents(dependencies, token, heads):
+    return heads
+
+
+def get_adjacent_edges(v):
+    adjacent_edges = get_heads(v)
+    adjacent_edges += get_dependents(v)
+    return adjacent_edges
+
+
+def breath_first_search(dependencies, v):
+    #let Q be a queue
+    q = Queue.Queue()
+    discovered = set()
+    q.put(v)
+    discovered.add(v)
+    while not q.empty():
+        n = q.get()
+        """
+        process(v)
+        for all edges from v to w in G.adjacentEdges(v) do
+           if w is not labeled as discovered
+              Q.enqueue(w)
+              label w as discovered
+        """
+        for edge in get_adjacent_edges(v):
+            q.put(edge)
+            discovered.add(edge)
+
+
 def extract_shortest_dependency_path(rel):
 
-    """
     for token in rel.dependencies:
         print token
-    """
 
     # get position of entity and entity in tree
     idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
     idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
 
-    #print "e1", idx1
-    #print "e2", idx2
+    print "e1", idx1
+    print "e2", idx2
 
     print "ent1: ", rel.ent1
     print "ent2: ", rel.ent2
 
+    print "HEADS for entity1"
     heads_e1 = list()
     get_heads(rel.dependencies, rel.dependencies[idx1-1], heads_e1)
 
+    print "\n"
+
+    print "HEADS for entity2"
     heads_e2 = list()
     get_heads(rel.dependencies, rel.dependencies[idx2-1], heads_e2)
 
+    # check if e2 is parent of e1
+    e2 = rel.dependencies[idx2-1]
+    if e2 in heads_e1:
+        print "E2 is parent of E1"
+        print "E2 parents", heads_e1
+        print "E2", e2
+
+    # check if e1 is parent of e2
+    e1 = rel.dependencies[idx1-1]
+    if e1 in heads_e2:
+        print "E1 is parent of E2"
+        print "E2 parents", heads_e2
+        print "E1", e1
+
+    # find a common parent for both
     found = False
     for t1 in heads_e1:
         if found is True:
@@ -195,6 +244,9 @@ def main():
     examples.append(Relationship("Including the roughly 1,500 workers picked up in the DoubleClick acquisition , Google now has more than 18,000 employees worldwide .", "Google", "DoubleClick"))
     examples.append(Relationship("The story was first seen at Techcrunch , the picked up by the Wall Street Journal and has since been the subject of much talk , posts and thoughts over the past few days and finally it has been confirmed that Google have purchased Youtube for $ 1.65 billion in an official statement .","Google", "Youtube"))
 
+    examples.append(Relationship("Bob is a history professor at Stanford", "Bob", "Stanford"))
+    #examples.append(Relationship("Bob studied journalism at Stanford, and is currently working for Microsoft", "Bob", "Stanford"))
+
     """
     for line in fileinput.input("golden_standard/acquired_negative_sentences.txt"):
         if line.startswith("sentence: "):
@@ -206,6 +258,7 @@ def main():
             sentence = line.split("sentence: ")[1].strip()
             examples.append(Relationship(sentence, "", ""))
     """
+
     tags_regex = re.compile('</?[A-Z]+>', re.U)
     count = 0
     for rel in examples:
