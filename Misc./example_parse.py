@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
 
+__author__ = 'dsbatista'
+__email__ = "dsbatista@inesc-id.pt"
+
 import fileinput
 import os
-import Queue
 import re
 import sys
 import xdot
 import graphviz
 import StanfordDependencies
-
 from nltk.parse.stanford import StanfordParser
 from nltk import PunktWordTokenizer
 
@@ -23,13 +24,12 @@ class Relationship(object):
         self.dependencies = None
 
 
-def compute_vectors():
+def extract_features_word():
     #TODO: simple sum or average
-    pass
+    # features:
+        # is the word between the named entities
+        #
 
-
-def extract_reverb_patterns():
-    #TODO:
     pass
 
 
@@ -87,119 +87,116 @@ def get_heads(dependencies, token, heads):
         get_heads(dependencies, dependencies[head_index], heads)
 
 
-def get_dependents(dependencies, token, heads):
-    return heads
-
-
-def get_adjacent_edges(v):
-    adjacent_edges = get_heads(v)
-    adjacent_edges += get_dependents(v)
-    return adjacent_edges
-
-
-def breath_first_search(dependencies, v):
-    #let Q be a queue
-    q = Queue.Queue()
-    discovered = set()
-    q.put(v)
-    discovered.add(v)
-    while not q.empty():
-        n = q.get()
-        """
-        process(v)
-        for all edges from v to w in G.adjacentEdges(v) do
-           if w is not labeled as discovered
-              Q.enqueue(w)
-              label w as discovered
-        """
-        for edge in get_adjacent_edges(v):
-            q.put(edge)
-            discovered.add(edge)
-
-
 def extract_shortest_dependency_path(rel):
-
-    for token in rel.dependencies:
-        print token
-
     # get position of entity and entity in tree
     idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
     idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
 
+    """
     print "e1", idx1
     print "e2", idx2
-
     print "ent1: ", rel.ent1
     print "ent2: ", rel.ent2
+    """
 
-    print "HEADS for entity1"
+    shortest_path = list()
+
     heads_e1 = list()
     get_heads(rel.dependencies, rel.dependencies[idx1-1], heads_e1)
 
-    print "\n"
-
-    print "HEADS for entity2"
     heads_e2 = list()
     get_heads(rel.dependencies, rel.dependencies[idx2-1], heads_e2)
 
-    # check if e2 is parent of e1
+    e1 = rel.dependencies[idx1-1]
     e2 = rel.dependencies[idx2-1]
+
+    # check if e2 is parent of e1
     if e2 in heads_e1:
-        print "E2 is parent of E1"
-        print "E2 parents", heads_e1
-        print "E2", e2
+        #print "E2 is parent of E1"
+        #print "E2 parents", heads_e1
+        #print rel.ent1+"<-",
+        for t in heads_e1:
+            if t == e2:
+                #print "<-"+rel.ent2
+                break
+            else:
+                #print t.form+"<-",
+                shortest_path.append(t)
 
     # check if e1 is parent of e2
-    e1 = rel.dependencies[idx1-1]
-    if e1 in heads_e2:
-        print "E1 is parent of E2"
-        print "E2 parents", heads_e2
-        print "E1", e1
+    elif e1 in heads_e2:
+        #print "E1 is parent of E2"
+        #print "E2 parents", heads_e2
+        #print rel.ent2+"<-",
+        for t in heads_e2:
+            if t == e1:
+                #print rel.ent1
+                break
+            else:
+                #print t.form+"<-",
+                shortest_path.append(t)
 
-    # find a common parent for both
-    found = False
-    for t1 in heads_e1:
-        if found is True:
-            break
-        for t2 in heads_e2:
-            if t1 == t2:
-                index_t1 = heads_e1.index(t1)
-                index_t2 = heads_e2.index(t2)
-                found = True
+    else:
+        # find a common parent for both
+        found = False
+        for t1 in heads_e1:
+            if found is True:
+                break
+            for t2 in heads_e2:
+                if t1 == t2:
+                    index_t1 = heads_e1.index(t1)
+                    index_t2 = heads_e2.index(t2)
+                    found = True
+                    break
+
+        print "\nshortest path: "
+        print rel.ent1+"->",
+        for t in heads_e1:
+            if t != heads_e1[index_t1] and t != rel.dependencies[idx2-1]:
+                print t.form+"->",
+                shortest_path.append(t)
+            else:
+                print t.form
+                shortest_path.append(t)
                 break
 
-    print "\nshortest path: "
-    print rel.ent1+"->",
-    for t in heads_e1:
-        if t != heads_e1[index_t1] and t != rel.dependencies[idx2-1]:
-            print t.form+"->",
-        else:
-            print t.form
-            break
+        print rel.ent2+"->",
+        for t in heads_e2:
+            if t == rel.dependencies[idx1-1]:
+                break
+            elif t != heads_e2[index_t2]:
+                print t.form+"->",
+            else:
+                print t.form
+                break
 
-    print rel.ent2+"->",
-    for t in heads_e2:
-        if t == rel.dependencies[idx1-1]:
-            break
-        elif t != heads_e2[index_t2]:
-            print t.form+"->",
-        else:
-            print t.form
-            break
-
+    print shortest_path
     print "\n\n"
 
-    """
-    # get direct ascendent of ent1 and ent2
-    head_e1 = rel.dependencies[idx1-1].head
-    head_e2 = rel.dependencies[idx2-1].head
-
-    if rel.dependencies[head_e1-1] == rel.dependencies[head_e2-1]:
-        print rel.ent1, "-->", rel.dependencies[head_e1-1].form, "<--", rel.ent2
-    """
+    return shortest_path
 
 
 def main():
+    """
+    model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
+    print "Loading word2vec model"
+    global word2vec
+    word2vec = Word2Vec.load_word2vec_format(model, binary=True)
+    global VECTOR_DIM
+    #VECTOR_DIM = word2vec.layer1_size
+    VECTOR_DIM = 200
+
+    reverb = Reverb()
+    print "Processing sentences..."
+    sentences = read_sentences_bunescu(sys.argv[1])
+    for rel_type in sentences.keys():
+        print rel_type, len(sentences[rel_type])
+
+    print "Constructing vector representations"
+    for rel in sentences.keys():
+        print rel in sentences[rel_type]
+        construct_vector(rel, reverb)
+    """
     # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
     # PARSER and STANFORD_MODELS enviroment variables need to be set
     os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
@@ -242,29 +239,34 @@ def main():
     examples.append(Relationship("Bob is a history professor at Stanford", "Bob", "Stanford"))
     examples.append(Relationship("Bob studied journalism at Stanford, and is currently working for Microsoft", "Bob", "Stanford"))
     """
-
-    examples.append(Relationship("Amazon.com founder and chief executive Jeff Bezos, said that he is happy to announce new gains.", "Amazon", "Jeff Bezos"))
-    examples.append(Relationship("But Richard Klein, a paleoanthropology professor at Stanford University , said the evidence is `` pretty sparse . ''", "", ""))
+    """
+    examples.append(Relationship("Amazon.com founder and chief executive Jeff Bezos, said that he is happy to announce new gains.", "Amazon.com", "Jeff Bezos"))
+    examples.append(Relationship("But Richard Klein, a paleoanthropology professor at Stanford University , said the evidence is `` pretty sparse . ''", "Richard Klein", "Stanford University"))
     examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "Protesters", "stations"))
     examples.append(Relationship("Protesters seized several pumping stations, holding 127 Shell workers hostage", "workers", "stations"))
     examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "Troops", "churches"))
     examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "ministers", "churches"))
-
-
     """
-    for line in fileinput.input("golden_standard/acquired_negative_sentences.txt"):
+
+    entities_regex = re.compile('<[A-Z]+>([^<]+)</[A-Z]+>', re.U)
+
+    for line in fileinput.input("golden_standard/acquired_negative.txt"):
         if line.startswith("sentence: "):
             sentence = line.split("sentence: ")[1].strip()
-            examples.append(Relationship(sentence, "", ""))
+            matches = []
+            for m in re.finditer(entities_regex, sentence):
+                matches.append(m)
+            examples.append(Relationship(sentence, matches[0].group(1), matches[1].group(1)))
 
-    for line in fileinput.input("golden_standard/acquired_positive_sentences.txt"):
+    """
+    for line in fileinput.input("golden_standard/acquired_positive.txt"):
         if line.startswith("sentence: "):
             sentence = line.split("sentence: ")[1].strip()
             examples.append(Relationship(sentence, "", ""))
     """
 
     tags_regex = re.compile('</?[A-Z]+>', re.U)
-    count = 0
+    count = 1
     for rel in examples:
         sentence = re.sub(tags_regex, "", rel.sentence)
         print count, sentence
@@ -276,6 +278,8 @@ def main():
         # the wrapper for StanfordParser does not give syntatic dependencies
         deps = sd.convert_tree(str(t[0]))
         rel.dependencies = deps
+        print rel.ent1
+        print rel.ent2
 
         extract_shortest_dependency_path(rel)
 
