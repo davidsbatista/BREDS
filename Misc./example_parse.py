@@ -11,26 +11,117 @@ import sys
 import xdot
 import graphviz
 import StanfordDependencies
+
 from nltk.parse.stanford import StanfordParser
 from nltk import PunktWordTokenizer
+from itertools import product
 
+entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+tags_regex = re.compile('</?[A-Z]+>', re.U)
 
 class Relationship(object):
 
-    def __init__(self, _sentence, _ent1, _ent2):
+    def __init__(self, _sentence, _ent1, _ent2, _e1_type, _e2_type):
         self.sentence = _sentence
         self.ent1 = _ent1
         self.ent2 = _ent2
+        self.e1_type = _e1_type
+        self.e2_type = _e2_type
+        self.head_e1 = None
+        self.head_e2 = None
+        self.pos_e1 = None
+        self.pos_e2 = None
         self.dependencies = None
+        self.dep_path = None
 
 
-def extract_features_word():
-    #TODO: simple sum or average
-    # features:
-        # is the word between the named entities
-        #
+e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
 
-    pass
+
+def extract_features_word(rel):
+    """
+    :param rel: a relationship
+    :return: a matrix representing the relationship sentence
+    """
+
+    if rel.e1_type == rel.e2_type:
+        same = 1
+
+    template = [0, e_types[rel.e1_type], e_types[rel.e2_type], same]
+
+    # extract features that depende on the parse tree
+    for t in rel.dependencies:
+        is_head_1 = 0
+        is_head_2 = 0
+        on_path = 0
+
+        # wether the word is the head entity
+        if t == rel.dependencies[rel.head_e1-1]:
+            is_head_1 = 1
+        if t == rel.dependencies[rel.head_e2-1]:
+            is_head_2 = 1
+
+        #features_head_emb = product([is_head_1, is_head_2], template, repeat=1)
+        # whether the word is on the path between the two entities
+        if t in rel.dep_path:
+            on_path = 1
+
+        # features_on-path = (1) x template
+        print t.form, '\t', "on_path:", on_path, '\t', "is_head:", [is_head_1, is_head_2]
+
+    # extract features that depende on context
+    sentence = re.sub(tags_regex, "", rel.sentence)
+    tokens = PunktWordTokenizer().tokenize(sentence)
+    pos_ent1 = 0
+    pos_ent2 = 0
+
+    e1_tokens = PunktWordTokenizer().tokenize(rel.ent1)
+    e2_tokens = PunktWordTokenizer().tokenize(rel.ent2)
+
+    print e1_tokens
+    print e2_tokens
+    print tokens
+
+    if len(e1_tokens) == 1:
+        pos_ent1 = tokens.index(rel.ent1)
+
+    else:
+        print "TODO"
+
+    if len(e2_tokens) == 1:
+        pos_ent2 = tokens.index(rel.ent2)
+
+    else:
+        print "TODO"
+
+    print pos_ent1
+    print pos_ent2
+
+    for w in range(len(tokens)):
+        in_between = 0
+        context_left_h1 = None
+        context_right_h1 = None
+        context_left_h2 = None
+        context_right_h2 = None
+
+        # in-between
+        if pos_ent1 < w < pos_ent2:
+            in_between = 1
+
+        # context
+        if w == pos_ent1:
+            if w-1 > 0:
+                context_left_h1 = tokens[w-1]
+            if w+1 < len(tokens):
+                context_right_h1 = tokens[w+1]
+
+        if w == pos_ent2:
+            if w-1 > 0:
+                context_left_h2 = tokens[w-1]
+            if w+1 < len(tokens):
+                context_right_h2 = tokens[w+1]
+
+        print tokens[w], '\t', "in_between:", in_between, '\t', "context:", context_left_h1, context_left_h2, context_right_h1, context_right_h2
 
 
 def find_index_named_entity(entity, dependencies):
@@ -112,7 +203,7 @@ def extract_shortest_dependency_path(rel):
 
     # check if e2 is parent of e1
     if e2 in heads_e1:
-        #print "E2 is parent of E1"
+        print "E2 is parent of E1"
         #print "E2 parents", heads_e1
         #print rel.ent1+"<-",
         for t in heads_e1:
@@ -125,7 +216,7 @@ def extract_shortest_dependency_path(rel):
 
     # check if e1 is parent of e2
     elif e1 in heads_e2:
-        #print "E1 is parent of E2"
+        print "E1 is parent of E2"
         #print "E2 parents", heads_e2
         #print rel.ent2+"<-",
         for t in heads_e2:
@@ -138,6 +229,7 @@ def extract_shortest_dependency_path(rel):
 
     else:
         # find a common parent for both
+        print "E1 and E2 have a common parent"
         found = False
         for t1 in heads_e1:
             if found is True:
@@ -149,29 +241,28 @@ def extract_shortest_dependency_path(rel):
                     found = True
                     break
 
-        print "\nshortest path: "
-        print rel.ent1+"->",
+        #print "\nshortest path: "
+       # print rel.ent1+"->",
         for t in heads_e1:
             if t != heads_e1[index_t1] and t != rel.dependencies[idx2-1]:
-                print t.form+"->",
+                #print t.form+"->",
                 shortest_path.append(t)
             else:
-                print t.form
+                #print t.form
                 shortest_path.append(t)
                 break
 
-        print rel.ent2+"->",
+        #print rel.ent2+"->",
         for t in heads_e2:
             if t == rel.dependencies[idx1-1]:
                 break
             elif t != heads_e2[index_t2]:
-                print t.form+"->",
+                #print t.form+"->",
+                shortest_path.append(t)
             else:
-                print t.form
+                #print t.form
+                #shortest_path.append(t)
                 break
-
-    print shortest_path
-    print "\n\n"
 
     return shortest_path
 
@@ -248,24 +339,36 @@ def main():
     examples.append(Relationship("Troops recently have raided churches, warning ministers to stop preaching", "ministers", "churches"))
     """
 
-    entities_regex = re.compile('<[A-Z]+>([^<]+)</[A-Z]+>', re.U)
-
+    """
     for line in fileinput.input("golden_standard/acquired_negative.txt"):
         if line.startswith("sentence: "):
             sentence = line.split("sentence: ")[1].strip()
             matches = []
             for m in re.finditer(entities_regex, sentence):
-                matches.append(m)
-            examples.append(Relationship(sentence, matches[0].group(1), matches[1].group(1)))
+                matches.append(m.group())
 
+            entity_1 = re.sub("</?[A-Z]+>", "", matches[0])
+            entity_2 = re.sub("</?[A-Z]+>", "", matches[1])
+            arg1 = re.search("</?[A-Z]+>", matches[0])
+            arg2 = re.search("</?[A-Z]+>", matches[1])
+
+            examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
     """
+
     for line in fileinput.input("golden_standard/acquired_positive.txt"):
         if line.startswith("sentence: "):
             sentence = line.split("sentence: ")[1].strip()
-            examples.append(Relationship(sentence, "", ""))
-    """
+            matches = []
+            for m in re.finditer(entities_regex, sentence):
+                matches.append(m.group())
 
-    tags_regex = re.compile('</?[A-Z]+>', re.U)
+            entity_1 = re.sub("</?[A-Z]+>", "", matches[0])
+            entity_2 = re.sub("</?[A-Z]+>", "", matches[1])
+            arg1 = re.search("</?[A-Z]+>", matches[0])
+            arg2 = re.search("</?[A-Z]+>", matches[1])
+
+            examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
+
     count = 1
     for rel in examples:
         sentence = re.sub(tags_regex, "", rel.sentence)
@@ -276,17 +379,34 @@ def main():
 
         # note: http://www.nltk.org/_modules/nltk/parse/stanford.html
         # the wrapper for StanfordParser does not give syntatic dependencies
-        deps = sd.convert_tree(str(t[0]))
-        rel.dependencies = deps
+        tree_deps = sd.convert_tree(str(t[0]))
+        rel.dependencies = tree_deps
+
+        idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
+        idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
+        rel.head_e1 = idx1
+        rel.head_e2 = idx2
+
+        deps = extract_shortest_dependency_path(rel)
+        rel.dep_path = deps
+
         print rel.ent1
         print rel.ent2
+        for t in deps:
+            print t
 
-        extract_shortest_dependency_path(rel)
+        print "\n\n"
+
+        extract_features_word(rel)
+
+        sys.exit(0)
 
         # renders a PDF by default
-        dotgraph = deps.as_dotgraph()
+        """
+        dotgraph = tree_deps.as_dotgraph()
         dotgraph.format = 'svg'
         dotgraph.render('file_'+str(count))
+        """
         count += 1
 
 if __name__ == "__main__":
