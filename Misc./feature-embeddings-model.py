@@ -1,23 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
 
+
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
+
 
 import fileinput
 import os
 import re
 import sys
-import xdot
 import graphviz
+import numpy as np
 import StanfordDependencies
 
+from gensim.models import Word2Vec
+from nltk import word_tokenize
 from nltk.parse.stanford import StanfordParser
-from nltk import PunktWordTokenizer
 from itertools import product
 
 entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 tags_regex = re.compile('</?[A-Z]+>', re.U)
+
 
 class Relationship(object):
 
@@ -33,100 +37,184 @@ class Relationship(object):
         self.pos_e2 = None
         self.dependencies = None
         self.dep_path = None
+        self.matrix = None
 
 
 e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
 
 
-def extract_features_word(rel):
+def extract_features_word(rel, vocabulary):
     """
     :param rel: a relationship
     :return: a matrix representing the relationship sentence
     """
 
+    word_matrixes = list()
+
     if rel.e1_type == rel.e2_type:
         same = 1
 
-    template = [0, e_types[rel.e1_type], e_types[rel.e2_type], same]
+    sentence = re.sub(tags_regex, "", rel.sentence)
+    tokens = word_tokenize(sentence)
 
-    # extract features that depende on the parse tree
-    for t in rel.dependencies:
+    assert len(tokens) == len(rel.dependencies)
+
+    """
+    pos_ent1_bgn = 0
+    pos_ent1_end = 0
+    pos_ent2_bgn = 0
+    pos_ent2_end = 0
+    """
+
+    # find start and end indexes for named-entities
+    e1_tokens = word_tokenize(rel.ent1)
+    e2_tokens = word_tokenize(rel.ent2)
+
+    if len(e1_tokens) == 1:
+        pos_ent1_bgn = tokens.index(rel.ent1)
+        pos_ent1_end = tokens.index(rel.ent1)
+
+    else:
+        pos_ent1_bgn = tokens.index(e1_tokens[0])
+        z = pos_ent1_bgn+1
+        i = 1
+        while z < len(tokens) and i < len(e1_tokens):
+            if tokens[z] != e1_tokens[i]:
+                break
+            else:
+                z += 1
+                i += 1
+
+        if z - pos_ent1_bgn == i:
+            pos_ent1_end = z-1
+        else:
+            print "E1", rel.ent1, "not found"
+            sys.exit(0)
+
+    if len(e2_tokens) == 1:
+        pos_ent2_bgn = tokens.index(rel.ent2)
+        pos_ent2_end = tokens.index(rel.ent2)
+
+    else:
+        pos_ent2_bgn = tokens.index(e2_tokens[0])
+        z = pos_ent2_bgn+1
+        i = 1
+        while z < len(tokens) and i < len(e2_tokens):
+            if tokens[z] != e2_tokens[i]:
+                break
+            else:
+                z += 1
+                i += 1
+
+        if z - pos_ent2_bgn == i:
+            pos_ent2_end = z-1
+        else:
+            print "E2", rel.ent1, "not found"
+            sys.exit(0)
+
+    # start feature extraction
+
+    #template = [0, e_types[rel.e1_type], e_types[rel.e2_type], same]
+    #template = ["head_emb", e_types[rel.e1_type], e_types[rel.e2_type], same]
+
+    features = dict()
+    features["head_emb"] = 0
+    features["head_emb_h1:ORG"] = 0
+    features["head_emb_h2:ORG"] = 0
+    features["head_emb_h1_h2:ORG_ORG"] = 0
+
+    features["in-between"] = 0
+    features["in-between_h1:ORG"] = 0
+    features["in-between_h2:ORG"] = 0
+    features["in-between_h1_h2:ORG_ORG"] = 0
+
+    features["on-path"] = 0
+    features["on-path_h1:ORG"] = 0
+    features["on-path_h2:ORG"] = 0
+    features["on-path_h1_h2:ORG_ORG"] = 0
+
+    features["left_context_e1"] = 0
+    features["right_context_e1"] = 0
+    features["left_context_e2"] = 0
+    features["right_context_e2"] = 0
+
+    for w in range(len(tokens)):
+        in_between = 0
+        context_left_h1 = 0
+        context_right_h1 = 0
+        context_left_h2 = 0
+        context_right_h2 = 0
         is_head_1 = 0
         is_head_2 = 0
         on_path = 0
 
+        #################################################
+        # extract features that depend on the parse tree
+        #################################################
+
         # wether the word is the head entity
-        if t == rel.dependencies[rel.head_e1-1]:
+        if rel.dependencies[w] == rel.dependencies[rel.head_e1-1]:
             is_head_1 = 1
-        if t == rel.dependencies[rel.head_e2-1]:
+        if rel.dependencies[w] == rel.dependencies[rel.head_e2-1]:
             is_head_2 = 1
 
-        #features_head_emb = product([is_head_1, is_head_2], template, repeat=1)
         # whether the word is on the path between the two entities
-        if t in rel.dep_path:
+        if rel.dependencies[w] in rel.dep_path:
             on_path = 1
 
-        # features_on-path = (1) x template
-        print t.form, '\t', "on_path:", on_path, '\t', "is_head:", [is_head_1, is_head_2]
+        f1 = product(template, [on_path])
+        f2 = product(template, [is_head_1, is_head_2])
+        on_path_vector = [f[0]*f[1] for f in f1]
+        heads_vector = [f[0]*f[1] for f in f2]
 
-    # extract features that depende on context
-    sentence = re.sub(tags_regex, "", rel.sentence)
-    tokens = PunktWordTokenizer().tokenize(sentence)
-    pos_ent1 = 0
-    pos_ent2 = 0
-
-    e1_tokens = PunktWordTokenizer().tokenize(rel.ent1)
-    e2_tokens = PunktWordTokenizer().tokenize(rel.ent2)
-
-    print e1_tokens
-    print e2_tokens
-    print tokens
-
-    if len(e1_tokens) == 1:
-        pos_ent1 = tokens.index(rel.ent1)
-
-    else:
-        print "TODO"
-
-    if len(e2_tokens) == 1:
-        pos_ent2 = tokens.index(rel.ent2)
-
-    else:
-        print "TODO"
-
-    print pos_ent1
-    print pos_ent2
-
-    for w in range(len(tokens)):
-        in_between = 0
-        context_left_h1 = None
-        context_right_h1 = None
-        context_left_h2 = None
-        context_right_h2 = None
-
+        ##########################
+        # extract local features
+        ##########################
         # in-between
-        if pos_ent1 < w < pos_ent2:
+        if pos_ent1_end < w < pos_ent2_bgn:
             in_between = 1
 
         # context
-        if w == pos_ent1:
+        if w == pos_ent1_bgn or w == pos_ent1_end:
             if w-1 > 0:
-                context_left_h1 = tokens[w-1]
-            if w+1 < len(tokens):
-                context_right_h1 = tokens[w+1]
+                context_left_h1 = vocabulary[tokens[pos_ent1_bgn-1]]
+            if pos_ent1_end+1 < len(tokens):
+                context_right_h1 = vocabulary[tokens[pos_ent1_end+1]]
 
-        if w == pos_ent2:
+        if w == pos_ent2_bgn or w == pos_ent2_end:
             if w-1 > 0:
-                context_left_h2 = tokens[w-1]
-            if w+1 < len(tokens):
-                context_right_h2 = tokens[w+1]
+                context_left_h2 = vocabulary[tokens[pos_ent2_bgn-1]]
+            if pos_ent2_end+1 < len(tokens):
+                context_right_h2 = vocabulary[tokens[pos_ent2_end+1]]
 
-        print tokens[w], '\t', "in_between:", in_between, '\t', "context:", context_left_h1, context_left_h2, context_right_h1, context_right_h2
+        f3 = product(template, [in_between])
+        lexical_context_vector = [context_left_h1, context_right_h1, context_left_h2, context_right_h2]
+        in_between_vector = [f[0]*f[1] for f in f3]
+
+        feature_vector = np.array(on_path_vector + heads_vector + in_between_vector + lexical_context_vector)
+        print len(feature_vector)
+        print feature_vector
+        try:
+            # outer vector
+            outer = np.outer(feature_vector, word2vec[tokens[w].lower()])
+            word_matrixes.append(outer)
+
+        except KeyError, e:
+            pass
+            #print e
+            #print tokens[w].lower()
+
+    # add every matrix and return the sum
+    acc = np.zeros_like(word_matrixes[0])
+    for m in word_matrixes:
+        np.add(acc, m, acc)
+
+    return acc
 
 
 def find_index_named_entity(entity, dependencies):
     # split the entity into tokens
-    e1_tokens = PunktWordTokenizer().tokenize(entity)
+    e1_tokens = word_tokenize(entity)
 
     # if entities are one token only get entities index directly
     if len(e1_tokens) == 1:
@@ -203,7 +291,7 @@ def extract_shortest_dependency_path(rel):
 
     # check if e2 is parent of e1
     if e2 in heads_e1:
-        print "E2 is parent of E1"
+        #print "E2 is parent of E1"
         #print "E2 parents", heads_e1
         #print rel.ent1+"<-",
         for t in heads_e1:
@@ -216,7 +304,7 @@ def extract_shortest_dependency_path(rel):
 
     # check if e1 is parent of e2
     elif e1 in heads_e2:
-        print "E1 is parent of E2"
+        #print "E1 is parent of E2"
         #print "E2 parents", heads_e2
         #print rel.ent2+"<-",
         for t in heads_e2:
@@ -229,7 +317,7 @@ def extract_shortest_dependency_path(rel):
 
     else:
         # find a common parent for both
-        print "E1 and E2 have a common parent"
+        #print "E1 and E2 have a common parent"
         found = False
         for t1 in heads_e1:
             if found is True:
@@ -268,26 +356,13 @@ def extract_shortest_dependency_path(rel):
 
 
 def main():
-    """
     model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
     print "Loading word2vec model"
     global word2vec
     word2vec = Word2Vec.load_word2vec_format(model, binary=True)
     global VECTOR_DIM
-    #VECTOR_DIM = word2vec.layer1_size
-    VECTOR_DIM = 200
+    VECTOR_DIM = word2vec.layer1_size
 
-    reverb = Reverb()
-    print "Processing sentences..."
-    sentences = read_sentences_bunescu(sys.argv[1])
-    for rel_type in sentences.keys():
-        print rel_type, len(sentences[rel_type])
-
-    print "Constructing vector representations"
-    for rel in sentences.keys():
-        print rel in sentences[rel_type]
-        construct_vector(rel, reverb)
-    """
     # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
     # PARSER and STANFORD_MODELS enviroment variables need to be set
     os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
@@ -369,9 +444,23 @@ def main():
 
             examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
 
+    # first pass to generate indices for each word in the vocabulary
+    vocabulary = dict()
     count = 1
     for rel in examples:
         sentence = re.sub(tags_regex, "", rel.sentence)
+        tokens = word_tokenize(sentence)
+        for w in tokens:
+            if w not in vocabulary:
+                vocabulary[w] = count
+                count += 1
+
+    print len(vocabulary), "words"
+
+    count = 1
+    for rel in examples:
+        sentence = re.sub(tags_regex, "", rel.sentence)
+
         print count, sentence
         t = parser.raw_parse(sentence)
         # draws the consituients tree
@@ -390,16 +479,8 @@ def main():
         deps = extract_shortest_dependency_path(rel)
         rel.dep_path = deps
 
-        print rel.ent1
-        print rel.ent2
-        for t in deps:
-            print t
-
-        print "\n\n"
-
-        extract_features_word(rel)
-
-        sys.exit(0)
+        sentence_matrix = extract_features_word(rel, vocabulary)
+        rel.matrix = sentence_matrix
 
         # renders a PDF by default
         """
