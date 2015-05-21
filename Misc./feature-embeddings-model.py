@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
-import random
+import cPickle
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
 
+import random
 import fileinput
 import os
 import re
@@ -39,7 +40,7 @@ class Relationship(object):
         self.matrix = None
 
 
-def extract_features_word(rel, vocabulary):
+def build_matrix(rel, vocabulary):
     """
     :param rel: a relationship
     :return: a matrix representing the relationship sentence
@@ -175,9 +176,9 @@ def extract_features_word(rel, vocabulary):
                 features["right_context_e2"] = vocabulary[tokens[pos_ent2_end+1]]
 
         """
-        print tokens[w]
+        print "WORD:", tokens[w]
         for feature in features:
-            print feature, features[feature]
+            print feature, ':\t\t', features[feature]
         """
 
         lexical_context_vector = [features["left_context_e1"], features["right_context_e1"], features["left_context_e2"], features["right_context_e2"]]
@@ -197,12 +198,12 @@ def extract_features_word(rel, vocabulary):
             #print tokens[w].lower()
 
     # add every matrix and return the sum
-    matrix_acc = np.zeros_like(word_matrixes[0])
+    final_matrix = np.zeros_like(word_matrixes[0])
     for m in word_matrixes:
-        np.add(matrix_acc, m, matrix_acc)
+        np.add(final_matrix, m, final_matrix)
 
-    # simple normalization, divide each element by the maximum
-    final_matrix = np.divide(matrix_acc, matrix_acc.max())
+    # normalization
+    final_matrix = np.divide(final_matrix, final_matrix.max())
 
     return final_matrix
 
@@ -371,7 +372,7 @@ def generate_relationships(parser, sd, examples, words):
         deps = extract_shortest_dependency_path(rel)
         rel.dep_path = deps
 
-        sentence_matrix = extract_features_word(rel, words)
+        sentence_matrix = build_matrix(rel, words)
         rel.matrix = sentence_matrix
 
         # renders a PDF by default
@@ -383,7 +384,11 @@ def generate_relationships(parser, sd, examples, words):
         count += 1
 
 
-def generate_vocabulary(count, examples, words):
+def generate_vocabulary(examples, words):
+    if len(words) == 0:
+        count = 1
+    else:
+        count = len(words)
     for rel in examples:
         sentence = re.sub(tags_regex, "", rel.sentence)
         tokens = word_tokenize(sentence)
@@ -439,58 +444,81 @@ def sim_matrix_l2(matrix1, matrix2):
     diff_matrix = matrix1-matrix2
     diff_matrix = np.power(diff_matrix, 2)
     sum_diff = np.sum(diff_matrix)
-    return np.sqr(sum_diff)
+    return np.sqrt(sum_diff)
 
 
 def distance_general(a, b, norm_type):
-    # ‘fro’ 	Frobenius norm
-    # 2 	2-norm (largest sing. value)
-    # -2 	smallest singular value
-    distance_general(a, b, 'fro')
-    distance_general(a, b, '2')
-    distance_general(a, b, '-22')
     norm_a = np.linalg.norm(a, ord=norm_type)
     norm_b = np.linalg.norm(b, ord=norm_type)
-    return norm_a - norm_b
+    return np.absolute(norm_a - norm_b)
 
 
 def main():
-    model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
-    print "Loading word2vec model"
-    global word2vec
-    word2vec = Word2Vec.load_word2vec_format(model, binary=True)
-    global VECTOR_DIM
-    VECTOR_DIM = word2vec.layer1_size
 
-    # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
-    # PARSER and STANFORD_MODELS enviroment variables need to be set
-    os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-    os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-    parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
-    sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
+    if os.path.isfile("positive_sentences.pkl") and os.path.isfile("negative_sentences.pkl"):
+        f = open("positive_sentences.pkl")
+        positive_examples = cPickle.load(f)
+        f.close()
+        f = open("negative_sentences.pkl")
+        negative_examples = cPickle.load(f)
+        f.close()
 
-    positive_examples = parse_files(sys.argv[1])
-    negative_examples = parse_files(sys.argv[2])
+    else:
+        model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
+        print "Loading word2vec model"
+        global word2vec
+        word2vec = Word2Vec.load_word2vec_format(model, binary=True)
+        global VECTOR_DIM
+        VECTOR_DIM = word2vec.layer1_size
 
-    # first pass to generate indices for each word in the vocabulary
-    vocabulary_words = dict()
-    count = 1
-    generate_vocabulary(count, positive_examples, vocabulary_words)
-    generate_vocabulary(count, negative_examples, vocabulary_words)
-    print len(vocabulary_words), "words"
+        # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
+        # PARSER and STANFORD_MODELS enviroment variables need to be set
+        os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
+        os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
+        parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
+        sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
-    # generate relationship matrix representations
-    print "Processing positive sentences"
-    generate_relationships(parser, sd, positive_examples, vocabulary_words)
-    print len(positive_examples), "positive sentences processed\n"
-    print "Processing negative sentences"
-    generate_relationships(parser, sd, negative_examples, vocabulary_words)
-    print len(negative_examples), "negative sentences processed\n"
+        positive_examples = parse_files(sys.argv[1])
+        negative_examples = parse_files(sys.argv[2])
 
+        # first pass to generate indices for each word in the vocabulary
+        # check if it was already calculated and stored in disk
+        if os.path.isfile("vocabulary_words.pkl"):
+            print "Loading vocabulary from disk"
+            f = open("vocabulary_words.pkl")
+            vocabulary_words = cPickle.load(f)
+            f.close()
+        else:
+            print "Extracting vocabulary from sentences"
+            vocabulary_words = dict()
+            generate_vocabulary(positive_examples, vocabulary_words)
+            generate_vocabulary(negative_examples, vocabulary_words)
+            f = open("vocabulary_words.pkl", "w")
+            cPickle.dump(vocabulary_words, f)
+            f.close()
+        print len(vocabulary_words), "words"
+
+        # generate relationship matrix representations
+        print "Processing positive sentences...",
+        generate_relationships(parser, sd, positive_examples, vocabulary_words)
+        print len(positive_examples), "positive sentences processed\n"
+        print "Processing negative sentences...",
+        generate_relationships(parser, sd, negative_examples, vocabulary_words)
+        print len(negative_examples), "negative sentences processed\n"
+
+        # store to disk
+        f = open("positive_sentences.pkl", "w")
+        cPickle.dump(positive_examples, f)
+        f.close()
+        f = open("negative_sentences.pkl", "w")
+        cPickle.dump(negative_examples, f)
+        f.close()
+
+    # start evaluation
     correct_s = sample(positive_examples, 26)
     incorrect_s = sample(negative_examples, 26)
-    positive = 0
     negative = 0
+    positive = 0
     for rel in correct_s:
         min_distance = sys.maxint
         closest_sentence = None
@@ -498,13 +526,11 @@ def main():
         print "sentence:", rel.sentence
 
         for rel1 in incorrect_s:
-            if rel == rel1:
-                continue
             assert rel.matrix.shape == rel1.matrix.shape
             dist_with_neg = sim_matrix(rel.matrix, rel1.matrix)
             if dist_with_neg < min_distance:
-                print dist_with_neg
                 min_distance = dist_with_neg
+                print min_distance
                 closest_sentence = rel1
                 closest_sentence_type = -1
 
@@ -514,21 +540,25 @@ def main():
             assert rel.matrix.shape == rel2.matrix.shape
             dist_with_pos = sim_matrix(rel.matrix, rel2.matrix)
             if dist_with_pos < min_distance:
-                print dist_with_pos
                 min_distance = dist_with_pos
+                print min_distance
                 closest_sentence = rel2
                 closest_sentence_type = 1
 
-        if closest_sentence_type == -1:
-            negative += 1
-        else:
-            positive += 1
-
+        """
         print "closest sentence:"
         print closest_sentence.sentence
         print closest_sentence_type
+        print min_distance
         print "====================================\n"
+        """
 
+        if closest_sentence_type == 1:
+            positive += 1
+        elif closest_sentence_type == -1:
+            negative += 1
+
+    print "\n"
     print "closest to negative", negative
     print "closest to positive", positive
 
