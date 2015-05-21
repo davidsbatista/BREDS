@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
-
+import random
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
-
 
 import fileinput
 import os
@@ -17,10 +16,10 @@ import StanfordDependencies
 from gensim.models import Word2Vec
 from nltk import word_tokenize
 from nltk.parse.stanford import StanfordParser
-from itertools import product
 
 entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 tags_regex = re.compile('</?[A-Z]+>', re.U)
+e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
 
 
 class Relationship(object):
@@ -38,9 +37,6 @@ class Relationship(object):
         self.dependencies = None
         self.dep_path = None
         self.matrix = None
-
-
-e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
 
 
 def extract_features_word(rel, vocabulary):
@@ -113,40 +109,27 @@ def extract_features_word(rel, vocabulary):
             sys.exit(0)
 
     # start feature extraction
-
-    #template = [0, e_types[rel.e1_type], e_types[rel.e2_type], same]
-    #template = ["head_emb", e_types[rel.e1_type], e_types[rel.e2_type], same]
-
-    features = dict()
-    features["head_emb"] = 0
-    features["head_emb_h1:ORG"] = 0
-    features["head_emb_h2:ORG"] = 0
-    features["head_emb_h1_h2:ORG_ORG"] = 0
-
-    features["in-between"] = 0
-    features["in-between_h1:ORG"] = 0
-    features["in-between_h2:ORG"] = 0
-    features["in-between_h1_h2:ORG_ORG"] = 0
-
-    features["on-path"] = 0
-    features["on-path_h1:ORG"] = 0
-    features["on-path_h2:ORG"] = 0
-    features["on-path_h1_h2:ORG_ORG"] = 0
-
-    features["left_context_e1"] = 0
-    features["right_context_e1"] = 0
-    features["left_context_e2"] = 0
-    features["right_context_e2"] = 0
-
     for w in range(len(tokens)):
-        in_between = 0
-        context_left_h1 = 0
-        context_right_h1 = 0
-        context_left_h2 = 0
-        context_right_h2 = 0
-        is_head_1 = 0
-        is_head_2 = 0
-        on_path = 0
+        features = dict()
+        features["head_emb"] = 0
+        features["head_emb_h1:"+rel.e1_type] = 0
+        features["head_emb_h2:"+rel.e2_type] = 0
+        features["head_emb_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
+
+        features["on-path"] = 0
+        features["on-path:"+rel.e1_type] = 0
+        features["on-path:"+rel.e2_type] = 0
+        features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
+
+        features["in-between"] = 0
+        features["in-between:"+rel.e1_type] = 0
+        features["in-between:"+rel.e2_type] = 0
+        features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
+
+        features["left_context_e1"] = 0
+        features["right_context_e1"] = 0
+        features["left_context_e2"] = 0
+        features["right_context_e2"] = 0
 
         #################################################
         # extract features that depend on the parse tree
@@ -154,46 +137,55 @@ def extract_features_word(rel, vocabulary):
 
         # wether the word is the head entity
         if rel.dependencies[w] == rel.dependencies[rel.head_e1-1]:
-            is_head_1 = 1
+            features["head_emb"] = 1
+            features["head_emb_h1:"+rel.e1_type] = 1
+
         if rel.dependencies[w] == rel.dependencies[rel.head_e2-1]:
-            is_head_2 = 1
+            features["head_emb"] = 1
+            features["head_emb_h1:"+rel.e2_type] = 1
 
         # whether the word is on the path between the two entities
         if rel.dependencies[w] in rel.dep_path:
-            on_path = 1
-
-        f1 = product(template, [on_path])
-        f2 = product(template, [is_head_1, is_head_2])
-        on_path_vector = [f[0]*f[1] for f in f1]
-        heads_vector = [f[0]*f[1] for f in f2]
+            features["on-path"] = 0
+            features["on-path:"+rel.e1_type] = 0
+            features["on-path:"+rel.e2_type] = 0
+            features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
 
         ##########################
         # extract local features
         ##########################
         # in-between
         if pos_ent1_end < w < pos_ent2_bgn:
-            in_between = 1
+            features["in-between"] = 1
+            features["in-between:"+rel.e1_type] = 1
+            features["in-between:"+rel.e2_type] = 1
+            features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 1
 
         # context
         if w == pos_ent1_bgn or w == pos_ent1_end:
             if w-1 > 0:
-                context_left_h1 = vocabulary[tokens[pos_ent1_bgn-1]]
+                features["left_context_e1"] = vocabulary[tokens[pos_ent1_bgn-1]]
             if pos_ent1_end+1 < len(tokens):
-                context_right_h1 = vocabulary[tokens[pos_ent1_end+1]]
+                features["right_context_e1"] = vocabulary[tokens[pos_ent1_end+1]]
 
         if w == pos_ent2_bgn or w == pos_ent2_end:
             if w-1 > 0:
-                context_left_h2 = vocabulary[tokens[pos_ent2_bgn-1]]
+                features["left_context_e2"] = vocabulary[tokens[pos_ent2_bgn-1]]
             if pos_ent2_end+1 < len(tokens):
-                context_right_h2 = vocabulary[tokens[pos_ent2_end+1]]
+                features["right_context_e2"] = vocabulary[tokens[pos_ent2_end+1]]
 
-        f3 = product(template, [in_between])
-        lexical_context_vector = [context_left_h1, context_right_h1, context_left_h2, context_right_h2]
-        in_between_vector = [f[0]*f[1] for f in f3]
+        """
+        print tokens[w]
+        for feature in features:
+            print feature, features[feature]
+        """
 
-        feature_vector = np.array(on_path_vector + heads_vector + in_between_vector + lexical_context_vector)
-        print len(feature_vector)
-        print feature_vector
+        lexical_context_vector = [features["left_context_e1"], features["right_context_e1"], features["left_context_e2"], features["right_context_e2"]]
+        in_between_vector = [features["in-between"], features["in-between:"+rel.e1_type], features["in-between:"+rel.e2_type], features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type]]
+        on_path_vector = [features["on-path"], features["on-path:"+rel.e1_type], features["on-path:"+rel.e2_type], features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type]]
+        head_emb_vector = [features["head_emb"], features["head_emb_h1:"+rel.e1_type], features["head_emb"], features["head_emb_h1:"+rel.e2_type]]
+        feature_vector = np.array(on_path_vector + head_emb_vector + in_between_vector + lexical_context_vector)
+
         try:
             # outer vector
             outer = np.outer(feature_vector, word2vec[tokens[w].lower()])
@@ -205,11 +197,14 @@ def extract_features_word(rel, vocabulary):
             #print tokens[w].lower()
 
     # add every matrix and return the sum
-    acc = np.zeros_like(word_matrixes[0])
+    matrix_acc = np.zeros_like(word_matrixes[0])
     for m in word_matrixes:
-        np.add(acc, m, acc)
+        np.add(matrix_acc, m, matrix_acc)
 
-    return acc
+    # simple normalization, divide each element by the maximum
+    final_matrix = np.divide(matrix_acc, matrix_acc.max())
+
+    return final_matrix
 
 
 def find_index_named_entity(entity, dependencies):
@@ -355,6 +350,110 @@ def extract_shortest_dependency_path(rel):
     return shortest_path
 
 
+def generate_relationships(parser, sd, examples, words):
+    count = 1
+    for rel in examples:
+        sentence = re.sub(tags_regex, "", rel.sentence)
+        t = parser.raw_parse(sentence)
+        # draws the consituients tree
+        # t[0].draw()
+
+        # note: http://www.nltk.org/_modules/nltk/parse/stanford.html
+        # the wrapper for StanfordParser does not give syntatic dependencies
+        tree_deps = sd.convert_tree(str(t[0]))
+        rel.dependencies = tree_deps
+
+        idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
+        idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
+        rel.head_e1 = idx1
+        rel.head_e2 = idx2
+
+        deps = extract_shortest_dependency_path(rel)
+        rel.dep_path = deps
+
+        sentence_matrix = extract_features_word(rel, words)
+        rel.matrix = sentence_matrix
+
+        # renders a PDF by default
+        """
+        dotgraph = tree_deps.as_dotgraph()
+        dotgraph.format = 'svg'
+        dotgraph.render('file_'+str(count))
+        """
+        count += 1
+
+
+def generate_vocabulary(count, examples, words):
+    for rel in examples:
+        sentence = re.sub(tags_regex, "", rel.sentence)
+        tokens = word_tokenize(sentence)
+        for w in tokens:
+            if w not in words:
+                words[w] = count
+                count += 1
+
+
+def parse_files(data_file):
+    examples = list()
+    for line in fileinput.input(data_file):
+        if line.startswith("sentence: "):
+            sentence = line.split("sentence: ")[1].strip()
+            matches = []
+            for m in re.finditer(entities_regex, sentence):
+                matches.append(m.group())
+            entity_1 = re.sub("</?[A-Z]+>", "", matches[0])
+            entity_2 = re.sub("</?[A-Z]+>", "", matches[1])
+            arg1 = re.search("</?[A-Z]+>", matches[0])
+            arg2 = re.search("</?[A-Z]+>", matches[1])
+            examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
+    fileinput.close()
+    return examples
+
+
+def sample(examples, n):
+    samples = list()
+    for i in range(0, n):
+        e = random.choice(examples)
+        samples.append(e)
+        del examples[examples.index(e)]
+    return samples
+
+
+################################
+# distances between matrix norms
+################################
+
+# http://math.stackexchange.com/questions/507742/distance-similarity-between-two-matrices?rq=1
+# I'm sure there are many others. If you look up "matrix norms", you'll find lots of material.
+# And if ∥∥ is any matrix norm, then ∥A−B∥ gives you a measure of the "distance" between two matrices A and B.
+
+def sim_matrix(matrix1, matrix2):
+    assert matrix1.shape == matrix2.shape
+    diff_matrix = matrix1-matrix2
+    diff_matrix_abs = np.absolute(diff_matrix)
+    sum_abs_diff = np.sum(diff_matrix_abs)
+    return sum_abs_diff
+
+
+def sim_matrix_l2(matrix1, matrix2):
+    diff_matrix = matrix1-matrix2
+    diff_matrix = np.power(diff_matrix, 2)
+    sum_diff = np.sum(diff_matrix)
+    return np.sqr(sum_diff)
+
+
+def distance_general(a, b, norm_type):
+    # ‘fro’ 	Frobenius norm
+    # 2 	2-norm (largest sing. value)
+    # -2 	smallest singular value
+    distance_general(a, b, 'fro')
+    distance_general(a, b, '2')
+    distance_general(a, b, '-22')
+    norm_a = np.linalg.norm(a, ord=norm_type)
+    norm_b = np.linalg.norm(b, ord=norm_type)
+    return norm_a - norm_b
+
+
 def main():
     model = "/home/dsbatista/gigaword/word2vec/afp_apw_xing200.bin"
     print "Loading word2vec model"
@@ -370,10 +469,86 @@ def main():
     parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
     sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
+    positive_examples = parse_files(sys.argv[1])
+    negative_examples = parse_files(sys.argv[2])
+
+    # first pass to generate indices for each word in the vocabulary
+    vocabulary_words = dict()
+    count = 1
+    generate_vocabulary(count, positive_examples, vocabulary_words)
+    generate_vocabulary(count, negative_examples, vocabulary_words)
+    print len(vocabulary_words), "words"
+
+    # generate relationship matrix representations
+    print "Processing positive sentences"
+    generate_relationships(parser, sd, positive_examples, vocabulary_words)
+    print len(positive_examples), "positive sentences processed\n"
+    print "Processing negative sentences"
+    generate_relationships(parser, sd, negative_examples, vocabulary_words)
+    print len(negative_examples), "negative sentences processed\n"
+
+    correct_s = sample(positive_examples, 26)
+    incorrect_s = sample(negative_examples, 26)
+    positive = 0
+    negative = 0
+    for rel in correct_s:
+        min_distance = sys.maxint
+        closest_sentence = None
+        closest_sentence_type = 0
+        print "sentence:", rel.sentence
+
+        for rel1 in incorrect_s:
+            if rel == rel1:
+                continue
+            assert rel.matrix.shape == rel1.matrix.shape
+            dist_with_neg = sim_matrix(rel.matrix, rel1.matrix)
+            if dist_with_neg < min_distance:
+                print dist_with_neg
+                min_distance = dist_with_neg
+                closest_sentence = rel1
+                closest_sentence_type = -1
+
+        for rel2 in correct_s:
+            if rel == rel2:
+                continue
+            assert rel.matrix.shape == rel2.matrix.shape
+            dist_with_pos = sim_matrix(rel.matrix, rel2.matrix)
+            if dist_with_pos < min_distance:
+                print dist_with_pos
+                min_distance = dist_with_pos
+                closest_sentence = rel2
+                closest_sentence_type = 1
+
+        if closest_sentence_type == -1:
+            negative += 1
+        else:
+            positive += 1
+
+        print "closest sentence:"
+        print closest_sentence.sentence
+        print closest_sentence_type
+        print "====================================\n"
+
+    print "closest to negative", negative
+    print "closest to positive", positive
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     #examples.append(Relationship("In favour of the deal were Ted Turner, founder and boss of TBS, a cable-based business, and Time Warner chairman Gerald Levin, whose empire already held an 18 percent stake in TBS.", "Ted Turner", "TBS"))
-
-    examples = list()
     """
     # negative - no relationship
     examples.append(Relationship("Anthony Shadid is an Associated Press newsman based in Cairo .", "Associated Press", "Cairo"))
@@ -429,66 +604,3 @@ def main():
 
             examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
     """
-
-    for line in fileinput.input("golden_standard/acquired_positive.txt"):
-        if line.startswith("sentence: "):
-            sentence = line.split("sentence: ")[1].strip()
-            matches = []
-            for m in re.finditer(entities_regex, sentence):
-                matches.append(m.group())
-
-            entity_1 = re.sub("</?[A-Z]+>", "", matches[0])
-            entity_2 = re.sub("</?[A-Z]+>", "", matches[1])
-            arg1 = re.search("</?[A-Z]+>", matches[0])
-            arg2 = re.search("</?[A-Z]+>", matches[1])
-
-            examples.append(Relationship(sentence, entity_1, entity_2, arg1.group(), arg2.group()))
-
-    # first pass to generate indices for each word in the vocabulary
-    vocabulary = dict()
-    count = 1
-    for rel in examples:
-        sentence = re.sub(tags_regex, "", rel.sentence)
-        tokens = word_tokenize(sentence)
-        for w in tokens:
-            if w not in vocabulary:
-                vocabulary[w] = count
-                count += 1
-
-    print len(vocabulary), "words"
-
-    count = 1
-    for rel in examples:
-        sentence = re.sub(tags_regex, "", rel.sentence)
-
-        print count, sentence
-        t = parser.raw_parse(sentence)
-        # draws the consituients tree
-        #t[0].draw()
-
-        # note: http://www.nltk.org/_modules/nltk/parse/stanford.html
-        # the wrapper for StanfordParser does not give syntatic dependencies
-        tree_deps = sd.convert_tree(str(t[0]))
-        rel.dependencies = tree_deps
-
-        idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
-        idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
-        rel.head_e1 = idx1
-        rel.head_e2 = idx2
-
-        deps = extract_shortest_dependency_path(rel)
-        rel.dep_path = deps
-
-        sentence_matrix = extract_features_word(rel, vocabulary)
-        rel.matrix = sentence_matrix
-
-        # renders a PDF by default
-        """
-        dotgraph = tree_deps.as_dotgraph()
-        dotgraph.format = 'svg'
-        dotgraph.render('file_'+str(count))
-        """
-        count += 1
-
-if __name__ == "__main__":
-    main()
