@@ -38,6 +38,7 @@ class Relationship(object):
         self.dependencies = None
         self.dep_path = None
         self.matrix = None
+        self.features = None
 
 
 def build_matrix(rel, vocabulary):
@@ -47,23 +48,12 @@ def build_matrix(rel, vocabulary):
     """
 
     word_matrixes = list()
-
-    if rel.e1_type == rel.e2_type:
-        same = 1
-
     sentence = re.sub(tags_regex, "", rel.sentence)
     tokens = word_tokenize(sentence)
-
     assert len(tokens) == len(rel.dependencies)
 
-    """
-    pos_ent1_bgn = 0
-    pos_ent1_end = 0
-    pos_ent2_bgn = 0
-    pos_ent2_end = 0
-    """
-
     # find start and end indexes for named-entities
+    # TODO: this can be done much quickly by looking at the Tree structure
     e1_tokens = word_tokenize(rel.ent1)
     e2_tokens = word_tokenize(rel.ent2)
 
@@ -112,25 +102,23 @@ def build_matrix(rel, vocabulary):
     # start feature extraction
     for w in range(len(tokens)):
         features = dict()
-        features["head_emb"] = 0
-        features["head_emb_h1:"+rel.e1_type] = 0
-        features["head_emb_h2:"+rel.e2_type] = 0
-        features["head_emb_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
-
-        features["on-path"] = 0
-        features["on-path:"+rel.e1_type] = 0
-        features["on-path:"+rel.e2_type] = 0
-        features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
-
-        features["in-between"] = 0
-        features["in-between:"+rel.e1_type] = 0
-        features["in-between:"+rel.e2_type] = 0
-        features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
-
         features["left_context_e1"] = 0
         features["right_context_e1"] = 0
         features["left_context_e2"] = 0
         features["right_context_e2"] = 0
+
+        f_types = ['head_emb', 'on-path', 'in-between']
+
+        for f_t in f_types:
+            features[f_t] = 0
+            for e_type1 in e_types:
+                f1 = f_t+"_h1:"+e_type1
+                f2 = f_t+"_h2:"+e_type1
+                features[f1] = 0
+                features[f2] = 0
+                for e_type2 in e_types:
+                    f3 = f_t+"_h1_h2:"+e_type1+"_"+e_type2
+                    features[f3] = 0
 
         #################################################
         # extract features that depend on the parse tree
@@ -143,14 +131,14 @@ def build_matrix(rel, vocabulary):
 
         if rel.dependencies[w] == rel.dependencies[rel.head_e2-1]:
             features["head_emb"] = 1
-            features["head_emb_h1:"+rel.e2_type] = 1
+            features["head_emb_h2:"+rel.e2_type] = 1
 
         # whether the word is on the path between the two entities
         if rel.dependencies[w] in rel.dep_path:
-            features["on-path"] = 0
-            features["on-path:"+rel.e1_type] = 0
-            features["on-path:"+rel.e2_type] = 0
-            features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 0
+            features["on-path"] = 1
+            features["on-path_h1:"+rel.e1_type] = 1
+            features["on-path_h2:"+rel.e2_type] = 1
+            features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 1
 
         ##########################
         # extract local features
@@ -158,8 +146,8 @@ def build_matrix(rel, vocabulary):
         # in-between
         if pos_ent1_end < w < pos_ent2_bgn:
             features["in-between"] = 1
-            features["in-between:"+rel.e1_type] = 1
-            features["in-between:"+rel.e2_type] = 1
+            features["in-between_h1:"+rel.e1_type] = 1
+            features["in-between_h2:"+rel.e2_type] = 1
             features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 1
 
         # context
@@ -175,27 +163,27 @@ def build_matrix(rel, vocabulary):
             if pos_ent2_end+1 < len(tokens):
                 features["right_context_e2"] = vocabulary[tokens[pos_ent2_end+1]]
 
-        """
-        print "WORD:", tokens[w]
-        for feature in features:
-            print feature, ':\t\t', features[feature]
-        """
+        # add filled features vectors to Relationship instance
+        rel.features = features
 
-        lexical_context_vector = [features["left_context_e1"], features["right_context_e1"], features["left_context_e2"], features["right_context_e2"]]
-        in_between_vector = [features["in-between"], features["in-between:"+rel.e1_type], features["in-between:"+rel.e2_type], features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type]]
-        on_path_vector = [features["on-path"], features["on-path:"+rel.e1_type], features["on-path:"+rel.e2_type], features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type]]
-        head_emb_vector = [features["head_emb"], features["head_emb_h1:"+rel.e1_type], features["head_emb"], features["head_emb_h1:"+rel.e2_type]]
-        feature_vector = np.array(on_path_vector + head_emb_vector + in_between_vector + lexical_context_vector)
+        # transform features into feature vector
+        features_keys = sorted(features.keys())
+        vector = list()
+        for feature in features_keys:
+            vector += [features[feature]]
+        feature_vector = np.array(vector)
 
+        # the try/catch below is to avoid the crashing
+        # when a word is not found in the word2vec model
         try:
             # outer vector
             outer = np.outer(feature_vector, word2vec[tokens[w].lower()])
             word_matrixes.append(outer)
+            # print outer.shape
 
-        except KeyError, e:
+        except KeyError:
             pass
-            #print e
-            #print tokens[w].lower()
+            #print "Not found", tokens[w].lower()
 
     # add every matrix and return the sum
     final_matrix = np.zeros_like(word_matrixes[0])
@@ -226,23 +214,9 @@ def find_index_named_entity(entity, dependencies):
             if token.form == e1_tokens[0]:
                 j = dependencies.index(token)
                 i = 0
-                """
-                print "len(e1_tokens)", len(e1_tokens)
-                print "ent1", i, e1_tokens[i]
-                print "token.form", j, rel.dependencies[j].form
-                """
                 while (i + 1 < len(e1_tokens)) and e1_tokens[i + 1] == dependencies[j + 1].form:
-                    """
-                    print "entrei"
-                    print "ent1", i, e1_tokens[i]
-                    print "token.form", j, rel.dependencies[j].form
-                    """
                     i += 1
                     j += 1
-                    """
-                    print "i", i
-                    print "j", j
-                    """
 
                 # if all the sequente tokens are equal to the tokens in the named-entity
                 # then set the last one has the index
@@ -515,22 +489,22 @@ def main():
         f.close()
 
     # start evaluation
-    correct_s = sample(positive_examples, 26)
-    incorrect_s = sample(negative_examples, 26)
+    correct_s = sample(positive_examples, 27)
+    incorrect_s = sample(negative_examples, 27)
     negative = 0
     positive = 0
     for rel in correct_s:
         min_distance = sys.maxint
         closest_sentence = None
         closest_sentence_type = 0
-        print "sentence:", rel.sentence
 
         for rel1 in incorrect_s:
             assert rel.matrix.shape == rel1.matrix.shape
-            dist_with_neg = sim_matrix(rel.matrix, rel1.matrix)
+            #dist_with_neg = sim_matrix(rel.matrix, rel1.matrix)
+            #dist_with_neg = distance_general(rel.matrix, rel1.matrix, 'fro')
+            dist_with_neg = sim_matrix_l2(rel.matrix, rel1.matrix)
             if dist_with_neg < min_distance:
                 min_distance = dist_with_neg
-                print min_distance
                 closest_sentence = rel1
                 closest_sentence_type = -1
 
@@ -538,10 +512,12 @@ def main():
             if rel == rel2:
                 continue
             assert rel.matrix.shape == rel2.matrix.shape
-            dist_with_pos = sim_matrix(rel.matrix, rel2.matrix)
+            #dist_with_pos = sim_matrix(rel.matrix, rel2.matrix)
+            #dist_with_pos = distance_general(rel.matrix, rel2.matrix, 'fro')
+            dist_with_pos = sim_matrix_l2(rel.matrix, rel2.matrix)
+
             if dist_with_pos < min_distance:
                 min_distance = dist_with_pos
-                print min_distance
                 closest_sentence = rel2
                 closest_sentence_type = 1
 
@@ -558,9 +534,14 @@ def main():
         elif closest_sentence_type == -1:
             negative += 1
 
-    print "\n"
+            print "sentence:", rel.sentence
+            print min_distance
+            print closest_sentence.sentence
+            print "====================================\n"
+
     print "closest to negative", negative
     print "closest to positive", positive
+    print "ratio: ", float(positive)/float(positive+negative)
 
 if __name__ == "__main__":
     main()
