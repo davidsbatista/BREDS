@@ -59,6 +59,7 @@ class BREDS(object):
                 count += 1
                 if count % 10000 == 0:
                     sys.stdout.write(".")
+                #TODO: com fcm, distância entre entidades na frase importa?
                 sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
                                     self.config.min_tokens_away, self.config.context_window_size)
                 for rel in sentence.relationships:
@@ -67,6 +68,7 @@ class BREDS(object):
                         self.processed_tuples.append(t)
             f_sentences.close()
 
+            #TODO: normalizar valores das matrizes para [0,1]
             print "\n", len(self.processed_tuples), "tuples generated"
             print "Writing generated tuples to disk"
             f = open("processed_tuples.pkl", "wb")
@@ -186,8 +188,10 @@ class BREDS(object):
 
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
-                #self.cluster_dbscan(self, matched_tuples)
-                self.cluster_tuples(matched_tuples)
+                if config.embeddings == 'fcm':
+                    self.cluster_dbscan(self, matched_tuples)
+                else:
+                    self.cluster_tuples(matched_tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
