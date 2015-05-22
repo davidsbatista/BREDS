@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
 import cPickle
+from collections import defaultdict
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import pairwise
 
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
@@ -338,10 +341,12 @@ def generate_relationships(parser, sd, examples, words):
         tree_deps = sd.convert_tree(str(t[0]))
         rel.dependencies = tree_deps
 
+        """
         idx1 = find_index_named_entity(rel.ent1, rel.dependencies)
         idx2 = find_index_named_entity(rel.ent2, rel.dependencies)
         rel.head_e1 = idx1
         rel.head_e2 = idx2
+        """
 
         deps = extract_shortest_dependency_path(rel)
         rel.dep_path = deps
@@ -427,6 +432,38 @@ def distance_general(a, b, norm_type):
     return np.absolute(norm_a - norm_b)
 
 
+def cluster_dbscan(examples):
+    # build a matrix with all the pairwise distances between all the matrix representing sentences
+    matrix = np.zeros((len(examples), len(examples)))
+    print "Calculating pairwise distances..."
+    for ex1 in range(len(examples)):
+        for ex2 in range(len(examples)):
+            dist = sim_matrix_l2(examples[ex1].matrix, examples[ex2].matrix)
+            matrix[ex1, ex2] = dist
+
+    # normalized all the distances
+    matrix_normalized = np.divide(matrix, matrix.max())
+
+    # perform DBSCAN
+    db = DBSCAN(eps=0.25, min_samples=2, metric='precomputed')
+    db.fit(matrix_normalized)
+    clusters = defaultdict(list)
+
+    print db.labels_
+    print "labels", len(db.labels_)
+    print "examples", len(examples)
+    assert len(db.labels_) == len(examples)
+
+    # aggregate results by label, discard -1 which is noise
+    for v in range(len(examples)):
+        label = db.labels_[v]
+        if label > -1:
+            clusters[label].append(examples[v])
+
+    for k in clusters:
+        print k, clusters[k]
+
+
 def main():
 
     if os.path.isfile("positive_sentences.pkl") and os.path.isfile("negative_sentences.pkl"):
@@ -487,6 +524,11 @@ def main():
         f = open("negative_sentences.pkl", "w")
         cPickle.dump(negative_examples, f)
         f.close()
+
+    # cluster the sentences
+    all_sentences = positive_examples + negative_examples
+    cluster_dbscan(all_sentences)
+    sys.exit(0)
 
     # start evaluation
     correct_s = sample(positive_examples, 27)
