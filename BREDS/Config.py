@@ -5,17 +5,26 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
+import os
+import re
+
+from nltk.parse.stanford import StanfordParser
 from nltk.corpus import stopwords
-from gensim.models import Word2Vec
 from nltk import WordNetLemmatizer
-from Word2VecWrapper import Word2VecWrapper
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
+from gensim.models import Word2Vec
+from Word2VecWrapper import Word2VecWrapper
+from StanfordDependencies import StanfordDependencies
 
 
 class Config(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
+
+        self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+        self.tags_regex = re.compile('</?[A-Z]+>', re.U)
+        self.e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
 
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
@@ -125,6 +134,14 @@ class Config(object):
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
+
+        if self.embeddings == 'fcm':
+            # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
+            # PARSER and STANFORD_MODELS enviroment variables need to be set
+            os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
+            os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
+            self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
+            self.sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):
