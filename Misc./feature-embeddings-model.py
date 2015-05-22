@@ -445,7 +445,7 @@ def cluster_dbscan(examples):
     matrix_normalized = np.divide(matrix, matrix.max())
 
     # perform DBSCAN
-    db = DBSCAN(eps=0.25, min_samples=2, metric='precomputed')
+    db = DBSCAN(eps=0.2, min_samples=2, metric='precomputed')
     db.fit(matrix_normalized)
     clusters = defaultdict(list)
 
@@ -454,14 +454,17 @@ def cluster_dbscan(examples):
     print "examples", len(examples)
     assert len(db.labels_) == len(examples)
 
-    # aggregate results by label, discard -1 which is noise
+    # aggregate results by label
+    # -1 represents noise
     for v in range(len(examples)):
         label = db.labels_[v]
-        if label > -1:
-            clusters[label].append(examples[v])
+        clusters[label].append(examples[v])
 
     for k in clusters:
-        print k, clusters[k]
+        print "label", k
+        for rel in clusters[k]:
+            print rel.sentence
+        print "\n"
 
 
 def main():
