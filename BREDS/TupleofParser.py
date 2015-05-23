@@ -46,8 +46,7 @@ class TupleOfParser(object):
             return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
                     self.bet_words == other.bet_words and self.aft_words == other.aft_words)
 
-        @staticmethod
-        def find_index_named_entity(entity, dependencies, config):
+        def find_index_named_entity(self, entity, dependencies):
 
             # split the entity into tokens
             e1_tokens = word_tokenize(entity)
@@ -74,7 +73,12 @@ class TupleOfParser(object):
                         # then set the last one has the index
                         if i + 1 == len(e1_tokens):
                             idx = j+1
-            return idx
+            try:
+                return idx
+            except UnboundLocalError:
+                print self.sentence
+                print entity
+                sys.exit(0)
 
         def get_heads(self, dependencies, token, heads):
             if dependencies[token.index-1].head == 0:
@@ -88,8 +92,8 @@ class TupleOfParser(object):
 
         def extract_shortest_dependency_path(self, config):
             # get position of entity and entity in tree
-            idx1 = self.find_index_named_entity(self.e1, self.dependencies, config)
-            idx2 = self.find_index_named_entity(self.e2, self.dependencies, config)
+            idx1 = self.find_index_named_entity(self.e1, self.dependencies)
+            idx2 = self.find_index_named_entity(self.e2, self.dependencies)
             self.head_e1 = idx1
             self.head_e2 = idx2
 
@@ -187,9 +191,6 @@ class TupleOfParser(object):
             # TODO: this can be done much quickly by looking at the Tree structure
             e1_tokens = word_tokenize(self.e1)
             e2_tokens = word_tokenize(self.e2)
-
-            print e1_tokens
-            print e2_tokens
 
             if len(e1_tokens) == 1:
                 pos_ent1_bgn = tokens.index(self.e1)

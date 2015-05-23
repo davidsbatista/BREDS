@@ -85,6 +85,7 @@ class BREDS(object):
             f_sentences.close()
 
             if self.config.embeddings == 'fcm':
+                print str(len(sentences)), "sentences to parse"
                 text_to_parse = list()
                 for s in sentences:
                     sentence_no_tags = re.sub(self.config.tags_regex, "", s.sentence)
@@ -93,7 +94,10 @@ class BREDS(object):
                 parsed_sentences = self.config.parser.raw_parse_sents(text_to_parse)
 
                 # generate relationships matrices
+                print "Computing FCM embedding matrix"
                 for i in range(len(parsed_sentences)):
+                    if i % 100 == 0:
+                        sys.stdout.write(".")
                     tree_deps = self.config.sd.convert_tree(str(parsed_sentences[i][0]))
                     # generate tuples, for valid pairs of entities only
                     for e1 in sentences[i].entities:
@@ -108,13 +112,19 @@ class BREDS(object):
                                 t = TupleOfParser(tree_deps, entity1, entity2, sentences[i].sentence, self.config)
                                 self.processed_tuples.append(t)
 
+                # globally normalize matrix values to [0,1]
+                print "Normalizing matrixes values"
+                max_value = 0
                 for t in self.processed_tuples:
-                    print t.sentence
+                    if t.matrix.max() > max_value:
+                        max_value = t.matrix.max()
+
+                for t in self.processed_tuples:
+                    t.matrix = np.divide(t.matrix, t.matrix.max())
+
+                for t in self.processed_tuples:
                     print t.matrix
-                    print t.features
-
-                #TODO: normalizar globalmente valores das matrizes para [0,1], globalmente, todas as matrize
-
+                    print "\n"
 
             print "\n", len(self.processed_tuples), "tuples generated"
             print "Writing generated tuples to disk"
