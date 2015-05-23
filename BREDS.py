@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
+from BREDS.TupleofParser import TupleOfParser
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -11,8 +13,8 @@ import codecs
 import operator
 import numpy as np
 
-from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
+from nltk import word_tokenize
 from numpy import dot
 from gensim import matutils
 from sklearn.cluster import DBSCAN
@@ -23,6 +25,7 @@ from BREDS.Pattern import Pattern
 from BREDS.Config import Config
 from BREDS.Tuple import Tuple
 from Common.Sentence import Sentence
+from Common.Sentence import SentenceParser
 from Common.Seed import Seed
 
 # usefull stuff for debugging
@@ -32,12 +35,12 @@ PRINT_PATTERNS = False
 
 class BREDS(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
         self.curr_iteration = 0
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
+        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file)
 
         # to control the semantic drift using the seeds from different iterations
         self.seeds_by_iteration = dict()
@@ -55,6 +58,7 @@ class BREDS(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
+            sentences = list()
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
@@ -62,16 +66,56 @@ class BREDS(object):
                 count += 1
                 if count % 10000 == 0:
                     sys.stdout.write(".")
-                #TODO: com fcm, distância entre entidades na frase importa?
-                sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
+
+                # Embeddings based on ReVerb patterns
+                if self.config.embeddings != 'fcm':
+                    sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
                                     self.config.min_tokens_away, self.config.context_window_size)
-                for rel in sentence.relationships:
-                    if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
+                    for rel in sentence.relationships:
+                        if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
+                            t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                            self.processed_tuples.append(t)
+
+                # Embeddings based on matrices
+                elif self.config.embeddings == 'fcm':
+                    sentence = SentenceParser(line.strip(), self.config.e1_type, self.config.e2_type)
+                    if sentence.valid is True:
+                        sentences.append(sentence)
+
             f_sentences.close()
 
-            #TODO: normalizar valores das matrizes para [0,1]
+            if self.config.embeddings == 'fcm':
+                text_to_parse = list()
+                for s in sentences:
+                    sentence_no_tags = re.sub(self.config.tags_regex, "", s.sentence)
+                    text_to_parse.append(sentence_no_tags)
+
+                parsed_sentences = self.config.parser.raw_parse_sents(text_to_parse)
+
+                # generate relationships matrices
+                for i in range(len(parsed_sentences)):
+                    tree_deps = self.config.sd.convert_tree(str(parsed_sentences[i][0]))
+                    # generate tuples, for valid pairs of entities only
+                    for e1 in sentences[i].entities:
+                        for e2 in sentences[i].entities:
+                            if e1 == e2:
+                                continue
+                            arg1match = re.match("<([A-Z]+)>", e1)
+                            arg2match = re.match("<([A-Z]+)>", e2)
+                            if arg1match.group(1) == self.config.e1_type and arg2match.group(1) == self.config.e2_type:
+                                entity1 = re.sub(self.config.tags_regex, "", e1)
+                                entity2 = re.sub(self.config.tags_regex, "", e2)
+                                t = TupleOfParser(tree_deps, entity1, entity2, sentences[i].sentence, self.config)
+                                self.processed_tuples.append(t)
+
+                for t in self.processed_tuples:
+                    print t.sentence
+                    print t.matrix
+                    print t.features
+
+                #TODO: normalizar globalmente valores das matrizes para [0,1], globalmente, todas as matrize
+
+
             print "\n", len(self.processed_tuples), "tuples generated"
             print "Writing generated tuples to disk"
             f = open("processed_tuples.pkl", "wb")
@@ -192,13 +236,13 @@ class BREDS(object):
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
                 if self.config.embeddings == 'fcm':
-                    self.cluster_dbscan(self, matched_tuples)
+                    self.cluster_dbscan(matched_tuples)
                 else:
-                    self.cluster_tuples(self, matched_tuples)
+                    self.cluster_tuples(matched_tuples)
                     # Eliminate patterns supported by less than 'min_pattern_support' tuples
                     new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
+                    self.patterns = new_patterns
 
-                self.patterns = new_patterns
                 print "\n", len(self.patterns), "patterns generated"
 
                 if PRINT_PATTERNS is True:
@@ -239,6 +283,7 @@ class BREDS(object):
                         sys.stdout.write(".")
                         sys.stdout.flush()
                     sim_best = 0
+                    accept = 0
                     for extraction_pattern in self.patterns:
                         #accept, score = self.similarity_all_1(t, extraction_pattern)
                         if self.config.embeddings == 'fcm':
@@ -539,7 +584,7 @@ class BREDS(object):
 
     @staticmethod
     def tokenize(text):
-        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in stopwords.words('english')]
+        return [word for word in word_tokenize(text.lower()) if word not in stopwords.words('english')]
 
     def cluster_dbscan(self, matched_tuples):
         # build a matrix with all the pairwise distances between all the matrix representing sentences
@@ -597,7 +642,7 @@ def main():
     similarity = sys.argv[5]
     # confidence threshold of an instance to used as seed
     confidance = sys.argv[6]
-    breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
+    breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
     if sentences_file.endswith('.pkl'):
         print "Loading pre-processed sentences", sentences_file
         breads.init_bootstrapp(tuples=sentences_file)

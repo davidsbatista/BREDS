@@ -5,7 +5,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import re
-from nltk import PunktWordTokenizer
+from nltk import word_tokenize
 
 regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
@@ -86,14 +86,14 @@ class Sentence:
                 after = self.sentence[matches[x + 1].end(): end]
 
                 # select 'window_size' tokens from left and right context
-                before = PunktWordTokenizer().tokenize(before)[-window_size:]
-                after = PunktWordTokenizer().tokenize(after)[:window_size]
+                before = word_tokenize(before)[-window_size:]
+                after = word_tokenize(after)[:window_size]
                 before = ' '.join(before)
                 after = ' '.join(after)
 
                 # only consider relationships where the distance between the two entities
                 # is less than 'max_tokens' and greater than 'min_tokens'
-                number_bet_tokens = len(PunktWordTokenizer().tokenize(between))
+                number_bet_tokens = len(word_tokenize(between))
                 if not number_bet_tokens > max_tokens and not number_bet_tokens < min_tokens:
                     ent1 = matches[x].group()
                     ent2 = matches[x + 1].group()
@@ -107,6 +107,7 @@ class Sentence:
                     if ent1 == ent2:
                         continue
 
+                    #TODO: confirmar que nao ha aqui um BUG
                     if e1_type is not None and arg2type is not e2_type:
                         # restrict relationships by the arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
@@ -119,3 +120,25 @@ class Sentence:
                         rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
                                            _type=None)
                         self.relationships.add(rel)
+
+
+class SentenceParser:
+
+    def __init__(self, _sentence, e1_type, e2_type):
+        self.relationships = set()
+        self.sentence = _sentence
+        self.entities = list()
+        self.valid = False
+
+        for m in re.finditer(regex, self.sentence):
+            self.entities.append(m.group())
+
+        for e1 in self.entities:
+            for e2 in self.entities:
+                if e1 == e2:
+                    continue
+                arg1match = re.match("<([A-Z]+)>", e1)
+                arg2match = re.match("<([A-Z]+)>", e2)
+                if arg1match.group(1) == e1_type and arg2match.group(1) == e2_type:
+                    self.valid = True
+                    break;

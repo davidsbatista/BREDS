@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import codecs
-from gensim import corpora
-import sys
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -10,25 +7,30 @@ __email__ = "dsbatista@inesc-id.pt"
 import fileinput
 import os
 import re
+import codecs
+import cPickle
+import sys
 
-from nltk.parse.stanford import StanfordParser
+#from nltk.parse.stanford import StanfordParser
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
 from nltk import word_tokenize
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
+from Common.Stanford import StanfordParser
 from gensim.models import Word2Vec
+from gensim import corpora
 from Word2VecWrapper import Word2VecWrapper
 from StanfordDependencies import StanfordDependencies
 
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
 
         self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
-        self.e_types = {'<ORG>': 3, '<LOC>': 4, '<PER>': 5}
+        self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
 
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
@@ -136,9 +138,6 @@ class Config(object):
         print "iteration wUpdt      :", self.wUpdt
         print "semantic drift filter:", self.semantic_drift
         print "\n"
-        print "Loading word2vec model ...\n"
-        self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
-        self.vec_dim = self.word2vec.layer1_size
 
         if self.embeddings == 'fcm':
             # Load Stanford Parser using NLTK interface and PyStanfordDependencies to get the syntactic dependencies
@@ -149,19 +148,34 @@ class Config(object):
             self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
             self.sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
+        if os.path.isfile("vocabulary_words.pkl"):
+            print "Loading vocabulary from disk"
+            f = open("vocabulary_words.pkl")
+            self.dictionary = cPickle.load(f)
+            f.close()
+        else:
             # generate a dictionary of all the words
-            self.generate_dictionary()
+            self.generate_dictionary(sentences_file)
+            f = open("vocabulary_words.pkl", "w")
+            cPickle.dump(self.dictionary, f)
+            f.close()
+
+        print len(self.dictionary.token2id), "unique tokens"
+
+        print "\n\nLoading word2vec model ...\n"
+        self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
+        self.vec_dim = self.word2vec.layer1_size
 
     def generate_dictionary(self, sentences_file):
         f_sentences = codecs.open(sentences_file, encoding='utf-8')
         documents = list()
         count = 0
-        print "Gathering sentences and removing stopwords"
+        print "Generating vocabulary index from sentences..."
         for line in f_sentences:
             line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
-
             # remove stop words and tokenize
-            document = [word for word in word_tokenize(line.lower()) if word not in stopwords]
+            document = [word for word in word_tokenize(line.lower()) if word not in self.stopwords]
+            #document = [word for word in word_tokenize(line.lower())]
             documents.append(document)
             count += 1
             if count % 10000 == 0:
