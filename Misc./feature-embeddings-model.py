@@ -16,7 +16,6 @@ import cPickle
 from collections import defaultdict
 from gensim.models import Word2Vec
 from sklearn.cluster import DBSCAN
-from sklearn.metrics import pairwise
 from nltk import word_tokenize
 from nltk.parse.stanford import StanfordParser
 
