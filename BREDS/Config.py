@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import codecs
+from gensim import corpora
+import sys
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -11,6 +14,7 @@ import re
 from nltk.parse.stanford import StanfordParser
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
+from nltk import word_tokenize
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
 from gensim.models import Word2Vec
@@ -37,6 +41,7 @@ class Config(object):
         self.instance_confidance = confidance
         self.word2vecwrapper = Word2VecWrapper()
         self.reverb = Reverb()
+        self.dictionary = None
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -136,12 +141,34 @@ class Config(object):
         self.vec_dim = self.word2vec.layer1_size
 
         if self.embeddings == 'fcm':
+            # Load Stanford Parser using NLTK interface and PyStanfordDependencies to get the syntactic dependencies
             # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
             # PARSER and STANFORD_MODELS enviroment variables need to be set
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
             self.sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
+
+            # generate a dictionary of all the words
+            self.generate_dictionary()
+
+    def generate_dictionary(self, sentences_file):
+        f_sentences = codecs.open(sentences_file, encoding='utf-8')
+        documents = list()
+        count = 0
+        print "Gathering sentences and removing stopwords"
+        for line in f_sentences:
+            line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
+
+            # remove stop words and tokenize
+            document = [word for word in word_tokenize(line.lower()) if word not in stopwords]
+            documents.append(document)
+            count += 1
+            if count % 10000 == 0:
+                sys.stdout.write(".")
+
+        f_sentences.close()
+        self.dictionary = corpora.Dictionary(documents)
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):

@@ -39,6 +39,7 @@ class Tuple(object):
             self.head_e2 = None
             self.deps_path = None
             self.matrix = None
+            self.featues = None
 
             if config.embeddings == 'fcm':
                 self.generate_fcm_embedding(config)
@@ -159,10 +160,10 @@ class Tuple(object):
             shortest_path = list()
 
             heads_e1 = list()
-            self.get_heads(self, self.dependencies, self.dependencies[idx1-1], heads_e1)
+            self.get_heads(self.dependencies, self.dependencies[idx1-1], heads_e1)
 
             heads_e2 = list()
-            self.get_heads(self, self.dependencies, self.dependencies[idx2-1], heads_e2)
+            self.get_heads(self.dependencies, self.dependencies[idx2-1], heads_e2)
 
             e1 = self.dependencies[idx1-1]
             e2 = self.dependencies[idx2-1]
@@ -232,25 +233,21 @@ class Tuple(object):
 
             return shortest_path
 
-        def build_matrix(self, rel, vocabulary, config):
-            """
-            :param rel: a relationship
-            :return: a matrix representing the relationship sentence
-            """
+        def build_matrix(self, config):
 
             word_matrixes = list()
-            sentence = re.sub(config.tags_regex, "", rel.sentence)
+            sentence = re.sub(config.tags_regex, "", self.sentence)
             tokens = word_tokenize(sentence)
-            assert len(tokens) == len(rel.dependencies)
+            assert len(tokens) == len(self.dependencies)
 
             # find start and end indexes for named-entities
             # TODO: this can be done much quickly by looking at the Tree structure
-            e1_tokens = word_tokenize(rel.ent1)
-            e2_tokens = word_tokenize(rel.ent2)
+            e1_tokens = word_tokenize(self.e1)
+            e2_tokens = word_tokenize(self.e2)
 
             if len(e1_tokens) == 1:
-                pos_ent1_bgn = tokens.index(rel.ent1)
-                pos_ent1_end = tokens.index(rel.ent1)
+                pos_ent1_bgn = tokens.index(self.e1)
+                pos_ent1_end = tokens.index(self.e1)
 
             else:
                 pos_ent1_bgn = tokens.index(e1_tokens[0])
@@ -266,12 +263,12 @@ class Tuple(object):
                 if z - pos_ent1_bgn == i:
                     pos_ent1_end = z-1
                 else:
-                    print "E1", rel.ent1, "not found"
+                    print "E1", self.e1, "not found"
                     sys.exit(0)
 
             if len(e2_tokens) == 1:
-                pos_ent2_bgn = tokens.index(rel.ent2)
-                pos_ent2_end = tokens.index(rel.ent2)
+                pos_ent2_bgn = tokens.index(self.e2)
+                pos_ent2_end = tokens.index(self.e2)
 
             else:
                 pos_ent2_bgn = tokens.index(e2_tokens[0])
@@ -287,7 +284,7 @@ class Tuple(object):
                 if z - pos_ent2_bgn == i:
                     pos_ent2_end = z-1
                 else:
-                    print "E2", rel.ent1, "not found"
+                    print "E2", self.e1, "not found"
                     sys.exit(0)
 
             # start feature extraction
@@ -316,20 +313,20 @@ class Tuple(object):
                 #################################################
 
                 # wether the word is the head entity
-                if rel.dependencies[w] == rel.dependencies[rel.head_e1-1]:
+                if self.dependencies[w] == self.dependencies[self.head_e1-1]:
                     features["head_emb"] = 1
-                    features["head_emb_h1:"+rel.e1_type] = 1
+                    features["head_emb_h1:"+config.e1_type] = 1
 
-                if rel.dependencies[w] == rel.dependencies[rel.head_e2-1]:
+                if self.dependencies[w] == self.dependencies[self.head_e2-1]:
                     features["head_emb"] = 1
-                    features["head_emb_h2:"+rel.e2_type] = 1
+                    features["head_emb_h2:"+config.e2_type] = 1
 
                 # whether the word is on the path between the two entities
-                if rel.dependencies[w] in rel.dep_path:
+                if self.dependencies[w] in self.deps_path:
                     features["on-path"] = 1
-                    features["on-path_h1:"+rel.e1_type] = 1
-                    features["on-path_h2:"+rel.e2_type] = 1
-                    features["on-path_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 1
+                    features["on-path_h1:"+config.e1_type] = 1
+                    features["on-path_h2:"+config.e2_type] = 1
+                    features["on-path_h1_h2:"+config.e1_type+"_"+config.e2_type] = 1
 
                 ##########################
                 # extract local features
@@ -337,25 +334,27 @@ class Tuple(object):
                 # in-between
                 if pos_ent1_end < w < pos_ent2_bgn:
                     features["in-between"] = 1
-                    features["in-between_h1:"+rel.e1_type] = 1
-                    features["in-between_h2:"+rel.e2_type] = 1
-                    features["in-between_h1_h2:"+rel.e1_type+"_"+rel.e1_type] = 1
+                    features["in-between_h1:"+config.e1_type] = 1
+                    features["in-between_h2:"+config.e2_type] = 1
+                    features["in-between_h1_h2:"+config.e1_type+"_"+config.e2_type] = 1
 
                 # context
                 if w == pos_ent1_bgn or w == pos_ent1_end:
                     if w-1 > 0:
-                        features["left_context_e1"] = vocabulary[tokens[pos_ent1_bgn-1]]
+
+
+                        features["left_context_e1"] = config.dictionary.token2id([tokens[pos_ent1_bgn-1]])
                     if pos_ent1_end+1 < len(tokens):
-                        features["right_context_e1"] = vocabulary[tokens[pos_ent1_end+1]]
+                        features["right_context_e1"] = config.dictionary.token2id([tokens[pos_ent1_end+1]])
 
                 if w == pos_ent2_bgn or w == pos_ent2_end:
                     if w-1 > 0:
-                        features["left_context_e2"] = vocabulary[tokens[pos_ent2_bgn-1]]
+                        features["left_context_e2"] = config.dictionary.token2id([tokens[pos_ent2_bgn-1]])
                     if pos_ent2_end+1 < len(tokens):
-                        features["right_context_e2"] = vocabulary[tokens[pos_ent2_end+1]]
+                        features["right_context_e2"] = config.dictionary.token2id([tokens[pos_ent2_end+1]])
 
                 # add filled features vectors to Relationship instance
-                rel.features = features
+                self.features = features
 
                 # transform features into feature vector
                 features_keys = sorted(features.keys())
@@ -395,5 +394,5 @@ class Tuple(object):
             tree_deps = config.sd.convert_tree(str(t[0]))
             self.dependencies = tree_deps
             self.deps_path = self.extract_shortest_dependency_path()
-            sentence_matrix = self.build_matrix(self, config)
+            sentence_matrix = self.build_matrix(config)
             self.matrix = sentence_matrix
