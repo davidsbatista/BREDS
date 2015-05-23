@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -
-import cPickle
-from collections import defaultdict
-from sklearn.cluster import DBSCAN
-from sklearn.metrics import pairwise
-
 __author__ = 'dsbatista'
 __email__ = "dsbatista@inesc-id.pt"
 
@@ -16,8 +11,12 @@ import sys
 import graphviz
 import numpy as np
 import StanfordDependencies
+import cPickle
 
+from collections import defaultdict
 from gensim.models import Word2Vec
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import pairwise
 from nltk import word_tokenize
 from nltk.parse.stanford import StanfordParser
 
