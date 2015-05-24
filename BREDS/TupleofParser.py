@@ -51,6 +51,9 @@ class TupleOfParser(object):
             # split the entity into tokens
             e1_tokens = word_tokenize(entity)
 
+            if e1_tokens[-1] == ".":
+                e1_tokens = [entity]
+
             # if entities are one token only get entities index directly
             if len(e1_tokens) == 1:
                 for token in dependencies:
@@ -76,8 +79,11 @@ class TupleOfParser(object):
             try:
                 return idx
             except UnboundLocalError:
-                print self.sentence
                 print entity
+                print e1_tokens
+                for t in dependencies:
+                    print t
+                print self.sentence
                 sys.exit(0)
 
         def get_heads(self, dependencies, token, heads):
@@ -191,6 +197,12 @@ class TupleOfParser(object):
             # TODO: this can be done much quickly by looking at the Tree structure
             e1_tokens = word_tokenize(self.e1)
             e2_tokens = word_tokenize(self.e2)
+
+            if e1_tokens[-1] == ".":
+                e1_tokens = [self.e1]
+
+            if e1_tokens[-1] == ".":
+                e1_tokens = [self.e2]
 
             if len(e1_tokens) == 1:
                 pos_ent1_bgn = tokens.index(self.e1)

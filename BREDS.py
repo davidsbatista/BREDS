@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import re
-from BREDS.TupleofParser import TupleOfParser
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -12,6 +10,8 @@ import os
 import codecs
 import operator
 import numpy as np
+import re
+import time
 
 from nltk.corpus import stopwords
 from nltk import word_tokenize
@@ -24,6 +24,7 @@ from BREDS.PatternMatrices import PatternMatrices
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
 from BREDS.Tuple import Tuple
+from BREDS.TupleofParser import TupleOfParser
 from Common.Sentence import Sentence
 from Common.Sentence import SentenceParser
 from Common.Seed import Seed
@@ -85,6 +86,7 @@ class BREDS(object):
             f_sentences.close()
 
             if self.config.embeddings == 'fcm':
+                start = time.time()
                 print str(len(sentences)), "sentences to parse"
                 text_to_parse = list()
                 for s in sentences:
@@ -92,6 +94,8 @@ class BREDS(object):
                     text_to_parse.append(sentence_no_tags)
 
                 parsed_sentences = self.config.parser.raw_parse_sents(text_to_parse)
+                end = time.time()
+                print "Time taken: %.2f seconds" % (end - start)
 
                 # generate relationships matrices
                 print "Computing FCM embedding matrix"
@@ -99,6 +103,7 @@ class BREDS(object):
                     if i % 100 == 0:
                         sys.stdout.write(".")
                     tree_deps = self.config.sd.convert_tree(str(parsed_sentences[i][0]))
+
                     # generate tuples, for valid pairs of entities only
                     for e1 in sentences[i].entities:
                         for e2 in sentences[i].entities:
