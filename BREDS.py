@@ -4,6 +4,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import multiprocessing
 import cPickle
 import sys
 import os
@@ -12,6 +13,7 @@ import operator
 import numpy as np
 import re
 import time
+import Queue
 
 from nltk.corpus import stopwords
 from nltk import word_tokenize
@@ -87,26 +89,73 @@ class BREDS(object):
 
             if self.config.embeddings == 'fcm':
                 start = time.time()
-                print str(len(sentences)), "sentences to parse"
+                print "\n"+str(len(sentences)), "sentences to parse"
                 text_to_parse = list()
                 for s in sentences:
                     sentence_no_tags = re.sub(self.config.tags_regex, "", s.sentence)
+                    #sentence_tokenized = word_tokenize(sentence_no_tags)
                     text_to_parse.append(sentence_no_tags)
-
-                parsed_sentences = self.config.parser.raw_parse_sents(text_to_parse)
+                #trees, deps = self.config.parser.raw_parse_sents_deps(text_to_parse)
+                trees = self.config.parser.raw_parse_sents_deps(text_to_parse)
                 end = time.time()
                 print "Time taken: %.2f seconds" % (end - start)
 
-                # generate relationships matrices
-                print "Computing FCM embedding matrix"
-                for i in range(len(parsed_sentences)):
-                    if i % 100 == 0:
-                        sys.stdout.write(".")
-                    tree_deps = self.config.sd.convert_tree(str(parsed_sentences[i][0]))
+                print "\nConverting", str(len(sentences)),"trees"
+                start = time.time()
+                deps = self.config.parser.convert_trees(trees)
+                end = time.time()
+                print "Time taken: %.2f seconds" % (end - start)
 
-                    # generate tuples, for valid pairs of entities only
-                    for e1 in sentences[i].entities:
-                        for e2 in sentences[i].entities:
+
+                """
+                try:
+                    assert len(trees) == len(deps) == len(sentences)
+                except AssertionError:
+                    print "Error in Parsing"
+                    print "Trees", len(trees)
+                    print "Deps", len(deps)
+                    print "Sentences", len(sentences)
+                    sys.exit(0)
+                """
+
+                """
+                print "Computing FCM embeddings"
+                queue = multiprocessing.Queue()
+                #num_cpus = multiprocessing.cpu_count()
+                num_cpus = 1
+
+                print "Putting everything in a Queue"
+                for i in range(len(sentences)):
+                    sentences[i].tree = trees[i]
+                    sentences[i].deps = deps[i]
+                    queue.put(sentences[i])
+                print "Done all"
+
+                print "Generating matrices"
+                # 2. função que retira da queue, cria TupleParser completo, e poem em processed_tuples
+                m = multiprocessing.Manager()
+                results = [m.list() for _ in range(num_cpus)]
+                processes = [multiprocessing.Process(target=self.create_matrices, args=(queue, results[i])) for i in range(num_cpus)]
+
+                for proc in processes:
+                    proc.start()
+                for proc in processes:
+                    proc.join()
+
+                all_results = list()
+                for l in results:
+                    all_results.extend(l)
+
+                for t in all_results:
+                    self.processed_tuples.append(t)
+                """
+
+                print "Processing sentences"
+                for i in range(len(sentences)):
+                    s = sentences[i]
+                    s.deps = deps[i]
+                    for e1 in s.entities:
+                        for e2 in s.entities:
                             if e1 == e2:
                                 continue
                             arg1match = re.match("<([A-Z]+)>", e1)
@@ -114,8 +163,9 @@ class BREDS(object):
                             if arg1match.group(1) == self.config.e1_type and arg2match.group(1) == self.config.e2_type:
                                 entity1 = re.sub(self.config.tags_regex, "", e1)
                                 entity2 = re.sub(self.config.tags_regex, "", e2)
-                                t = TupleOfParser(tree_deps, entity1, entity2, sentences[i].sentence, self.config)
+                                t = TupleOfParser(entity1, entity2, s.deps, s.sentence, self.config)
                                 self.processed_tuples.append(t)
+                print "Done all"
 
                 # globally normalize matrix values to [0,1]
                 print "Normalizing matrixes values"
@@ -136,6 +186,25 @@ class BREDS(object):
             f = open("processed_tuples.pkl", "wb")
             cPickle.dump(self.processed_tuples, f)
             f.close()
+
+    def create_matrices(self, queue, results):
+        while True:
+            try:
+                s = queue.get_nowait()
+                print "Analyzing sentence"
+                for e1 in s.entities:
+                    for e2 in s.entities:
+                        if e1 == e2:
+                            continue
+                        arg1match = re.match("<([A-Z]+)>", e1)
+                        arg2match = re.match("<([A-Z]+)>", e2)
+                        if arg1match.group(1) == self.config.e1_type and arg2match.group(1) == self.config.e2_type:
+                            entity1 = re.sub(self.config.tags_regex, "", e1)
+                            entity2 = re.sub(self.config.tags_regex, "", e2)
+                            t = TupleOfParser(entity1, entity2, s.deps, s.sentence, self.config)
+                            results.append(t)
+            except Queue.Empty:
+                break
 
     def similarity_3_contexts(self, p, t):
         (bef, bet, aft) = (0, 0, 0)
@@ -611,11 +680,11 @@ class BREDS(object):
                 matrix[ex1, ex2] = dist
 
         # normalized all the distances
-        matrix_normalized = np.divide(matrix, matrix.max())
+        #matrix_normalized = np.divide(matrix, matrix.max())
 
         # perform DBSCAN
         db = DBSCAN(eps=0.2, min_samples=2, metric='precomputed')
-        db.fit(matrix_normalized)
+        db.fit(matrix)
         clusters = defaultdict(list)
 
         print db.labels_

@@ -20,6 +20,8 @@ from nltk.internals import find_jar, find_jar_iter, config_java, java, _java_opt
 from nltk.parse.api import ParserI
 from nltk.tree import Tree
 
+from Common.StanfordDependencies.CoNLL import Corpus,Sentence,Token
+
 _stanford_url = 'http://nlp.stanford.edu/software/lex-parser.shtml'
 
 
@@ -110,6 +112,62 @@ class StanfordParser(ParserI):
                 cur_lines.append(line)
         return res
 
+    @staticmethod
+    def _parse_deps_output(output_):
+        res_trees = []
+        res_deps = []
+        cur_lines = []
+        inside_tree = False
+        inside_deps = False
+        tree_processed = False
+        deps_processed = False
+
+        print "Stanford parser finished"
+        print "Converting Dependencies to Tokens"
+
+        for line in output_.splitlines(False):
+            if line.startswith("(ROOT"):
+                inside_tree = True
+
+            if inside_tree is True:
+                if line == '':
+                    res_trees.append(Tree.fromstring('\n'.join(cur_lines)))
+                    cur_lines = []
+                    tree_processed = True
+                    inside_tree = False
+                else:
+                    cur_lines.append(line)
+
+            if tree_processed is True and inside_deps is False:
+                inside_deps = True
+                continue
+
+            if inside_deps is True:
+                if line == '':
+                    res_deps.append(Sentence.from_stanford_dependencies(cur_lines, str(res_trees[-1])))
+                    cur_lines = []
+                    deps_processed = True
+                    inside_deps = False
+                else:
+                    # For some sentences Stanford Parser outputs repeated depenencies with an ' added
+                    # skip those, e.g:
+                    # nsubj(led-2, That-1)
+                    # nsubj(led-2', That-1)
+                    if re.match('.*[0-9]+\'', line):
+                        pass
+                    else:
+                        cur_lines.append(line)
+
+            if inside_deps is False and deps_processed is True:
+                #reset all, finishing processing one sentence
+                cur_lines = []
+                inside_tree = False
+                inside_deps = False
+                tree_processed = False
+                deps_processed = False
+
+        return res_trees, res_deps
+
     def parse_all(self, sentence, verbose=False):
         """
         Use StanfordParser to parse a sentence. Takes a sentence as a list of
@@ -177,6 +235,72 @@ class StanfordParser(ParserI):
         ]
         return self._parse_trees_output(self._execute(cmd, '\n'.join(sentences), verbose))
 
+    def raw_parse_sents_deps(self, sentences, verbose=False):
+        """
+        Use StanfordParser to parse multiple sentences. Takes multiple sentences as a
+        list of strings.
+        Each sentence will be automatically tokenized and tagged by the Stanford Parser.
+
+        :param sentences: Input sentences to parse
+        :type sentences: list(str)
+        :rtype: list(Tree)
+        """
+        cmd = [
+            'edu.stanford.nlp.parser.lexparser.LexicalizedParser',
+            '-model', self.model_path,
+            '-nthreads', '12',
+            '-sentences', 'newline',
+            '-encoding', 'UTF-8',
+            '-outputFormat', 'penn',
+        ]
+        #'-outputFormat', 'penn,typedDependencies',
+        return self._parse_trees_output(self._execute(cmd, '\n'.join(sentences), verbose))
+
+    def convert_trees(self, ptb_trees, representation='basic',
+                      include_punct=True, include_erased=False, verbose=False):
+        """Convert a list of Penn Treebank formatted trees (ptb_trees)
+        into Stanford Dependencies. The dependencies are represented
+        as a list of sentences, where each sentence is itself a list of
+        Token objects.
+
+        Currently supported representations are 'basic', 'collapsed',
+        'CCprocessed', and 'collapsedTree' which behave the same as they
+        in the CoreNLP command line tools.
+
+        Setting debug=True will cause debugging information (including
+        the java command run to be printed."""
+        #self._raise_on_bad_representation(representation)
+        #input_file = tempfile.NamedTemporaryFile(delete=False)
+
+        trees = list()
+        for ptb_tree in ptb_trees:
+            #input_file.write(str(ptb_tree) + '\n')
+            trees.append(str(ptb_tree)+'\n')
+
+        encoding = self._encoding
+        cmd = [
+            'edu.stanford.nlp.trees.EnglishGrammaticalStructure',
+            '-nthreads', '12',
+            '-keepPunct',
+            '-encoding', encoding,
+            '-' + representation, '-treeFile']
+
+        # if we're including erased, we want to include punctuation
+        # since otherwise we won't know what SD considers punctuation
+        #if include_punct or include_erased:
+        stdout = self._execute(cmd, '\n'.join(trees), verbose, convert=True)
+
+
+        sentences = Corpus.from_stanford_dependencies(stdout.splitlines(),
+                                                      ptb_trees,
+                                                      include_erased,
+                                                      include_punct)
+        assert len(sentences) == len(ptb_trees), \
+            "Only got %d sentences from Stanford Dependencies when " \
+            "given %d trees." % (len(sentences), len(ptb_trees))
+        return sentences
+
+
     def tagged_parse(self, sentence, verbose=False):
         """
         Use StanfordParser to parse a sentence. Takes a sentence as a list of
@@ -214,9 +338,10 @@ class StanfordParser(ParserI):
         return self._parse_trees_output(self._execute(
             cmd, '\n'.join(' '.join(tag_separator.join(tagged) for tagged in sentence) for sentence in sentences), verbose))
 
-    def _execute(self, cmd, input_, verbose=False):
+    def _execute(self, cmd, input_, verbose=False, convert=False):
         encoding = self._encoding
-        cmd.extend(['-encoding', encoding])
+        if convert is False:
+            cmd.extend(['-encoding', encoding])
 
         default_options = ' '.join(_java_options)
 
@@ -236,7 +361,7 @@ class StanfordParser(ParserI):
             # Run the tagger and get the output.
             stdout, stderr = java(cmd, classpath=(self._stanford_jar, self._model_jar),
                                   stdout=PIPE, stderr=PIPE)
-            stdout = stdout.decode(encoding)
+            #stdout = stdout.decode(encoding)
 
         os.unlink(input_file.name)
 

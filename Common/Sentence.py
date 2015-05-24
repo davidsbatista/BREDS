@@ -129,6 +129,8 @@ class SentenceParser:
         self.sentence = _sentence
         self.entities = list()
         self.valid = False
+        self.tree = None
+        self.deps = None
 
         for m in re.finditer(regex, self.sentence):
             self.entities.append(m.group())

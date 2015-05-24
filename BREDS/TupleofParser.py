@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import re
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import re
 import sys
 import numpy as np
 
@@ -12,11 +12,7 @@ from nltk import word_tokenize
 
 
 class TupleOfParser(object):
-        # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-        # select everything except stopwords, ADJ and ADV
-        filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
-
-        def __init__(self, _dependency_tree, _e1, _e2, _sentence, config):
+        def __init__(self, _e1, _e2, _dependency_tree, _sentence, config):
             self.e1 = _e1
             self.e2 = _e2
             self.sentence = _sentence
@@ -31,9 +27,6 @@ class TupleOfParser(object):
             self.features = None
             self.generate_fcm_embedding(config)
 
-        def __str__(self):
-            return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
-
         def __cmp__(self, other):
             if other.confidence > self.confidence:
                 return -1
@@ -42,48 +35,48 @@ class TupleOfParser(object):
             else:
                 return 0
 
-        def __eq__(self, other):
-            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
-                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
-
-        def find_index_named_entity(self, entity, dependencies):
+        @staticmethod
+        def find_index_named_entity(entity, dependencies):
 
             # split the entity into tokens
-            e1_tokens = word_tokenize(entity)
+            e_tokens = word_tokenize(entity)
 
-            if e1_tokens[-1] == ".":
-                e1_tokens = [entity]
+            if e_tokens[-1] == "." and len(e_tokens) == 2:
+                e_tokens = [entity]
+
+            elif e_tokens[-1] == "." and len(e_tokens) > 2:
+                # merge last two tokens
+                new = ''.join(e_tokens[-2:])
+                del e_tokens[-1]
+                del e_tokens[-1]
+                e_tokens.append(new)
 
             # if entities are one token only get entities index directly
-            if len(e1_tokens) == 1:
+            if len(e_tokens) == 1:
                 for token in dependencies:
                     if token.form == entity:
                         idx = token.index
 
-            # if the entities are constituied by more than one token, find first match
+            # if the entities are constituied by more than one token, match the first token then
             # compare sequentally all matches, if reaches the end of the entity, assume entity was
             # found in the dependencies
-            elif len(e1_tokens) > 1:
+            elif len(e_tokens) > 1:
                 for token in dependencies:
-                    if token.form == e1_tokens[0]:
+                    if token.form == e_tokens[0]:
                         j = dependencies.index(token)
                         i = 0
-                        while (i + 1 < len(e1_tokens)) and e1_tokens[i + 1] == dependencies[j + 1].form:
+                        while (i + 1 < len(e_tokens)) and e_tokens[i + 1] == dependencies[j + 1].form:
                             i += 1
                             j += 1
 
                         # if all the sequente tokens are equal to the tokens in the named-entity
                         # then set the last one has the index
-                        if i + 1 == len(e1_tokens):
-                            idx = j+1
+                        if i + 1 == len(e_tokens):
+                            idx = j + 1
             try:
                 return idx
             except UnboundLocalError:
-                print entity
-                print e1_tokens
-                for t in dependencies:
-                    print t
-                print self.sentence
+                print "No idx found!"
                 sys.exit(0)
 
         def get_heads(self, dependencies, token, heads):
@@ -105,11 +98,25 @@ class TupleOfParser(object):
 
             shortest_path = list()
 
-            heads_e1 = list()
-            self.get_heads(self.dependencies, self.dependencies[idx1-1], heads_e1)
+            try:
+                heads_e1 = list()
+                self.get_heads(self.dependencies, self.dependencies[idx1-1], heads_e1)
+                heads_e2 = list()
+                self.get_heads(self.dependencies, self.dependencies[idx2-1], heads_e2)
 
-            heads_e2 = list()
-            self.get_heads(self.dependencies, self.dependencies[idx2-1], heads_e2)
+            except RuntimeError, e:
+                print "ERROR!!!"
+                print e
+                print self.sentence
+                print self.e1
+                print self.e2
+                print "idx1", self.head_e1
+                print "idx2", self.head_e2
+                print self.dependencies
+                for t in self.dependencies:
+                    print t
+                print "\n"
+                sys.exit(0)
 
             e1 = self.dependencies[idx1-1]
             e2 = self.dependencies[idx2-1]
@@ -194,20 +201,42 @@ class TupleOfParser(object):
                 sys.exit(0)
 
             # find start and end indexes for named-entities
-            # TODO: this can be done much quickly by looking at the Tree structure
             e1_tokens = word_tokenize(self.e1)
             e2_tokens = word_tokenize(self.e2)
 
-            if e1_tokens[-1] == ".":
+            if e1_tokens[-1] == "." and len(e1_tokens) == 2:
                 e1_tokens = [self.e1]
+            # merge last two tokens
+            elif e1_tokens[-1] == "." and len(e1_tokens) > 2:
+                new = ''.join(e1_tokens[-2:])
+                del e1_tokens[-1]
+                del e1_tokens[-1]
+                e1_tokens.append(new)
 
-            if e1_tokens[-1] == ".":
-                e1_tokens = [self.e2]
+            if e2_tokens[-1] == "." and len(e2_tokens) == 2:
+                e2_tokens = [self.e2]
+            # merge last two tokens
+            elif e2_tokens[-1] == "." and len(e2_tokens) > 2:
+                new = ''.join(e2_tokens[-2:])
+                del e2_tokens[-1]
+                del e2_tokens[-1]
+                e2_tokens.append(new)
 
             if len(e1_tokens) == 1:
                 pos_ent1_bgn = tokens.index(self.e1)
                 pos_ent1_end = tokens.index(self.e1)
+            else:
+                pos_ent1_bgn = tokens.index(e1_tokens[0])
+                pos_ent1_end = tokens.index(e1_tokens[-1])
 
+            if len(e2_tokens) == 1:
+                pos_ent2_bgn = tokens.index(self.e2)
+                pos_ent2_end = tokens.index(self.e2)
+            else:
+                pos_ent2_bgn = tokens.index(e2_tokens[0])
+                pos_ent2_end = tokens.index(e2_tokens[-1])
+
+            """
             else:
                 pos_ent1_bgn = tokens.index(e1_tokens[0])
                 z = pos_ent1_bgn+1
@@ -245,6 +274,7 @@ class TupleOfParser(object):
                 else:
                     print "E2", self.e1, "not found"
                     sys.exit(0)
+            """
 
             # start feature extraction
             for w in range(len(tokens)):
