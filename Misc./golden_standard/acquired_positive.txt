@@ -34,7 +34,7 @@ sentence: As part of its regional expansion plans , <ORG>SingTel</ORG> acquired 
 
 sentence: <ORG>Seagram</ORG> acquired the <ORG>DuPont</ORG> stake starting in 1981 for a reported dlrs 3.28 billion .
 
-sentence: The separation is expected to help the parent company concentrate on its strengths in content , especially if it can also shed all or part of AOL , acquired as part of <ORG>AOL</ORG> 's $ 106 billion purchase of <ORG>Time Warner</ORG> in 2001 .
+#sentence: The separation is expected to help the parent company concentrate on its strengths in content , especially if it can also shed all or part of AOL , acquired as part of <ORG>AOL</ORG> 's $ 106 billion purchase of <ORG>Time Warner</ORG> in 2001 .
 
 sentence: The division was severely cut back in 2001 , soon after <ORG>AOL</ORG> acquired <ORG>Time Warner</ORG> , and several key executives left .
 
