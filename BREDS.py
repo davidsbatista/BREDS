@@ -492,8 +492,7 @@ class BREDS(object):
                             for r in self.seeds_by_iteration[self.curr_iteration]:
                                 score = self.drift_one(r)
                                 if score > 1.0:
-                                    print r.
-
+                                    pass
 
                         elif self.config.semantic_drift == "constrained":
                             pass
