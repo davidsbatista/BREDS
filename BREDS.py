@@ -22,17 +22,17 @@ from gensim import matutils
 from sklearn.cluster import DBSCAN
 from collections import defaultdict
 
-from BREDS.PatternMatrices import PatternMatrices
-from BREDS.Pattern import Pattern
+from BREDS.PatternParsing import PatternMatrices
+from BREDS.PatternPoS import Pattern
 from BREDS.Config import Config
-from BREDS.Tuple import Tuple
-from BREDS.TupleofParser import TupleOfParser
+from BREDS.TuplePoS import Tuple
+from BREDS.TupleParsing import TupleOfParser
 from Common.Sentence import Sentence
 from Common.Sentence import SentenceParser
 from Common.Seed import Seed
 
 # usefull stuff for debugging
-PRINT_TUPLES = True
+PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
@@ -61,7 +61,7 @@ class BREDS(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
-            sentences = list()
+            sentences_tmp = list()
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
@@ -71,6 +71,12 @@ class BREDS(object):
                     sys.stdout.write(".")
 
                 # Embeddings based on ReVerb patterns
+                """
+                sentence_no_tags = re.sub(self.config.tags_regex, "", line.strip())
+                if len(word_tokenize(sentence_no_tags)) > 35:
+                    continue
+                else:
+                """
                 if self.config.embeddings != 'fcm':
                     sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
                                     self.config.min_tokens_away, self.config.context_window_size)
@@ -83,31 +89,40 @@ class BREDS(object):
                 elif self.config.embeddings == 'fcm':
                     sentence = SentenceParser(line.strip(), self.config.e1_type, self.config.e2_type)
                     if sentence.valid is True:
-                        sentences.append(sentence)
+                        sentences_tmp.append(sentence)
 
             f_sentences.close()
 
             if self.config.embeddings == 'fcm':
-                start = time.time()
-                print "\n"+str(len(sentences)), "sentences to parse"
+                sentences = list()
+                print "\n\n"+str(len(sentences_tmp)), "sentences to parse"
                 text_to_parse = list()
-                for s in sentences:
+                start = time.time()
+                for s in sentences_tmp:
                     sentence_no_tags = re.sub(self.config.tags_regex, "", s.sentence)
-                    #sentence_tokenized = word_tokenize(sentence_no_tags)
-                    text_to_parse.append(sentence_no_tags)
+                    if len(word_tokenize(sentence_no_tags)) > 35:
+                        continue
+                    else:
+                        sentences.append(s)
+                        text_to_parse.append(sentence_no_tags)
+
                 #trees, deps = self.config.parser.raw_parse_sents_deps(text_to_parse)
                 trees = self.config.parser.raw_parse_sents_deps(text_to_parse)
                 end = time.time()
-                print "Time taken: %.2f seconds" % (end - start)
+                seconds = end - start
+                m, s = divmod(seconds, 60)
+                h, m = divmod(m, 60)
+                print "Time taken: %d:%02d:%02d" % (h, m, s)
 
-                print "\nConverting", str(len(sentences)),"trees"
+                print "\nConverting", str(len(sentences)), "trees"
                 start = time.time()
                 deps = self.config.parser.convert_trees(trees)
                 end = time.time()
-                print "Time taken: %.2f seconds" % (end - start)
+                seconds = end - start
+                m, s = divmod(seconds, 60)
+                h, m = divmod(m, 60)
+                print "Time taken: %d:%02d:%02d" % (h, m, s)
 
-
-                """
                 try:
                     assert len(trees) == len(deps) == len(sentences)
                 except AssertionError:
@@ -116,7 +131,6 @@ class BREDS(object):
                     print "Deps", len(deps)
                     print "Sentences", len(sentences)
                     sys.exit(0)
-                """
 
                 """
                 print "Computing FCM embeddings"
@@ -150,7 +164,7 @@ class BREDS(object):
                     self.processed_tuples.append(t)
                 """
 
-                print "Processing sentences"
+                print "\nProcessing", str(len(sentences)), "sentences"
                 for i in range(len(sentences)):
                     s = sentences[i]
                     s.deps = deps[i]
@@ -176,10 +190,6 @@ class BREDS(object):
 
                 for t in self.processed_tuples:
                     t.matrix = np.divide(t.matrix, t.matrix.max())
-
-                for t in self.processed_tuples:
-                    print t.matrix
-                    print "\n"
 
             print "\n", len(self.processed_tuples), "tuples generated"
             print "Writing generated tuples to disk"
@@ -462,18 +472,18 @@ class BREDS(object):
                             self.config.seed_tuples.add(seed)
 
                         # for methods that control semantic drfit by comparing with previous extractions
-                        """
+                        # keeps tracks of the seeds instances extracted at each iteration
                         if self.curr_iteration == 0:
                             self.seeds_by_iteration[0] = list()
                             self.seeds_by_iteration[0].append(t)
+
                         else:
                             if self.curr_iteration in self.seeds_by_iteration:
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
                             else:
                                 self.seeds_by_iteration[self.curr_iteration] = list()
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
-                        """
-                    """
+
                     if self.curr_iteration > 0:
                         if self.config.semantic_drift == "mcintosh":
                             print "Using distributional similarity to filter seeds"
@@ -481,9 +491,12 @@ class BREDS(object):
                             print "current :", len(self.seeds_by_iteration[self.curr_iteration])
                             for r in self.seeds_by_iteration[self.curr_iteration]:
                                 score = self.drift_one(r)
+                                if score > 1.0:
+                                    print r.
+
+
                         elif self.config.semantic_drift == "constrained":
                             pass
-                    """
 
                 # increment the number of iterations
                 self.curr_iteration += 1
@@ -680,7 +693,7 @@ class BREDS(object):
                 matrix[ex1, ex2] = dist
 
         # normalized all the distances
-        #matrix_normalized = np.divide(matrix, matrix.max())
+        matrix = np.divide(matrix, matrix.max())
 
         # perform DBSCAN
         db = DBSCAN(eps=0.2, min_samples=2, metric='precomputed')
