@@ -147,19 +147,19 @@ class Config(object):
             self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
             #self.sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
-        if os.path.isfile("vocabulary_words.pkl"):
-            print "Loading vocabulary from disk"
-            f = open("vocabulary_words.pkl")
-            self.dictionary = cPickle.load(f)
-            f.close()
-        else:
-            # generate a dictionary of all the words
-            self.generate_dictionary(sentences_file)
-            f = open("vocabulary_words.pkl", "w")
-            cPickle.dump(self.dictionary, f)
-            f.close()
+            if os.path.isfile("vocabulary_words.pkl"):
+                print "Loading vocabulary from disk"
+                f = open("vocabulary_words.pkl")
+                self.dictionary = cPickle.load(f)
+                f.close()
+            else:
+                # generate a dictionary of all the words
+                self.generate_dictionary(sentences_file)
+                f = open("vocabulary_words.pkl", "w")
+                cPickle.dump(self.dictionary, f)
+                f.close()
 
-        print len(self.dictionary.token2id), "unique tokens"
+            print len(self.dictionary.token2id), "unique tokens"
 
         print "\n\nLoading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
