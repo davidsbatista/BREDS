@@ -16,9 +16,9 @@ from nltk.corpus import stopwords
 from numpy import dot
 from gensim import matutils
 
-from BREDS.Pattern import Pattern
+from BREDS.PatternPoS import Pattern
 from BREDS.Config import Config
-from BREDS.Tuple import Tuple
+from BREDS.TuplePoS import Tuple
 from Common.Sentence import Sentence
 from Common.Seed import Seed
 
