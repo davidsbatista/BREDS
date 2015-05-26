@@ -464,38 +464,50 @@ class BREDS(object):
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | Conf(T) > min_tuple_confidence }
-                if self.curr_iteration+1 < self.config.number_iterations:
-                    print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
-                    for t in self.candidate_tuples.keys():
-                        if t.confidence >= self.config.instance_confidance:
-                            seed = Seed(t.e1, t.e2)
-                            self.config.seed_tuples.add(seed)
 
+                if self.config.semantic_drift != "mcintosh":
+                    if self.curr_iteration+1 < self.config.number_iterations:
+                        print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
+                        for t in self.candidate_tuples.keys():
+                            if t.confidence >= self.config.instance_confidance:
+                                seed = Seed(t.e1, t.e2)
+                                self.config.seed_tuples.add(seed)
+
+                elif self.config.semantic_drift == "mcintosh":
+                    if self.curr_iteration == 0:
+                        self.seeds_by_iteration[0] = list()
+                        print "Adding tuples to seed with confidence =>" + str(self.config.instance_confidance)
+                        for t in self.candidate_tuples.keys():
+                            if t.confidence >= self.config.instance_confidance:
+                                seed = Seed(t.e1, t.e2)
+                                self.config.seed_tuples.add(seed)
+                                self.seeds_by_iteration[0].add(t)
+
+                        print self.seeds_by_iteration[0]
+
+                    elif self.curr_iteration > 0:
                         # for methods that control semantic drfit by comparing with previous extractions
-                        # keeps tracks of the seeds instances extracted at each iteration
-                        if self.curr_iteration == 0:
-                            self.seeds_by_iteration[0] = list()
-                            self.seeds_by_iteration[0].append(t)
+                        # keep track of the seeds instances extracted at each iteration
+                        print "seeds in previous iteration"
+                        print "curr_iteration", self.curr_iteration
+                        print self.seeds_by_iteration[self.curr_iteration-1]
+                        for t in self.seeds_by_iteration[self.curr_iteration-1]:
+                            print t
 
-                        else:
-                            if self.curr_iteration in self.seeds_by_iteration:
-                                self.seeds_by_iteration[self.curr_iteration].append(t)
-                            else:
-                                self.seeds_by_iteration[self.curr_iteration] = list()
-                                self.seeds_by_iteration[self.curr_iteration].append(t)
-
-                    if self.curr_iteration > 0:
-                        if self.config.semantic_drift == "mcintosh":
+                        for t in self.candidate_tuples.keys():
                             print "Using distributional similarity to filter seeds"
                             print "previous:", len(self.seeds_by_iteration[self.curr_iteration-1])
-                            print "current :", len(self.seeds_by_iteration[self.curr_iteration])
+                            print "current :", self.candidate_tuples.keys()
                             for r in self.seeds_by_iteration[self.curr_iteration]:
                                 score = self.drift_one(r)
-                                if score > 1.0:
-                                    pass
 
-                        elif self.config.semantic_drift == "constrained":
-                            pass
+                elif self.config.semantic_drift == "constrained":
+                    pass
+
+                else:
+                    print "No valid method to control semantic drift"
+                    print self.config.semantic_drift
+                    sys.exit(0)
 
                 # increment the number of iterations
                 self.curr_iteration += 1
