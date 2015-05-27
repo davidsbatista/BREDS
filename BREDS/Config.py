@@ -123,7 +123,7 @@ class Config(object):
         print "beta                 :", self.beta
         print "gamma                :", self.gamma
 
-        print "\nSeeds:"
+        print "\nSeeds"
         print "positive seeds       :", len(self.seed_tuples)
         print "negative seeds       :", len(self.negative_seed_tuples)
         print "negative seeds wNeg  :", self.wNeg
