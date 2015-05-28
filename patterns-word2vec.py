@@ -262,7 +262,7 @@ def process_sentence(sentence):
         if arg1 == arg2:
             continue
 
-        #TODO: fixe de um bug para quando há _'_ dentro da entidade, confirmar que eh necessario
+        #fix de um bug para quando há _'_ dentro da entidade, confirmar que eh necessario
         """
         quote = False
         bgn_e2 = rel.sentence.index("<ORG>")
