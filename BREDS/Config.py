@@ -43,6 +43,8 @@ class Config(object):
         self.word2vecwrapper = Word2VecWrapper()
         self.reverb = Reverb()
         self.dictionary = None
+        self.word2vec = None
+        self.vec_dim = None
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -161,6 +163,7 @@ class Config(object):
 
             print len(self.dictionary.token2id), "unique tokens"
 
+    def read_word2vec(self):
         print "\n\nLoading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
