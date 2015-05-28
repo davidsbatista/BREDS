@@ -41,10 +41,7 @@ class Tuple(object):
             self.matrix = None
             self.features = None
 
-            if config.embeddings == 'fcm':
-                self.generate_fcm_embedding(config)
-
-            elif config.embeddings == 'sum':
+            if config.embeddings == 'sum':
                 self.extract_patterns(config)
 
         def __str__(self):
