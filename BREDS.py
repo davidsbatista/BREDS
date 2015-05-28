@@ -61,6 +61,7 @@ class BREDS_Dist_Sim(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
+            self.read_word2vec()
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
@@ -302,6 +303,7 @@ class BREDS(object):
 
         except IOError:
             sentences_tmp = list()
+            self.config.read_word2vec()
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
@@ -492,7 +494,6 @@ class BREDS(object):
         print "score", self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
         print "\n"
         """
-
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
     def average_similarity(self, r, current, previous):
@@ -567,19 +568,17 @@ class BREDS(object):
                 print "\n", len(self.patterns), "patterns generated"
 
                 if PRINT_PATTERNS is True:
+                    count = 1
                     print "\nPatterns:"
                     for p in self.patterns:
+                        print count
                         for t in p.tuples:
                             print "BEF", t.bef_words
                             print "BET", t.bet_words
                             print "AFT", t.aft_words
                             print "========"
-                        print "Positive", p.positive
-                        print "Negative", p.negative
-                        print "Unknown", p.unknown
-                        print "Tuples", len(p.tuples)
-                        print "Pattern Confidence", p.confidence
-                        print "\n"
+                            print "\n"
+                        count += 1
 
                 if self.curr_iteration == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
@@ -606,11 +605,13 @@ class BREDS(object):
                     sim_best = 0
                     accept = 0
                     for extraction_pattern in self.patterns:
-                        #accept, score = self.similarity_all_1(t, extraction_pattern)
+
                         if self.config.embeddings == 'fcm':
                             accept, score = self.similarity_matrix_all_2(t, extraction_pattern)
+
                         elif self.config.embeddings == 'sum':
-                            accept, score = self.similarity_all_2(t, extraction_pattern)
+                            accept, score = self.similarity_all_1(t, extraction_pattern)
+
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
                             if score > sim_best:
@@ -619,17 +620,15 @@ class BREDS(object):
 
                     if sim_best >= self.config.threshold_similarity:
                         # if this tuple was already extracted, check if this extraction pattern is already associated
-                        # with it. if not associate this pattern with it and similarity score
+                        # with it, if not, associate this pattern with it and similarity score
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
-
                         # If this tuple was not extracted before, associate this pattern with the instance
                         # and the similarity score
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
-
                     # update extraction pattern confidence
                     if iter > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
@@ -681,17 +680,66 @@ class BREDS(object):
                     extracted_tuples = self.candidate_tuples.keys()
                     tuples_sorted = sorted(extracted_tuples, key=lambda tpl: tpl.confidence, reverse=True)
                     for t in tuples_sorted:
-                        print t.e1, t.e2, t.confidence
-                        """
-                        print "BEF", t.bef_words
-                        print "BET", t.bet_words
-                        print "AFT", t.aft_words
-                        print "=============="
-                        """
+                        print t.sentence
+                        print t.e1, t.e2
+                        print t.confidence
+                        print "\n"
 
-                # update seed set of tuples to use in next iteration
-                # seeds = { T | conf(T) > instance_confidance }
-                if self.curr_iteration < self.config.number_iterations+1:
+                if self.config.semantic_drift != "mcintosh":
+                    # update seed set of tuples to use in next iteration
+                    # seeds = { T | conf(T) > instance_confidance }
+                    if self.curr_iteration < self.config.number_iterations+1:
+                        print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
+                        self.seeds_by_iteration[self.curr_iteration] = list()
+                        for t in self.candidate_tuples.keys():
+                            if t.confidence >= self.config.instance_confidance:
+                                seed = Seed(t.e1, t.e2)
+                                self.config.seed_tuples.add(seed)
+                                # for filtering semantic drift by comparing with previous sentence extractions
+                                # keeps tracks of the seeds instances extracted at each iteration
+                                self.seeds_by_iteration[self.curr_iteration].append(t)
+
+                elif self.config.semantic_drift == "mcintosh" and self.curr_iteration > 0:
+                    # update seed set of tuples to use in next iteration
+                    # seeds = { T | conf(T) > instance_confidance }
+                    if self.curr_iteration < self.config.number_iterations+1:
+                        # gather all previous
+                        previous = list()
+                        for i in range(self.curr_iteration):
+                            previous.extend(self.seeds_by_iteration[i])
+
+                        print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
+                        self.seeds_by_iteration[self.curr_iteration] = list()
+                        for t in self.candidate_tuples.keys():
+                            if t.confidence >= self.config.instance_confidance:
+                                # for filtering semantic drift by comparing with previous sentence extractions
+                                # keeps tracks of the seeds instances extracted at each iteration
+                                self.seeds_by_iteration[self.curr_iteration].append(t)
+
+                        if len(previous) > 0 and len(self.seeds_by_iteration[self.curr_iteration]) > 0:
+                            print "previous tuple seeds : ", len(previous)
+                            print "current seed tuples  : ", len(self.seeds_by_iteration[self.curr_iteration])
+                            print "Using distributional similarity to filter seeds"
+                            print "previous:", len(previous)
+                            print "current :", len(self.seeds_by_iteration[self.curr_iteration])
+                            for r in self.seeds_by_iteration[self.curr_iteration]:
+                                avg_sim_previous, avg_sim_current = self.average_similarity(r, self.seeds_by_iteration[self.curr_iteration], previous)
+                                if avg_sim_current > avg_sim_previous:
+                                    if avg_sim_current-avg_sim_previous > 0.1:
+                                        print "ELIMINATED FROM SEEDS:"
+                                        print r.e1, '\t', r.e2
+                                        print r.sentence
+                                        print "avg_sim_previous :", avg_sim_previous
+                                        print "avg_sim_current  :", avg_sim_current
+                                        print "difference       :", avg_sim_current-avg_sim_previous
+                                    else:
+                                        seed = Seed(t.e1, t.e2)
+                                        self.config.seed_tuples.add(seed)
+                                else:
+                                    seed = Seed(t.e1, t.e2)
+                                    self.config.seed_tuples.add(seed)
+
+                elif self.config.semantic_drift == "mcintosh" and self.curr_iteration == 0:
                     print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
                     self.seeds_by_iteration[self.curr_iteration] = list()
                     for t in self.candidate_tuples.keys():
@@ -701,31 +749,11 @@ class BREDS(object):
                             # for filtering semantic drift by comparing with previous sentence extractions
                             # keeps tracks of the seeds instances extracted at each iteration
                             self.seeds_by_iteration[self.curr_iteration].append(t)
-                            print t.e1, '\t', t.e2, "added"
-
-                if self.config.semantic_drift == "mcintosh" and self.curr_iteration > 0:
-                    print self.seeds_by_iteration
-                    # gather all previous
-                    previous = list()
-                    for i in range(0, self.curr_iteration-1):
-                        previous.append(self.seeds_by_iteration[i])
-
-                    if previous > 0 and len(self.seeds_by_iteration[self.curr_iteration]) > 0:
-                        print "previous tuple seeds : ", len(previous)
-                        print "current seed tuples  : ", len(self.seeds_by_iteration[self.curr_iteration])
-                        print "Using distributional similarity to filter seeds"
-                        print "previous:", len(self.seeds_by_iteration[self.curr_iteration-1])
-                        print "current :", len(self.seeds_by_iteration[self.curr_iteration])
-                        for r in self.seeds_by_iteration[self.curr_iteration]:
-                            avg_sim_previous, avg_sim_current = self.average_similarity(r, self.seeds_by_iteration[self.curr_iteration], previous)
-                            print r.e1, '\t', r.e2
-                            print r.sentence
-                            print "avg_sim_previous", avg_sim_previous
-                            print "avg_sim_current", avg_sim_current
-                            print
 
                 # increment the number of iterations
                 self.curr_iteration += 1
+
+                #TODO: se há novos tuplos válidos extraidos ou os patterns a alterarem a confianca, entao continua, senao para
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
@@ -743,6 +771,7 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
+        """
         print "Writing generated patterns to disk"
         f_output = open("patterns.txt", "w")
         tmp = sorted(self.patterns, reverse=True)
@@ -753,6 +782,7 @@ class BREDS(object):
             f_output.write("pattern_aft: " + t.aft_words+'\n')
             f_output.write("=================================\n")
         f_output.close()
+        """
 
     def similarity_all_1(self, t, extraction_pattern):
         """
