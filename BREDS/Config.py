@@ -20,7 +20,6 @@ from Common.Stanford import StanfordParser
 from gensim.models import Word2Vec
 from gensim import corpora
 from Word2VecWrapper import Word2VecWrapper
-from Common.StanfordDependencies import StanfordDependencies
 
 
 class Config(object):
@@ -102,7 +101,7 @@ class Config(object):
                 self.gamma = float(line.split("=")[1])
 
             if line.startswith("semantic_drift"):
-                self.semantic_drift = line.split("=")[1].strip()
+                self.semantic_drift = int(line.split("=")[1].strip())
 
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
@@ -147,7 +146,6 @@ class Config(object):
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
-            #self.sd = StanfordDependencies.get_instance(backend='subprocess', jar_filename='/home/dsbatista/stanford-parser-full-2015-04-20/stanford-parser.jar')
 
             if os.path.isfile("vocabulary_words.pkl"):
                 print "Loading vocabulary from disk"
