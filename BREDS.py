@@ -36,7 +36,7 @@ PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
-class BREDS_Dist_Sim(object):
+class BREDSDistSim(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
         self.curr_iteration = 0
@@ -685,7 +685,7 @@ class BREDS(object):
                         print t.confidence
                         print "\n"
 
-                if self.config.semantic_drift != "mcintosh":
+                if self.config.semantic_drift == 0:
                     # update seed set of tuples to use in next iteration
                     # seeds = { T | conf(T) > instance_confidance }
                     if self.curr_iteration < self.config.number_iterations+1:
@@ -699,10 +699,11 @@ class BREDS(object):
                                 # keeps tracks of the seeds instances extracted at each iteration
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
 
-                elif self.config.semantic_drift == "mcintosh" and self.curr_iteration > 0:
+                elif self.config.semantic_drift == 1 and self.curr_iteration > 0:
                     # update seed set of tuples to use in next iteration
                     # seeds = { T | conf(T) > instance_confidance }
                     if self.curr_iteration < self.config.number_iterations+1:
+                        added = 0
                         # gather all previous
                         previous = list()
                         for i in range(self.curr_iteration):
@@ -717,12 +718,14 @@ class BREDS(object):
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
 
                         if len(previous) > 0 and len(self.seeds_by_iteration[self.curr_iteration]) > 0:
-                            print "previous tuple seeds : ", len(previous)
-                            print "current seed tuples  : ", len(self.seeds_by_iteration[self.curr_iteration])
                             print "Using distributional similarity to filter seeds"
                             print "previous:", len(previous)
                             print "current :", len(self.seeds_by_iteration[self.curr_iteration])
+                            count = 0
                             for r in self.seeds_by_iteration[self.curr_iteration]:
+                                if count % 1000 == 0:
+                                    sys.stdout.write(".")
+                                    sys.stdout.flush()
                                 avg_sim_previous, avg_sim_current = self.average_similarity(r, self.seeds_by_iteration[self.curr_iteration], previous)
                                 if avg_sim_current > avg_sim_previous:
                                     if avg_sim_current-avg_sim_previous > 0.1:
@@ -735,11 +738,17 @@ class BREDS(object):
                                     else:
                                         seed = Seed(t.e1, t.e2)
                                         self.config.seed_tuples.add(seed)
+                                        added += 1
                                 else:
                                     seed = Seed(t.e1, t.e2)
                                     self.config.seed_tuples.add(seed)
+                                    added += 1
 
-                elif self.config.semantic_drift == "mcintosh" and self.curr_iteration == 0:
+                                count += 1
+
+                        print added, "tuples added"
+
+                elif self.config.semantic_drift == 1 and self.curr_iteration == 0:
                     print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
                     self.seeds_by_iteration[self.curr_iteration] = list()
                     for t in self.candidate_tuples.keys():
