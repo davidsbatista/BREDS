@@ -873,6 +873,7 @@ def main():
     print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
+    #TODO: sort tuples by confidence before writing them out tmp = sorted(set(not_found), reverse=True)
     f = open(rel_type + "_" + sys.argv[2][-11:][:-4] + "_negative.txt", "w")
     for r in set(not_found):
         f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
