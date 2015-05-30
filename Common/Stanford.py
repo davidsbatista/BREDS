@@ -76,7 +76,7 @@ class StanfordParser(ParserI):
 
     def __init__(self, path_to_jar=None, path_to_models_jar=None,
                  model_path='edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz',
-                 encoding='UTF-8', verbose=False, java_options='-mx28G'):
+                 encoding='UTF-8', verbose=False, java_options='-mx30G'):
 
         self._stanford_jar = find_jar(
             self._JAR, path_to_jar,
@@ -290,7 +290,6 @@ class StanfordParser(ParserI):
         #if include_punct or include_erased:
         stdout = self._execute(cmd, '\n'.join(trees), verbose, convert=True)
 
-
         sentences = Corpus.from_stanford_dependencies(stdout.splitlines(),
                                                       ptb_trees,
                                                       include_erased,
@@ -299,7 +298,6 @@ class StanfordParser(ParserI):
             "Only got %d sentences from Stanford Dependencies when " \
             "given %d trees." % (len(sentences), len(ptb_trees))
         return sentences
-
 
     def tagged_parse(self, sentence, verbose=False):
         """
