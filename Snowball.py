@@ -16,7 +16,7 @@ from gensim.matutils import cossim
 from Snowball.Pattern import Pattern
 from Snowball.Config import Config
 from Snowball.Tuple import Tuple
-from Common.Sentence import Sentence
+from Common.SentenceBreds import Sentence
 from Common.Seed import Seed
 
 PRINT_PATTERNS = False
