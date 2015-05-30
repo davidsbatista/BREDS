@@ -92,7 +92,8 @@ class BREDS(object):
 
             print "\nGenerating relationship instances from sentences"
             results = [m.list() for _ in range(num_cpus)]
-            processes = [multiprocessing.Process(target=self.find_relationships, args=(queue, results[i])) for i in range(num_cpus)]
+            processes = [multiprocessing.Process(target=self.find_relationships, args=(queue, results[i]))
+                         for i in range(num_cpus)]
 
             print "Launching", num_cpus, "processes"
             for proc in processes:
@@ -231,14 +232,8 @@ class BREDS(object):
                         sys.stdout.write(".")
                         sys.stdout.flush()
                     sim_best = 0
-                    accept = 0
                     for extraction_pattern in self.patterns:
-
-                        if self.config.embeddings == 'fcm':
-                            accept, score = self.similarity_matrix_all_2(t, extraction_pattern)
-
-                        elif self.config.embeddings == 'sum':
-                            accept, score = self.similarity_all_1(t, extraction_pattern)
+                        accept, score = self.similarity_all_1(t, extraction_pattern)
 
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
@@ -458,33 +453,6 @@ class BREDS(object):
 
         for p in list(extraction_pattern.tuples):
             score = self.similarity_3_contexts(t, p)
-            if score > max_similarity:
-                max_similarity = score
-            if score >= self.config.threshold_similarity:
-                good += 1
-                similarities.append(score)
-            else:
-                bad += 1
-
-        if good >= bad:
-            assert good == len(similarities)
-            return True, float(sum(similarities)) / float(good)
-        else:
-            return False, 0.0
-
-    def similarity_matrix_all_2(self, t, extraction_pattern):
-        """
-        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-        and the vector of a ReVerb pattern extracted from a sentence
-        returns the average
-        """
-        good = 0
-        bad = 0
-        max_similarity = 0
-        similarities = list()
-
-        for p in list(extraction_pattern.matrixes):
-            score = self.sim_matrix_l2(t, p)
             if score > max_similarity:
                 max_similarity = score
             if score >= self.config.threshold_similarity:
