@@ -30,9 +30,7 @@ class Config(object):
         self.filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
         self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
-
         self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
-
         self.seed_tuples = set()
         self.negative_seed_tuples = set()
         self.vec_dim = 0
@@ -164,7 +162,7 @@ class Config(object):
             print len(self.dictionary.token2id), "unique tokens"
 
     def read_word2vec(self):
-        print "\n\nLoading word2vec model ...\n"
+        print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
         print self.vec_dim, "dimensions"
