@@ -18,12 +18,12 @@ class PatternMatrices(object):
 
     def __hash__(self):
         #return hash((self.patterns_words, self.tuples))
-        #TODO: hash of this Pattern
+        #TOD: hash of this Pattern
         pass
 
     def __eq__(self, other):
         #return (self.tuples, self.patterns_words) == (other.tuples, other.patterns_words)
-        #TODO: comparision of this type of objects, list of matrices
+        #TOD: comparision of this type of objects, list of matrices
         pass
 
     def __str__(self):
