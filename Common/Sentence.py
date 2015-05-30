@@ -107,8 +107,7 @@ class Sentence:
                     if ent1 == ent2:
                         continue
 
-                    #TODO: confirmar que nao ha aqui um BUG
-                    if e1_type is not None and arg2type is not e2_type:
+                    if e1_type is not None and e2_type is not None:
                         # restrict relationships by the arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
                             rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
