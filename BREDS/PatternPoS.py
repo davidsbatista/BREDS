@@ -21,8 +21,6 @@ class Pattern(object):
         self.patterns_words = set()
         if tuple is not None:
             self.tuples.add(t)
-            for p in t.patterns_words:
-                self.patterns_words.add(p)
 
     def __hash__(self):
         return hash((self.patterns_words, self.tuples))
