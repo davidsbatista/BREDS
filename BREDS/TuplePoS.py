@@ -21,8 +21,10 @@ class Tuple(object):
             self.bef_vector = None
             self.bet_vector = None
             self.aft_vector = None
+            self.bef_words = None
+            self.bet_words = None
+            self.aft_words = None
             self.passive_voice = False
-            self.reverb_pattern = None
             self.debug = False
             self.construct_vectors(config)
 
@@ -67,10 +69,13 @@ class Tuple(object):
                 vector = self.pattern2vector_sum(words, config)
                 if context == 'before':
                     self.bef_vector = vector
+                    self.bef_words = words
                 elif context == 'between':
                     self.bet_vector = vector
+                    self.bet_words = words
                 elif context == 'after':
                     self.aft_vector = vector
+                    self.aft_words = words
 
         def construct_pattern_vector(self, reverb_pattern, config):
             # remove stopwords and adjectives
@@ -88,7 +93,7 @@ class Tuple(object):
             if len(reverb_pattern) > 0:
                 self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
                 self.bet_vector = self.construct_pattern_vector(reverb_pattern, config)
-                self.reverb_pattern = reverb_pattern
+                self.bet_words = reverb_pattern
             else:
                 self.passive_voice = False
                 self.construct_words_vectors(reverb_pattern, "between", config)
@@ -99,6 +104,7 @@ class Tuple(object):
             if len(self.after) > 0:
 
                 self.construct_words_vectors(self.after, "after", config)
+
 
             """
             print self.sentence
