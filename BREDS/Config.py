@@ -25,8 +25,12 @@ class Config(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
 
+        # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
+        # select everything except stopwords, ADJ and ADV
+        self.filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
         self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
+
         self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
 
         self.seed_tuples = set()
@@ -163,6 +167,7 @@ class Config(object):
         print "\n\nLoading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
+        print self.vec_dim, "dimensions"
 
     def generate_dictionary(self, sentences_file):
         f_sentences = codecs.open(sentences_file, encoding='utf-8')

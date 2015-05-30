@@ -1,22 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-import re
-import numpy as np
-
-from nltk import pos_tag
-from nltk import word_tokenize
-from Common.ReVerb import Reverb
+from numpy import zeros
 
 
 class Tuple(object):
-        # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-        # select everything except stopwords, ADJ and ADV
-        filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
 
         def __init__(self, _e1, _e2, _sentence, _before, _between, _after, config):
             self.e1 = _e1
@@ -24,25 +15,16 @@ class Tuple(object):
             self.sentence = _sentence
             self.confidence = 0
             self.confidence_old = 0
-            self.bef_words = _before
-            self.bet_words = _between
-            self.aft_words = _after
+            self.before = _before
+            self.between = _between
+            self.after = _after
             self.bef_vector = None
             self.bet_vector = None
             self.aft_vector = None
             self.passive_voice = False
-            self.patterns_vectors = list()
-            self.patterns_words = list()
+            self.reverb_pattern = None
             self.debug = False
-            self.dependencies = None
-            self.head_e1 = None
-            self.head_e2 = None
-            self.deps_path = None
-            self.matrix = None
-            self.features = None
-
-            if config.embeddings == 'sum':
-                self.extract_patterns(config)
+            self.construct_vectors(config)
 
         def __str__(self):
             return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
@@ -59,51 +41,71 @@ class Tuple(object):
             return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
                     self.bet_words == other.bet_words and self.aft_words == other.aft_words)
 
-        def construct_pattern_vector(self, pattern_tags, config):
+        @staticmethod
+        def pattern2vector_sum(tokens, config):
+            pattern_vector = zeros(config.vec_dim)
+            if len(tokens) > 1:
+                for t in tokens:
+                    try:
+                        vector = config.word2vec[t[0].strip()]
+                        pattern_vector += vector
+                    except KeyError:
+                        continue
+
+            elif len(tokens) == 1:
+                try:
+                    pattern_vector = config.word2vec[tokens[0][0].strip()]
+                except KeyError:
+                    pass
+
+            return pattern_vector
+
+        def construct_words_vectors(self, tagged_words, context, config):
+            # remove stopwords and adjective
+            words = [t for t in tagged_words if t[0].lower() not in config.stopwords and t[1] not in config.filter_pos]
+            if len(words) >= 1:
+                vector = self.pattern2vector_sum(words, config)
+                if context == 'before':
+                    self.bef_vector = vector
+                elif context == 'between':
+                    self.bet_vector = vector
+                elif context == 'after':
+                    self.aft_vector = vector
+
+        def construct_pattern_vector(self, reverb_pattern, config):
             # remove stopwords and adjectives
-            pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-
+            pattern = [t[0] for t in reverb_pattern if t[0].lower() not in config.stopwords and t[1] not in config.filter_pos]
             if len(pattern) >= 1:
-                if config.embeddings == 'average':
-                    pattern_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
-                elif config.embeddings == 'sum':
-                    pattern_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
-                return pattern_vector
-
-        def construct_words_vectors(self, words, config):
-            # split text into tokens and tag them using NLTK's default English tagger
-            # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-            text_tokens = word_tokenize(words)
-            tags_ptb = pos_tag(text_tokens)
-
-            pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-            if len(pattern) >= 1:
-                if config.embeddings == 'average':
-                    words_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
-                elif config.embeddings == 'sum':
-                    words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
-                return words_vector
-
-        def extract_patterns(self, config):
-
-            # extract ReVerb pattern and detect the presence of the passive voice
-            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
-            if len(patterns_bet_tags) > 0:
-                self.passive_voice = config.reverb.detect_passive_voice(patterns_bet_tags)
-                # forced hack since _'s_ is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify
-                # a pattern which is wrong, if this happens, ignore that a pattern was extracted
-                if patterns_bet_tags[0][0] == "'s":
-                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-                else:
-                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
+                vector = self.pattern2vector_sum(pattern, config)
+                return vector
             else:
-                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
+                "ERROR"
+                return zeros(config.vec_dim)
 
-            # extract two words before the first entity, and two words after the second entity
-            if len(self.bef_words) > 0:
-                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
+        def construct_vectors(self, config):
+            reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(self.between)
 
-            if len(self.aft_words) > 0:
-                self.aft_vector = self.construct_words_vectors(self.aft_words, config)
+            if len(reverb_pattern) > 0:
+                self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
+                self.bet_vector = self.construct_pattern_vector(reverb_pattern, config)
+                self.reverb_pattern = reverb_pattern
+            else:
+                self.passive_voice = False
+                self.construct_words_vectors(reverb_pattern, "between", config)
+
+            # extract words before the first entity, and words after the second entity
+            if len(self.before) > 0:
+                self.construct_words_vectors(self.before, "before", config)
+            if len(self.after) > 0:
+
+                self.construct_words_vectors(self.after, "after", config)
+
+            """
+            print self.sentence
+            print "BEF", self.before
+            print "BET", self.between
+            print "AFT", self.after
+            print "passive", self.passive_voice
+            print "ReVerb:", self.reverb_pattern
+            print "\n"
+            """
