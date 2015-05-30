@@ -16,7 +16,6 @@ from nltk import WordNetLemmatizer
 from nltk import word_tokenize
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
-from Common.Stanford import StanfordParser
 from gensim.models import Word2Vec
 from gensim import corpora
 from Word2VecWrapper import Word2VecWrapper
@@ -145,7 +144,6 @@ class Config(object):
             # PARSER and STANFORD_MODELS enviroment variables need to be set
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-            self.parser = StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
 
             if os.path.isfile("vocabulary_words.pkl"):
                 print "Loading vocabulary from disk"
