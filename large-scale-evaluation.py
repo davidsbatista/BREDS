@@ -20,7 +20,7 @@ from whoosh import query
 from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
 from collections import defaultdict
-from Common.Sentence import Sentence
+from Common.SentenceBreds import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
@@ -528,7 +528,6 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
 
                     # Entities proximity considering relational words
                     # From the results above count how many contain a relational word
-                    #TODO: maybe the relational words can be in the BEF or AFT context
                     hits_with_r = 0
                     for s in hits:
                         sentence = s.get("sentence")
@@ -697,7 +696,6 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                 # First count the proximity (MAX_TOKENS_AWAY) occurrences of entities r.e1 and r.e2
                 q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
                 hits = searcher.search(q1, limit=q_limit)
-                # TODO: maybe use other contexts for evaluation: rel.bef_words, rel.bet_words, rel.aft_words
                 rel_words = [word for word in PunktWordTokenizer().tokenize(r.bet_words) if word
                              not in stopwords.words('english')]
                 rel_words = set(rel_words)
