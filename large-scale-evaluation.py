@@ -49,12 +49,20 @@ class ExtractedFact(object):
     def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
-        self.score = _score.strip()
+        self.score = _score
         self.bef_words = _bef
         self.bet_words = _bet
         self.aft_words = _aft
         self.sentence = _sentence
         self.passive_voice = _passive_voice
+
+    def __cmp__(self, other):
+            if other.score > self.score:
+                return -1
+            elif other.score < self.score:
+                return 1
+            else:
+                return 0
 
     def __hash__(self):
         sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words) ^ \
@@ -147,9 +155,9 @@ def process_output(data, threshold, rel_type):
             if 'aft' not in locals():
                 aft = ''
             if passive_voice is True and rel_type in ['acquired', 'headquarters']:
-                r = ExtractedFact(e2, e1, score, bef, bet, aft, sentence, passive_voice)
+                r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
             else:
-                r = ExtractedFact(e1, e2, score, bef, bet, aft, sentence, passive_voice)
+                r = ExtractedFact(e1, e2, float(score), bef, bet, aft, sentence, passive_voice)
             system_output.append(r)
 
     fileinput.close()
@@ -871,10 +879,9 @@ def main():
     print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
-    #TODO: sort tuples by confidence before writing them out tmp = sorted(set(not_found), reverse=True)
     f = open(rel_type + "_" + sys.argv[2][-11:][:-4] + "_negative.txt", "w")
-    for r in set(not_found):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
+    for r in sorted(set(not_found), reverse=True):
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) + '\n')
         f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
@@ -884,8 +891,8 @@ def main():
 
     # Write all correct relationships (sentence, entities and score) to file
     f = open(rel_type + "_" + sys.argv[2][-11:][:-4] + "_positive.txt", "w")
-    for r in set(a).union(b):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + r.score + '\n')
+    for r in sorted(set(a).union(b), reverse=True):
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) + '\n')
         f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
