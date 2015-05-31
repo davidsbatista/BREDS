@@ -27,254 +27,13 @@ from BREDS.PatternPoS import Pattern
 from BREDS.Config import Config
 from BREDS.TuplePoS import Tuple
 from BREDS.TupleParsing import TupleOfParser
-from Common.SentenceBreds import Sentence
-from Common.SentenceBreds import SentenceParser
+from Common.Sentence import Sentence
+from Common.Sentence import SentenceParser
 from Common.Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
 PRINT_PATTERNS = False
-
-
-class BREDSDistSim(object):
-
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
-        self.curr_iteration = 0
-        self.patterns = list()
-        self.processed_tuples = list()
-        self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file)
-
-        # to control the semantic drift using the seeds from different iterations
-        self.seeds_by_iteration = dict()
-
-    def generate_tuples(self, sentences_file):
-        """
-        Generate tuples instances from a text file with sentences where named entities are already tagged
-        """
-        try:
-            os.path.isfile("processed_tuples.pkl")
-            f = open("processed_tuples.pkl", "r")
-            print "\nLoading processed tuples from disk..."
-            self.processed_tuples = cPickle.load(f)
-            f.close()
-            print len(self.processed_tuples), "tuples loaded"
-
-        except IOError:
-            self.read_word2vec()
-            print "\nGenerating relationship instances from sentences"
-            f_sentences = codecs.open(sentences_file, encoding='utf-8')
-            count = 0
-            for line in f_sentences:
-                count += 1
-                if count % 10000 == 0:
-                    sys.stdout.write(".")
-
-                sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                    self.config.min_tokens_away, self.config.context_window_size)
-                for rel in sentence.relationships:
-                    if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
-
-            f_sentences.close()
-
-            print "\n", len(self.processed_tuples), "tuples generated"
-            print "Writing generated tuples to disk"
-            f = open("processed_tuples.pkl", "wb")
-            cPickle.dump(self.processed_tuples, f)
-            f.close()
-
-    def similarity_3_contexts(self, p, t):
-        (bef, bet, aft) = (0, 0, 0)
-
-        if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
-
-        if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
-
-        if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
-
-        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-
-    @staticmethod
-    def drift_two(r, i):
-        # The third approach constrains the instances to be added to the seed set on two conditions. An extracted
-        # instance x is only added to the seed set if its similarity with at least N instances extracted in the previous
-        # i iteration is above a threshold τ sim ,where N is the number of instances extracted inthe previous iteration.
-        pass
-
-    def init_bootstrapp(self, tuples):
-        m = multiprocessing.Manager()
-        """
-        starts a bootstrap iteration
-        """
-        if tuples is not None:
-            f = open(tuples, "r")
-            print "\nLoading processed tuples from disk..."
-            self.processed_tuples = cPickle.load(f)
-            f.close()
-            print len(self.processed_tuples), "tuples loaded"
-
-        self.curr_iteration = 0
-        while self.curr_iteration <= self.config.number_iterations:
-            print "=========================================="
-            print "\nStarting iteration", self.curr_iteration
-            print "\nLooking for seed matches of:"
-            for s in self.config.seed_tuples:
-                print s.e1, '\t', s.e2
-
-            # Looks for sentences macthing the seed instances
-            count_matches, matched_tuples = self.match_seeds_tuples()
-
-            if len(matched_tuples) == 0:
-                print "\nNo seed matches found"
-                sys.exit(0)
-
-            else:
-                print "\nNumber of seed matches found"
-                sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
-                for t in sorted_counts:
-                    print t[0][0], '\t', t[0][1], t[1]
-
-                print "\n", len(matched_tuples), "tuples matched"
-
-                # Cluster the matched instances: generate patterns/update patterns
-                print "\nClustering matched instances"
-                clusters = self.cluster_dbscan_vectors(matched_tuples)
-                self.seeds_by_iteration[0] = list()
-                for k in clusters:
-                    #print "label", len(clusters[k])
-                    for rel in clusters[k]:
-                        self.seeds_by_iteration[0].append(rel)
-
-                if len(self.seeds_by_iteration[0]) == 0:
-                    print "No clusters generated"
-                    sys.exit(0)
-
-                """
-                print "Seed sentences"
-                print len(self.seeds_by_iteration[0])
-                for rel in self.seeds_by_iteration[0]:
-                    print rel.e1, '\t', rel.e2
-                    print rel.sentence
-                    print
-                """
-
-                # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
-                # This was already collect and its stored in: self.processed_tuples
-                count = 0
-                print "Number of sentences to be analyzed:", len(self.processed_tuples)
-                print "\nCollecting instances based on seed sentences and average distributional similarity"
-                """
-                queue = multiprocessing.Queue()
-                num_cpus = multiprocessing.cpu_count()
-                results = [m.list() for _ in range(num_cpus)]
-                processes = [multiprocessing.Process(target=self.calculate_similarity, args=(queue, results[i])) for i in range(num_cpus)]
-
-                print "Queue"
-                for t in self.processed_tuples:
-                    queue.put(t)
-
-                print "size", queue.qsize()
-                print len(self.processed_tuples)
-
-
-                for proc in processes:
-                    proc.start()
-                    print proc
-                for proc in processes:
-                    proc.join()
-
-                all_results = list()
-                for l in results:
-                    all_results.extend(l)
-                """
-                for t in self.processed_tuples:
-                    count += 1
-                    if count % 1000 == 0:
-                        sys.stdout.write(".")
-                        sys.stdout.flush()
-
-                    previous, current = self.average_similarity(t)
-                    if current > 0.5:
-                        print current
-                        print previous
-
-                # increment the number of iterations
-                self.curr_iteration += 1
-
-        print "\nWriting extracted relationships to disk"
-        f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
-        for t in tmp:
-            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
-            f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern_bef: " + t.bef_words+'\n')
-            f_output.write("pattern_bet: " + t.bet_words+'\n')
-            f_output.write("pattern_aft: " + t.aft_words+'\n')
-            if t.passive_voice is False:
-                f_output.write("passive voice: False\n")
-            elif t.passive_voice is True:
-                f_output.write("passive voice: True\n")
-            f_output.write("\n")
-        f_output.close()
-
-    def calculate_similarity(self, queue, results):
-        while True:
-            try:
-                t = queue.get_nowait()
-                drift = self.average_similarity(t)
-                if drift != 0:
-                    print drift
-            except Queue.Empty:
-                break
-
-    def match_seeds_tuples(self):
-        """
-        checks if an extracted tuple matches seeds tuples
-        """
-        matched_tuples = list()
-        count_matches = dict()
-        for t in self.processed_tuples:
-            for s in self.config.seed_tuples:
-                if t.e1 == s.e1 and t.e2 == s.e2:
-                    matched_tuples.append(t)
-                    try:
-                        count_matches[(t.e1, t.e2)] += 1
-                    except KeyError:
-                        count_matches[(t.e1, t.e2)] = 1
-
-        return count_matches, matched_tuples
-
-    def cluster_dbscan_vectors(self, matched_tuples):
-        # build a matrix with all the pairwise distances between all the matrix representing sentences
-        matrix = np.zeros((len(matched_tuples), len(matched_tuples)))
-        print "Calculating pairwise distances..."
-        for ex1 in range(len(matched_tuples)):
-            for ex2 in range(len(matched_tuples)):
-                similarity = self.similarity_3_contexts(matched_tuples[ex1], matched_tuples[ex2])
-                # dbscan deals with distances, transform similarity into a distance
-                matrix[ex1, ex2] = 1-similarity
-
-        # perform DBSCAN
-        db = DBSCAN(eps=0.5, min_samples=2, metric='precomputed')
-        db.fit(matrix)
-        clusters = defaultdict(list)
-
-        print db.labels_
-        assert len(db.labels_) == len(matched_tuples)
-
-        # aggregate results by label
-        # -1 represents noise, discarded
-        for v in range(len(matched_tuples)):
-            label = db.labels_[v]
-            if label > -1:
-                clusters[label].append(matched_tuples[v])
-
-        return clusters
 
 
 class BREDS(object):
@@ -289,25 +48,6 @@ class BREDS(object):
         # to control the semantic drift using the seeds from different iterations
         self.seeds_by_iteration = dict()
 
-    def find_relationships(self, queue, results):
-        count = 0
-        while True:
-            try:
-                line = queue.get_nowait()
-                count += 1
-                if count % 5000 == 0:
-                    print "Queue:", queue.qsize()
-                    print multiprocessing.current_process(), len(results)
-
-                sentence = Sentence(line, self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                    self.config.min_tokens_away, self.config.context_window_size, self.config)
-                for rel in sentence.relationships:
-                    t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                    results.append(t)
-            except Queue.Empty:
-                print multiprocessing.current_process(), "queue empty"
-                break
-
     def generate_tuples(self, sentences_file):
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
@@ -321,66 +61,30 @@ class BREDS(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
-
-            self.config.read_word2vec()
             sentences_tmp = list()
-
-            m = multiprocessing.Manager()
-            queue = m.Queue()
-            num_cpus = multiprocessing.cpu_count()
-            #num_cpus = 1
-
-            print "Loading sentences into Queue"
+            self.config.read_word2vec()
+            print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
             for line in f_sentences:
-                queue.put(line.strip())
                 count += 1
                 if count % 10000 == 0:
                     sys.stdout.write(".")
-            f_sentences.close()
-            print "\nDone all"
 
-            print "\nGenerating relationship instances from sentences"
-            results = [m.list() for _ in range(num_cpus)]
-            processes = [multiprocessing.Process(target=self.find_relationships, args=(queue, results[i])) for i in range(num_cpus)]
-
-            print "Launching", num_cpus, "processes"
-            for proc in processes:
-                proc.start()
-            for proc in processes:
-                proc.join()
-
-            all_results = list()
-            for l in results:
-                all_results.extend(l)
-
-            for t in all_results:
-                self.processed_tuples.append(t)
-
-            print len(self.processed_tuples)
-
-
-            """
-            print "\nGenerating relationship instances from sentences"
-            f_sentences = codecs.open(sentences_file, encoding='utf-8')
-            count = 0
-            for line in f_sentences:
-                count += 1
-                if count % 500 == 0:
-                    sys.stdout.write(".")
-
-                #sentence_no_tags = re.sub(self.config.tags_regex, "", line.strip())
-                #if len(word_tokenize(sentence_no_tags)) > 35:
-                #    continue
-                #else:
+                # Embeddings based on ReVerb patterns
+                """
+                sentence_no_tags = re.sub(self.config.tags_regex, "", line.strip())
+                if len(word_tokenize(sentence_no_tags)) > 35:
+                    continue
+                else:
+                """
                 if self.config.embeddings != 'fcm':
                     sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
                                     self.config.min_tokens_away, self.config.context_window_size)
-
                     for rel in sentence.relationships:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
+                        if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
+                            t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                            self.processed_tuples.append(t)
 
                 # Embeddings based on matrices
                 elif self.config.embeddings == 'fcm':
@@ -389,7 +93,6 @@ class BREDS(object):
                         sentences_tmp.append(sentence)
 
             f_sentences.close()
-            """
 
             if self.config.embeddings == 'fcm':
                 sentences = list()
@@ -826,9 +529,9 @@ class BREDS(object):
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern_bef: " + str(t.bef_words)+'\n')
-            f_output.write("pattern_bet: " + str(t.bet_words)+'\n')
-            f_output.write("pattern_aft: " + str(t.aft_words)+'\n')
+            f_output.write("pattern_bef: " + t.bef_words+'\n')
+            f_output.write("pattern_bet: " + t.bet_words+'\n')
+            f_output.write("pattern_aft: " + t.aft_words+'\n')
             if t.passive_voice is False:
                 f_output.write("passive voice: False\n")
             elif t.passive_voice is True:
