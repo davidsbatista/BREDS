@@ -20,7 +20,7 @@ from whoosh import query
 from nltk import PunktWordTokenizer
 from nltk.corpus import stopwords
 from collections import defaultdict
-from Common.SentenceBreds import Sentence
+from Common.Sentence import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
 founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
