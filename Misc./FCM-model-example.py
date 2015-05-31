@@ -54,7 +54,6 @@ def build_matrix(rel, vocabulary):
     assert len(tokens) == len(rel.dependencies)
 
     # find start and end indexes for named-entities
-    # TODO: this can be done much quickly by looking at the Tree structure
     e1_tokens = word_tokenize(rel.ent1)
     e2_tokens = word_tokenize(rel.ent2)
 
