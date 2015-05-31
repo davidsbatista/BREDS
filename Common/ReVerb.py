@@ -269,7 +269,8 @@ class Reverb(object):
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
-        # past verb + by
+        # to be + past verb + by
+        #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo: "the proposal was first put forward by"
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
