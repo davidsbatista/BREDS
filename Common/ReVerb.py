@@ -271,6 +271,9 @@ class Reverb(object):
     def detect_passive_voice(self, pattern):
         # to be + past verb + by
         #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo: "the proposal was first put forward by"
+        # 'has received a binding offer from'
+        #In addition , Melbourne-based <ORG>Rio Tinto</ORG> has received a binding offer from <ORG>Amcor</ORG> for $ 2.025 billion for its remaining divisions of <ORG>Alcan Packaging</ORG> .
+
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
