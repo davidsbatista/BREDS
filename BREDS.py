@@ -4,16 +4,11 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-import multiprocessing
 import cPickle
 import sys
 import os
 import codecs
 import operator
-import numpy as np
-import re
-import time
-import Queue
 
 from nltk.corpus import stopwords
 from nltk import word_tokenize
@@ -21,7 +16,6 @@ from numpy import dot
 from gensim import matutils
 from collections import defaultdict
 
-from BREDS.PatternParsing import PatternMatrices
 from BREDS.PatternPoS import Pattern
 from BREDS.Config import Config
 from BREDS.TuplePoS import Tuple
@@ -58,7 +52,6 @@ class BREDS(object):
             print len(self.processed_tuples), "tuples loaded"
 
         except IOError:
-            sentences_tmp = list()
             self.config.read_word2vec()
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
@@ -225,15 +218,8 @@ class BREDS(object):
                         sys.stdout.write(".")
                         sys.stdout.flush()
                     sim_best = 0
-                    accept = 0
                     for extraction_pattern in self.patterns:
-
-                        if self.config.embeddings == 'fcm':
-                            accept, score = self.similarity_matrix_all_2(t, extraction_pattern)
-
-                        elif self.config.embeddings == 'sum':
-                            accept, score = self.similarity_all_1(t, extraction_pattern)
-
+                        accept, score = self.similarity_all_1(t, extraction_pattern)
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
                             if score > sim_best:
