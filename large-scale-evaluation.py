@@ -17,16 +17,16 @@ import Queue
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
-from nltk import PunktWordTokenizer
+from nltk import word_tokenize
 from nltk.corpus import stopwords
 from collections import defaultdict
 from Common.Sentence import Sentence
 
 # relational words to be used in calculating the set D with the proximity PMI
-founded = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
-acquired = ['owns', 'acquired', 'bought']
-headquarters = ['headquarters', 'headquartered', 'based', 'located', 'offices']
-employment = ['chief', 'scientist', 'professor', 'biologist', 'ceo']
+founded = [' founder ', ' co-founder ', ' cofounder ', ' cofounded ', ' founded ']
+acquired = [' owns ', ' acquired ', ' bought ']
+headquarters = [' headquarters ', ' headquartered ', ' based in ', ' located ']
+employment = [' chief ', ' scientist ', ' professor ', ' biologist ', ' ceo ', 'CEO']
 
 # PMI value for proximity
 PMI = 0.7
@@ -103,18 +103,25 @@ def is_acronym(entity):
 
 
 def process_corpus(queue, g_dash, e1_type, e2_type):
+    count = 0
+    added = 0
     while True:
         try:
+            if count % 25000 == 0:
+                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total added: ", added
             line = queue.get_nowait()
             s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+            bad_tokens = [" , ", " ( ", " ) ", " ; ", " '' ", " `` ", " 's ", " - ", " vs. ", " v ", " ' ", " : ", " . "]
+            stopwords_list = stopwords.words('english')
             for r in s.relationships:
-                if r.between == " , " or r.between == " ( " or r.between == " ) ":
+                if any(x in r.between for x in bad_tokens):
+                    continue
+                elif len(word_tokenize(r.between)) and any(x in word_tokenize(r.between) for x in stopwords_list):
                     continue
                 else:
                     g_dash.append(r)
-            if queue.empty() is True:
-                break
-
+                    added += 1
+            count += 1
         except Queue.Empty:
             break
 
@@ -358,13 +365,19 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         with open(corpus) as f:
             print "Reading corpus into memory"
             data = f.readlines()
+            count = 0
             print "Storing in shared Queue"
             for l in data:
+                if count % 50000 == 0:
+                    sys.stdout.write(".")
+                    sys.stdout.flush()
                 queue.put(l)
-        print "Queue size:", queue.qsize()
+                count += 1
+        print "\nQueue size:", queue.qsize()
 
         processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type))
                      for _ in range(num_cpus)]
+
         print "Extracting all possible " + e1_type + "," + e2_type + " relationships from the corpus"
         print "Running", len(processes), "threads"
 
@@ -534,6 +547,19 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
                     hits = searcher.search(q1, limit=q_limit)
 
+                    """
+                    print "e1", t1
+                    print "e2", t3
+                    print q1
+                    print hits
+                    print "\nHITS"
+
+                    for s in hits:
+                        print s
+                        print "\n"
+                    print "\n=================================================="
+                    """
+
                     # Entities proximity considering relational words
                     # From the results above count how many contain a relational word
                     hits_with_r = 0
@@ -543,9 +569,15 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                         for s_r in s.relationships:
                             if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
                                 for rel in rel_words:
-                                    if rel in r.between:
+                                    if rel in s_r.between:
                                         hits_with_r += 1
-                                        break
+                                        """
+                                        print "rel_word:", rel
+                                        print s_r.sentence
+                                        print s_r.ent1
+                                        print s_r.ent2
+                                        print "\n\n"
+                                        """
 
                         if not len(hits) >= hits_with_r:
                             print "ERROR!"
@@ -555,19 +587,16 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                             print "\n"
                             sys.exit(0)
 
-                    if len(hits) > 0:
-                        pmi = float(hits_with_r) / float(len(hits))
-                        if pmi > PMI:
-                            results.append(r)
-                            """
-                            if isinstance(r, ExtractedFact):
-                                print r.ent1, '\t', r.patterns, '\t', r.ent2, pmi
-                            elif isinstance(r, Relationship):
-                                print r.ent1, '\t', r.between, '\t', r.ent2, pmi
-                            """
-                    if queue.empty() is True:
-                        break
-
+                        if len(hits) > 0:
+                            pmi = float(hits_with_r) / float(len(hits))
+                            if pmi > PMI:
+                                results.append(r)
+                                print "Evaluating"
+                                print s_r.sentence
+                                print s_r.ent1
+                                print s_r.ent2
+                                print pmi
+                                print "\n\n"
             except Queue.Empty:
                 break
 
@@ -704,7 +733,7 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                 # First count the proximity (MAX_TOKENS_AWAY) occurrences of entities r.e1 and r.e2
                 q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
                 hits = searcher.search(q1, limit=q_limit)
-                rel_words = [word for word in PunktWordTokenizer().tokenize(r.bet_words) if word
+                rel_words = [word for word in word_tokenize(r.bet_words) if word
                              not in stopwords.words('english')]
                 rel_words = set(rel_words)
 
@@ -828,6 +857,7 @@ def main():
     print "Arg1 Type:", e1_type
     print "Arg2 Type:", e2_type
 
+    """
     print "\nCalculating set B: intersection between system output and database"
     b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, e1_type, e2_type)
 
@@ -844,6 +874,9 @@ def main():
     print "Not found          :", len(not_found)
     print "\n"
     assert len(system_output) == len(a) + len(b) + len(not_found)
+    """
+    a = set()
+    b = set()
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
@@ -860,6 +893,8 @@ def main():
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
     d = calculate_d(superset, a, e1_type, e2_type, index, rel_type)
+
+    """
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
     print "Correct in corpus  :", len(a)
@@ -922,6 +957,7 @@ def main():
         print "Recall   : ", recall
         print "F1   : ", f1
         print "\n"
+    """
 
 
 if __name__ == "__main__":
