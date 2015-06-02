@@ -10,6 +10,7 @@ import multiprocessing
 import re
 import time
 import sys
+import os
 import cPickle
 import jellyfish
 import Queue
@@ -17,22 +18,30 @@ import Queue
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
-from nltk import word_tokenize
+from nltk import word_tokenize, bigrams
 from nltk.corpus import stopwords
 from collections import defaultdict
 from Common.Sentence import Sentence
 
-# relational words to be used in calculating the set D with the proximity PMI
-founded = [' founder ', ' co-founder ', ' cofounder ', ' cofounded ', ' founded ']
-acquired = [' owns ', ' acquired ', ' bought ']
-headquarters = [' headquarters ', ' headquartered ', ' based in ', ' located ']
-employment = [' chief ', ' scientist ', ' professor ', ' biologist ', ' ceo ', 'CEO']
+# relational words to be used in calculating the set C and D aplpying the  with the proximity PMI
+
+founded_unigrams = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
+founded_bigrams = ['started by']
+
+acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
+acquired_bigrams = []
+
+headquarters_unigrams = ['headquarters', 'headquartered']
+headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in']
+
+#TODO: melhorar esta lista, incluir mais profissões?
+employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo', 'CEO', 'employer']
+employment_bigrams = []
 
 # PMI value for proximity
 PMI = 0.7
 
 # Parameters for relationship extraction from Sentence
-# 9 tokens away, cause it was indexed was done without removing stop-words...
 MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1
 CONTEXT_WINDOW = 3
@@ -111,12 +120,14 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
                 print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total added: ", added
             line = queue.get_nowait()
             s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
-            bad_tokens = [" , ", " ( ", " ) ", " ; ", " '' ", " `` ", " 's ", " - ", " vs. ", " v ", " ' ", " : ", " . "]
+            bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
             stopwords_list = stopwords.words('english')
+            not_valid = bad_tokens + stopwords_list
             for r in s.relationships:
-                if any(x in r.between for x in bad_tokens):
+                tokens = word_tokenize(r.between)
+                if all(x in not_valid for x in word_tokenize(r.between)):
                     continue
-                elif len(word_tokenize(r.between)) and any(x in word_tokenize(r.between) for x in stopwords_list):
+                elif "," in tokens:
                     continue
                 else:
                     g_dash.append(r)
@@ -272,6 +283,10 @@ def load_dbpedia(data, database_1, database_2):
 
     return database_1, database_2
 
+
+def extract_bigrams(text):
+    tokens = word_tokenize(text)
+    return [gram[0]+' '+gram[1] for gram in bigrams(tokens)]
 
 # ########################################
 # Estimations of sets and intersections #
@@ -432,13 +447,41 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for l in results:
             g_intersect_d.update(l)
 
+        if rel_type == "founded":
+            rel_words_unigrams = founded_unigrams
+            rel_words_bigrams = founded_bigrams
+        elif rel_type == "acquired":
+            rel_words_unigrams = acquired_unigrams
+            rel_words_bigrams = acquired_unigrams
+        elif rel_type == 'headquarters':
+            rel_words_unigrams = headquarters_unigrams
+            rel_words_bigrams = headquarters_bigrams
+        elif rel_type == 'employment':
+            rel_words_unigrams = employment_unigrams
+            rel_words_bigrams = employment_bigrams
+        else:
+            print rel_type, " is invalid"
+            sys.exit(0)
+
+        for r in g_intersect_d:
+            #TODO: ver tambem as bigrams
+            for rel in rel_words_unigrams:
+                if rel in r.between:
+                    print r.sentence
+                    print r.ent1, '\t', r.ent2
+                    print r.between
+                    print "\n"
+
+        print len(g_intersect_d), "relationships in the corpus which are in the KB"
+
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
             f = open(rel_type + "_g_intersection_d.pkl", "wb")
             cPickle.dump(g_intersect_d, f)
             f.close()
 
-    # having B and G_intersect_D => C = G_intersect_D - B
+    # having B and G_intersect_D => |c| = |G_intersect_D| - |b|
+    #TODO: ver como eh feita a subtracção de conjuntos
     c = g_intersect_d.difference(set(b))
     return c, g_dash_set
 
@@ -454,13 +497,17 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
     # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
 
     if rel_type == "founded":
-        rel_words = founded
+        rel_words_unigrams = founded_unigrams
+        rel_words_bigrams = founded_bigrams
     elif rel_type == "acquired":
-        rel_words = acquired
+        rel_words_unigrams = acquired_unigrams
+        rel_words_bigrams = acquired_unigrams
     elif rel_type == 'headquarters':
-        rel_words = headquarters
+        rel_words_unigrams = headquarters_unigrams
+        rel_words_bigrams = headquarters_bigrams
     elif rel_type == 'employment':
-        rel_words = employment
+        rel_words_unigrams = employment_unigrams
+        rel_words_bigrams = employment_bigrams
     else:
         print rel_type, " is invalid"
         sys.exit(0)
@@ -483,7 +530,8 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
 
         # calculate PMI for r not in database
         processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index,
-                                                                                  results[i], rel_words))
+                                                                                  results[i], rel_words_unigrams,
+                                                                                  rel_words_bigrams))
                      for i in range(num_cpus)]
         for proc in processes:
             proc.start()
@@ -508,7 +556,7 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
 ########################################################################
 # Paralelized functions: each function will run as a different process #
 ########################################################################
-def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
+def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_unigrams, rel_words_bigrams):
     """
     #TODO: proximity_pmi with relation specific given relational words
     :param e1_type:
@@ -529,13 +577,15 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
     count = 0
     distance = MAX_TOKENS_AWAY
     q_limit = 500
+    bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+    stopwords_list = stopwords.words('english')
+    not_valid = bad_tokens + stopwords_list
     with idx.searcher() as searcher:
         while True:
             try:
                 r = queue.get_nowait()
-                count += 1
-                if count % 100 == 0:
-                    print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
+                if count % 50 == 0:
+                    print "\n", multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
                 if (r.ent1, r.ent2) not in all_in_database:
                     # if its not in the database calculate the PMI
                     entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
@@ -547,56 +597,58 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words):
                     q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
                     hits = searcher.search(q1, limit=q_limit)
 
-                    """
-                    print "e1", t1
-                    print "e2", t3
-                    print q1
-                    print hits
-                    print "\nHITS"
-
-                    for s in hits:
-                        print s
-                        print "\n"
-                    print "\n=================================================="
-                    """
-
                     # Entities proximity considering relational words
                     # From the results above count how many contain a relational word
+                    #print entity1, '\t', entity2, len(hits), "\n"
                     hits_with_r = 0
+                    hits_without_r = 0
                     for s in hits:
                         sentence = s.get("sentence")
                         s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
                         for s_r in s.relationships:
                             if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
-                                for rel in rel_words:
-                                    if rel in s_r.between:
-                                        hits_with_r += 1
-                                        """
-                                        print "rel_word:", rel
-                                        print s_r.sentence
-                                        print s_r.ent1
-                                        print s_r.ent2
-                                        print "\n\n"
-                                        """
+                                unigrams_rel_words = word_tokenize(s_r.between)
+                                bigrams_rel_words = extract_bigrams(s_r.between)
+                                if all(x in not_valid for x in unigrams_rel_words):
+                                    hits_without_r += 1
+                                    continue
+                                elif any(x in rel_words_unigrams for x in unigrams_rel_words):
+                                    """
+                                    print "UNIGRAMS HIT"
+                                    print s_r.sentence
+                                    print s_r.ent1
+                                    print s_r.ent2
+                                    print s_r.between
+                                    print "\n"
+                                    """
+                                    hits_with_r += 1
+                                elif any(x in rel_words_bigrams for x in bigrams_rel_words):
+                                    """
+                                    print "BIGRAMS HIT"
+                                    print s_r.sentence
+                                    print s_r.ent1
+                                    print s_r.ent2
+                                    print s_r.between
+                                    print "\n"
+                                    """
+                                    hits_with_r += 1
+                                else:
+                                    hits_without_r += 1
 
-                        if not len(hits) >= hits_with_r:
-                            print "ERROR!"
-                            print "hits", len(hits)
-                            print "hits_with_r", hits_with_r
-                            print entity1, '\t', entity2
-                            print "\n"
-                            sys.exit(0)
-
-                        if len(hits) > 0:
-                            pmi = float(hits_with_r) / float(len(hits))
-                            if pmi > PMI:
-                                results.append(r)
-                                print "Evaluating"
-                                print s_r.sentence
-                                print s_r.ent1
-                                print s_r.ent2
-                                print pmi
-                                print "\n\n"
+                    if hits_with_r > 0:
+                        pmi = float(hits_with_r) / float(hits_without_r)
+                        if pmi >= PMI:
+                            if word_tokenize(s_r.between)[-1] == 'by':
+                                tmp = s_r.ent2
+                                s_r.ent2 = s_r.ent1
+                                s_r.ent1 = tmp
+                            results.append(r)
+                            print "**ADDED**:", entity1, '\t', entity2
+                            print "hits_without_r ", float(hits_without_r)
+                            print "hits_with_r ", float(hits_with_r)
+                            print "PMI", pmi
+                            print
+                count += 1
             except Queue.Empty:
                 break
 
@@ -699,9 +751,6 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                 if PRINT_NOT_FOUND is True:
                     print r.ent1, '\t', r.ent2
 
-            if queue.empty() is True:
-                break
-
         except Queue.Empty:
             break
 
@@ -737,19 +786,12 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                              not in stopwords.words('english')]
                 rel_words = set(rel_words)
 
-                """
-                print q1
-                print "hits", len(hits)
-                print r.ent1, '\t', r.ent2
-                print "\n"
-                print rel_words
-                """
-
                 # Using all the hits above from the query above, count how many have between the entities
                 # the relational word(s) r.bef, r.bet, r.aft. That is the same word(s) as extracted by the system
                 #
                 # If there more hits for the two entities containing the same relational word(s) as extracted by a
                 # system than any other words, we consider this extraction positive.
+                #TODO: alterar, copiar a versão do calculate_d
                 hits_with_r = 0
                 for s in hits:
                     sentence = s.get("sentence")
@@ -777,9 +819,6 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found):
                         not_found.append(r)
                 else:
                     not_found.append(r)
-
-                if queue.empty() is True:
-                    break
 
             except Queue.Empty:
                 break
