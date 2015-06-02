@@ -31,8 +31,11 @@ founded_bigrams = ['started by']
 acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
 acquired_bigrams = []
 
-headquarters_unigrams = ['headquarters', 'headquartered']
-headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in']
+headquarters_unigrams = ['headquarters', 'headquartered', 'offices', 'office', 'building', 'buildings', 'factory',
+                         'plant', 'compund']
+headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in',
+                        'office in', 'branch in', 'store in', 'firm in', 'factory in', 'plant in', 'head office',
+                        'head offices', 'in central', 'in downton', 'outskirts of', 'suburs of']
 
 #TODO: melhorar esta lista, incluir mais profissões?
 employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo', 'CEO', 'employer']
@@ -357,6 +360,9 @@ def calculate_b(output, database_1, database_2, database_3, e1_type, e2_type):
 
 @timecall
 def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type):
+
+    print b
+
     # contains the database facts described in the corpus but not extracted by the system
     #
     # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
@@ -378,7 +384,6 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     # else generate G'
     else:
         with open(corpus) as f:
-            print "Reading corpus into memory"
             data = f.readlines()
             count = 0
             print "Storing in shared Queue"
@@ -463,15 +468,52 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
             print rel_type, " is invalid"
             sys.exit(0)
 
+        print "Filtering intersection with KB based on keywords"
+        print len(g_intersect_d)
+        filtered = set()
         for r in g_intersect_d:
-            #TODO: ver tambem as bigrams
-            for rel in rel_words_unigrams:
-                if rel in r.between:
-                    print r.sentence
-                    print r.ent1, '\t', r.ent2
-                    print r.between
-                    print "\n"
+            unigrams_BET = word_tokenize(r.between)
+            unigrams_BEF = word_tokenize(r.before)
+            unigrams_AFT = word_tokenize(r.after)
+            bigrams_BET = extract_bigrams(r.between)
+            if any(x in rel_words_unigrams for x in unigrams_BET):
+                filtered.add(r)
+                continue
 
+            if any(x in rel_words_unigrams for x in unigrams_BEF):
+                """
+                print "ACCEPTED"
+                print r.sentence
+                print r.ent1, '\t', r.ent2
+                print r.before
+                print
+                """
+                filtered.add(r)
+                continue
+
+            if any(x in rel_words_unigrams for x in unigrams_AFT):
+                filtered.add(r)
+                """
+                print "ACCEPTED"
+                print r.sentence
+                print r.ent1, '\t', r.ent2
+                print r.after
+                print
+                """
+                continue
+
+            elif any(x in rel_words_bigrams for x in bigrams_BET):
+                """
+                print "ACCEPTED"
+                print r.sentence
+                print r.ent1, '\t', r.ent2
+                print r.between
+                print
+                """
+                filtered.add(r)
+                continue
+
+        g_intersect_d = filtered
         print len(g_intersect_d), "relationships in the corpus which are in the KB"
 
         if len(g_intersect_d) > 0:
@@ -481,6 +523,11 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
             f.close()
 
     # having B and G_intersect_D => |c| = |G_intersect_D| - |b|
+
+    print "b", len(b)
+    print "g_intersect_d", len(g_intersect_d)
+    print g_intersect_d.difference(set(b))
+
     #TODO: ver como eh feita a subtracção de conjuntos
     c = g_intersect_d.difference(set(b))
     return c, g_dash_set
@@ -543,6 +590,8 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
         for l in results:
             g_minus_d.update(l)
 
+        print "High PMI facts not in the database", len(g_minus_d)
+
         # dump high PMI facts not in the database
         if len(g_minus_d) > 0:
             f = open(rel_type + "_high_pmi_not_in_database.pkl", "wb")
@@ -550,6 +599,7 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type):
             cPickle.dump(g_minus_d, f)
             f.close()
 
+    #TODO: ver esta diferença
     return g_minus_d.difference(a)
 
 
@@ -580,10 +630,14 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
     bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
     stopwords_list = stopwords.words('english')
     not_valid = bad_tokens + stopwords_list
+    cache = set()
     with idx.searcher() as searcher:
         while True:
             try:
                 r = queue.get_nowait()
+                if (r.ent1, r.ent2) in cache:
+                    #print r.ent1, '\t', r.ent2, "found in cache"
+                    continue
                 if count % 50 == 0:
                     print "\n", multiprocessing.current_process(), "In Queue", queue.qsize(), "Total Matched: ", len(results)
                 if (r.ent1, r.ent2) not in all_in_database:
@@ -635,19 +689,23 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                                 else:
                                     hits_without_r += 1
 
-                    if hits_with_r > 0:
+                    if hits_with_r > 0 and hits_without_r > 0:
                         pmi = float(hits_with_r) / float(hits_without_r)
                         if pmi >= PMI:
                             if word_tokenize(s_r.between)[-1] == 'by':
                                 tmp = s_r.ent2
                                 s_r.ent2 = s_r.ent1
                                 s_r.ent1 = tmp
+                            cache.add((s_r.ent1, s_r.ent2))
                             results.append(r)
+                            """
                             print "**ADDED**:", entity1, '\t', entity2
                             print "hits_without_r ", float(hits_without_r)
                             print "hits_with_r ", float(hits_with_r)
                             print "PMI", pmi
                             print
+                            """
+                cache.add((s_r.ent1, s_r.ent2))
                 count += 1
             except Queue.Empty:
                 break
@@ -896,7 +954,6 @@ def main():
     print "Arg1 Type:", e1_type
     print "Arg2 Type:", e2_type
 
-    """
     print "\nCalculating set B: intersection between system output and database"
     b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, e1_type, e2_type)
 
@@ -913,9 +970,6 @@ def main():
     print "Not found          :", len(not_found)
     print "\n"
     assert len(system_output) == len(a) + len(b) + len(not_found)
-    """
-    a = set()
-    b = set()
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
