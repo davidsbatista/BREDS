@@ -385,8 +385,6 @@ class BREDS(object):
                 # increment the number of iterations
                 self.curr_iteration += 1
 
-                #TODO: se há novos tuplos válidos extraidos ou os patterns a alterarem a confianca, entao continua, senao para
-
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
