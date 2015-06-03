@@ -25,7 +25,7 @@ from Common.Sentence import Sentence
 
 # relational words to be used in calculating the set C and D aplpying the  with the proximity PMI
 
-founded_unigrams = ['founder', 'co-founder', 'cofounder', 'cofounded', 'founded']
+founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded', 'cofounded', 'founded', 'founders']
 founded_bigrams = ['started by']
 
 acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
@@ -131,7 +131,7 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
                 tokens = word_tokenize(r.between)
                 if all(x in not_valid for x in word_tokenize(r.between)):
                     continue
-                elif "," in tokens:
+                elif "," in tokens and tokens[0] != ',':
                     continue
                 else:
                     g_dash.append(r)
@@ -229,7 +229,7 @@ def process_freebase(data, rel_type):
             if "(" in e2:
                 e2 = re.sub(r"\(.*\)", "", e2).strip()
 
-            if rel_type == 'founded' or rel_type == 'employment':
+            if rel_type == 'founded' or rel_type == 'employer':
                 database_1[(e2.strip(), e1.strip())].append(r)
                 database_2[e2.strip()].append(e1.strip())
                 database_3[e1.strip()].append(e2.strip())
@@ -582,7 +582,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
             try:
                 r = queue.get_nowait()
                 if (r.ent1, r.ent2) in cache:
-                    #print r.ent1, '\t', r.ent2, "found in cache"
+                    print r.ent1, '\t', r.ent2, "found in cache"
                     continue
                 if count % 50 == 0:
                     print "\n", multiprocessing.current_process(), "In Queue", queue.qsize(), \
@@ -652,7 +652,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                             print "PMI", pmi
                             print
                             """
-                cache.add((s_r.ent1, s_r.ent2))
+                cache.add((r.ent1, r.ent2))
                 count += 1
             except Queue.Empty:
                 break
@@ -761,12 +761,6 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
 
 
 def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_words_unigrams, rel_words_bigrams):
-    """
-    sentences with tagged entities are indexed in whoosh
-    perform the following query
-    ent1 NEAR:X r NEAR:X ent2
-    X is the maximum number of words between the query elements.
-    """
     idx = open_dir(index)
     count = 0
     q_limit = 500
@@ -794,35 +788,41 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                 #print entity1, '\t', entity2, len(hits), "\n"
                 hits_with_r = 0
                 hits_without_r = 0
+                fact_bet_words_tokens = word_tokenize(r.bet_words)
                 for s in hits:
                     sentence = s.get("sentence")
                     s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
                     for s_r in s.relationships:
                         if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
-                            unigrams_rel_words = word_tokenize(s_r.between)
+                            unigrams_bef_words = word_tokenize(s_r.before)
+                            unigrams_bet_words = word_tokenize(s_r.between)
+                            unigrams_aft_words = word_tokenize(s_r.after)
                             bigrams_rel_words = extract_bigrams(s_r.between)
-                            if all(x in not_valid for x in unigrams_rel_words):
-                                hits_without_r += 1
-                                continue
-                            elif any(x in rel_words_unigrams for x in unigrams_rel_words):
-                                """
-                                print "UNIGRAMS HIT"
-                                print s_r.sentence
-                                print s_r.ent1
-                                print s_r.ent2
-                                print s_r.between
-                                print "\n"
-                                """
+
+                            """
+                            print "BEF", s_r.before, unigrams_bef_words
+                            print "BET", s_r.between,  unigrams_bet_words, bigrams_rel_words
+                            print "AFT", s_r.after, unigrams_aft_words
+                            """
+
+                            if fact_bet_words_tokens == unigrams_bet_words:
+                                #print "****HIT**** 2"
                                 hits_with_r += 1
-                            elif any(x in rel_words_bigrams for x in bigrams_rel_words):
-                                """
-                                print "BIGRAMS HIT"
-                                print s_r.sentence
-                                print s_r.ent1
-                                print s_r.ent2
-                                print s_r.between
-                                print "\n"
-                                """
+
+                            elif any(x in rel_words_unigrams for x in unigrams_bef_words):
+                                #print "****HIT**** 4"
+                                hits_with_r += 1
+
+                            elif any(x in rel_words_unigrams for x in unigrams_bet_words):
+                                #print "****HIT**** 5"
+                                hits_with_r += 1
+
+                            elif any(x in rel_words_unigrams for x in unigrams_aft_words):
+                                #print "****HIT**** 6"
+                                hits_with_r += 1
+
+                            elif rel_words_bigrams == bigrams_rel_words:
+                                #print "****HIT**** 7"
                                 hits_with_r += 1
                             else:
                                 hits_without_r += 1
@@ -842,13 +842,22 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                         """
                     else:
                         not_found.append(r)
-                        print "**INVALID**:", entity1, '\t', entity2
+                        """
+                        print "**INVALID**:"
+                        print 'ExtractedFact:', entity1, '\t', entity2
+                        print r.sentence
+                        fact_bef_words_tokens = word_tokenize(r.bef_words)
+                        fact_bet_words_tokens = word_tokenize(r.bet_words)
+                        fact_aft_words_tokens = word_tokenize(r.aft_words)
+                        print "BEF", r.bef_words, fact_bef_words_tokens
+                        print "BET", r.bet_words, fact_bet_words_tokens
+                        print "AFT", r.aft_words, fact_aft_words_tokens
                         print "hits_without_r ", float(hits_without_r)
                         print "hits_with_r ", float(hits_with_r)
                         print "PMI", pmi
-                        print r.sentence
-                        print r.bet_words
+                        print "Index hits", len(hits)
                         print
+                        """
                 else:
                     not_found.append(r)
                 cache.add((s_r.ent1, s_r.ent2))
@@ -907,34 +916,40 @@ def main():
     # entities semantic type
     rel_words_unigrams = None
     rel_words_bigrams = None
-    if rel_type == 'founded' or rel_type == 'employment':
+
+    if rel_type == 'founded':
         e1_type = "ORG"
         e2_type = "PER"
         rel_words_unigrams = founded_unigrams
         rel_words_bigrams = founded_bigrams
+
     elif rel_type == 'acquired':
         e1_type = "ORG"
         e2_type = "ORG"
         rel_words_unigrams = acquired_unigrams
         rel_words_bigrams = acquired_unigrams
+
     elif rel_type == 'headquarters':
-        e1_type = "ORG"
-        e2_type = "LOC"
         # load dbpedia relationships
         load_dbpedia(sys.argv[5], database_1, database_2)
+        e1_type = "ORG"
+        e2_type = "LOC"
         rel_words_unigrams = headquarters_unigrams
         rel_words_bigrams = headquarters_bigrams
+
     elif rel_type == 'contained_by':
         e1_type = "LOC"
         e2_type = "LOC"
-    elif rel_type == 'employment':
+
+    elif rel_type == 'employer':
         e1_type = "ORG"
         e2_type = "PER"
         rel_words_unigrams = employment_unigrams
         rel_words_bigrams = employment_bigrams
+
     else:
         print "Invalid relationship type", rel_type
-        print "Use: founded, acquired, headquarters, employment"
+        print "Use: founded, acquired, headquarters, employer"
         sys.exit(0)
 
     print "\nRelationship Type:", rel_type
@@ -991,6 +1006,7 @@ def main():
     print "|c| =", len(c), "(", len(uniq_c), ")"
     print "|d| =", len(d), "(", len(uniq_d), ")"
     print "|S| =", len(system_output)
+    print "|G| =", len(set(a).union(set(b).union(set(c).union(set(d)))))
     print "Relationships not found:", len(set(not_found))
 
     # Write relationships not found in the Database nor with high PMI relatation words to disk
@@ -1019,12 +1035,12 @@ def main():
     b = set(b)
     output = set(system_output)
     if len(output) == 0:
-        print "\nPrecision : 0.0"
+        print "\nPrecision   : 0.0"
         print "Recall      : 0.0"
         print "F1          : 0.0"
         print "\n"
     elif float(len(a) + len(b)) == 0:
-        print "\nPrecision : 0.0"
+        print "\nPrecision   : 0.0"
         print "Recall      : 0.0"
         print "F1          : 0.0"
         print "\n"
@@ -1032,7 +1048,7 @@ def main():
         precision = float(len(a) + len(b)) / float(len(output))
         recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
         f1 = 2 * (precision * recall) / (precision + recall)
-        print "\nPrecision : ", precision
+        print "\nPrecision   : ", precision
         print "Recall      : ", recall
         print "F1          : ", f1
         print "\n"
