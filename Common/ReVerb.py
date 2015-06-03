@@ -274,7 +274,7 @@ class Reverb(object):
         # ORG1 'which is being bought by' ORG2
         # 'has received a binding offer from'
         # "ENT1 was first put forward by ENT2
-        #In addition , Melbourne-based <ORG>Rio Tinto</ORG> has received a binding offer from <ORG>Amcor</ORG> for $ 2.025 billion for its remaining divisions of <ORG>Alcan Packaging</ORG> .
+        # <ORG>Sun Microsystems</ORG> , which was acquired instead by business software giant <ORG>Oracle</ORG> .
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
