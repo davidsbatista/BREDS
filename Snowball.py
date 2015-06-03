@@ -294,11 +294,6 @@ class Snowball(object):
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
-
-                    print t.bef_vector
-                    print t.bet_vector
-                    print t.aft_vector
-
                     try:
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
