@@ -10,7 +10,7 @@ import os
 import codecs
 import operator
 
-from nltk import PunktWordTokenizer
+from nltk import word_tokenize
 from collections import defaultdict
 from gensim.matutils import cossim
 from Snowball.Pattern import Pattern
@@ -56,9 +56,9 @@ class Snowball(object):
 
                 for rel in sentence.relationships:
                     if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        bef_tokens = self.tokenize(self, rel.before)
-                        bet_tokens = self.tokenize(self, rel.between)
-                        aft_tokens = self.tokenize(self, rel.after)
+                        bef_tokens = word_tokenize(rel.before)
+                        bet_tokens = word_tokenize(rel.between)
+                        aft_tokens = word_tokenize(rel.after)
                         if not (bef_tokens == 0 and bet_tokens == 0 and aft_tokens == 0):
                             t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                             self.processed_tuples.append(t)
@@ -259,8 +259,7 @@ class Snowball(object):
             self.patterns.append(c1)
             start = 1
 
-        # Compute the similarity between an instance with each pattern
-        # go through all tuples
+        # Compute the similarity between an instance with each pattern go through all tuples
         for i in range(start, len(matched_tuples), 1):
             t = matched_tuples[i]
             max_similarity = 0
@@ -285,10 +284,6 @@ class Snowball(object):
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
 
     @staticmethod
-    def tokenize(self, text):
-        return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in self.config.stopwords]
-
-    @staticmethod
     def match_seeds_tuples(self):
         """
         checks if an extracted tuple matches seeds tuples
@@ -299,6 +294,11 @@ class Snowball(object):
             for s in self.config.seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
+
+                    print t.bef_vector
+                    print t.bet_vector
+                    print t.aft_vector
+
                     try:
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
