@@ -6,7 +6,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import sys
 
-from nltk import PunktWordTokenizer, pos_tag
+from nltk import pos_tag, word_tokenize
 from Common.ReVerb import Reverb
 
 
@@ -72,7 +72,7 @@ class Tuple(object):
             return self.config.vsm.tf_idf_model[vect_ids]
 
         def tokenize(self, text):
-            return [word for word in PunktWordTokenizer().tokenize(text.lower()) if word not in self.config.stopwords]
+            return [word for word in word_tokenize(text.lower()) if word not in self.config.stopwords]
 
         def construct_pattern_vector(self, pattern_tags, config):
             # construct TF-IDF representation for each context
@@ -86,7 +86,7 @@ class Tuple(object):
         def construct_words_vectors(self, words, config):
             # split text into tokens and tag them using NLTK's default English tagger
             # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-            text_tokens = PunktWordTokenizer().tokenize(words)
+            text_tokens = word_tokenize(words)
             tags_ptb = pos_tag(text_tokens)
             pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
             if len(pattern) >= 1:
