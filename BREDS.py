@@ -518,21 +518,26 @@ class BREDS(object):
 
 
 def main():
-    configuration = sys.argv[1]
-    sentences_file = sys.argv[2]
-    seeds_file = sys.argv[3]
-    negative_seeds = sys.argv[4]
-    # threshold similarity for clustering/extracting instances
-    similarity = sys.argv[5]
-    # confidence threshold of an instance to used as seed
-    confidance = sys.argv[6]
-    breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
-    if sentences_file.endswith('.pkl'):
-        print "Loading pre-processed sentences", sentences_file
-        breads.init_bootstrapp(tuples=sentences_file)
+    if len(sys.argv) != 7:
+        print "\nSnowball.py paramters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
+              " confidance_threshold\n"
+        sys.exit(0)
     else:
-        breads.generate_tuples(sentences_file)
-        breads.init_bootstrapp(tuples=None)
+        configuration = sys.argv[1]
+        sentences_file = sys.argv[2]
+        seeds_file = sys.argv[3]
+        negative_seeds = sys.argv[4]
+        # threshold similarity for clustering/extracting instances
+        similarity = sys.argv[5]
+        # confidence threshold of an instance to used as seed
+        confidance = sys.argv[6]
+        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
+        if sentences_file.endswith('.pkl'):
+            print "Loading pre-processed sentences", sentences_file
+            breads.init_bootstrapp(tuples=sentences_file)
+        else:
+            breads.generate_tuples(sentences_file)
+            breads.init_bootstrapp(tuples=None)
 
 
 if __name__ == "__main__":
