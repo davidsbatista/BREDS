@@ -16,7 +16,7 @@ from gensim.matutils import cossim
 from Snowball.Pattern import Pattern
 from Snowball.Config import Config
 from Snowball.Tuple import Tuple
-from Common.SentenceBreds import Sentence
+from Common.Sentence import Sentence
 from Common.Seed import Seed
 
 PRINT_PATTERNS = False
@@ -308,19 +308,25 @@ class Snowball(object):
 
 
 def main():
-    configuration = sys.argv[1]
-    sentences_file = sys.argv[2]
-    seeds_file = sys.argv[3]
-    negative_seeds = sys.argv[4]
-    similarity = sys.argv[5]
-    confidance = sys.argv[6]
-    snowball = Snowball(configuration, seeds_file, negative_seeds, sentences_file, float(similarity), float(confidance))
-    if sentences_file.endswith('.pkl'):
-        print "Loading pre-processed sentences", sentences_file
-        snowball.init_bootstrapp(tuples=sentences_file)
+    if len(sys.argv) != 7:
+        print "\nSnowball.py paramters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
+              " confidance_threshold\n"
+        sys.exit(0)
     else:
-        snowball.generate_tuples(sentences_file)
-        snowball.init_bootstrapp(tuples=None)
+        configuration = sys.argv[1]
+        sentences_file = sys.argv[2]
+        seeds_file = sys.argv[3]
+        negative_seeds = sys.argv[4]
+        similarity = sys.argv[5]
+        confidance = sys.argv[6]
+
+        snowball = Snowball(configuration, seeds_file, negative_seeds, sentences_file, float(similarity), float(confidance))
+        if sentences_file.endswith('.pkl'):
+            print "Loading pre-processed sentences", sentences_file
+            snowball.init_bootstrapp(tuples=sentences_file)
+        else:
+            snowball.generate_tuples(sentences_file)
+            snowball.init_bootstrapp(tuples=None)
 
 
 if __name__ == "__main__":
