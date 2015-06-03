@@ -519,7 +519,7 @@ class BREDS(object):
 
 def main():
     if len(sys.argv) != 7:
-        print "\nSnowball.py paramters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
+        print "\nBREDS.py paramters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
               " confidance_threshold\n"
         sys.exit(0)
     else:
