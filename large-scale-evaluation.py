@@ -292,6 +292,7 @@ def extract_bigrams(text):
     tokens = word_tokenize(text)
     return [gram[0]+' '+gram[1] for gram in bigrams(tokens)]
 
+
 # ########################################
 # Estimations of sets and intersections #
 # ########################################
@@ -457,15 +458,15 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         print len(g_intersect_d)
         filtered = set()
         for r in g_intersect_d:
-            unigrams_BET = word_tokenize(r.between)
-            unigrams_BEF = word_tokenize(r.before)
-            unigrams_AFT = word_tokenize(r.after)
-            bigrams_BET = extract_bigrams(r.between)
-            if any(x in rel_words_unigrams for x in unigrams_BET):
+            unigrams_bet = word_tokenize(r.between)
+            unigrams_bef = word_tokenize(r.before)
+            unigrams_aft = word_tokenize(r.after)
+            bigrams_bet = extract_bigrams(r.between)
+            if any(x in rel_words_unigrams for x in unigrams_bet):
                 filtered.add(r)
                 continue
 
-            if any(x in rel_words_unigrams for x in unigrams_BEF):
+            if any(x in rel_words_unigrams for x in unigrams_bef):
                 """
                 print "ACCEPTED"
                 print r.sentence
@@ -476,7 +477,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 filtered.add(r)
                 continue
 
-            if any(x in rel_words_unigrams for x in unigrams_AFT):
+            if any(x in rel_words_unigrams for x in unigrams_aft):
                 filtered.add(r)
                 """
                 print "ACCEPTED"
@@ -487,7 +488,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 """
                 continue
 
-            elif any(x in rel_words_bigrams for x in bigrams_BET):
+            elif any(x in rel_words_bigrams for x in bigrams_bet):
                 """
                 print "ACCEPTED"
                 print r.sentence
@@ -571,22 +572,6 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type, rel_words_unigrams
 # Paralelized functions: each function will run as a different process #
 ########################################################################
 def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_unigrams, rel_words_bigrams):
-    """
-    #TODO: proximity_pmi with relation specific given relational words
-    :param e1_type:
-    :param e2_type:
-    :param queue:
-    :param index:
-    :param results:
-    :param rel_words:
-    :return:
-    """
-    """
-    sentences with tagged entities are indexed in whoosh
-    perform the following query
-    ent1 NEAR:X r NEAR:X ent2
-    X is the maximum number of words between the query elements.
-    """
     idx = open_dir(index)
     count = 0
     distance = MAX_TOKENS_AWAY
@@ -920,6 +905,8 @@ def main():
     index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
+    rel_words_unigrams = None
+    rel_words_bigrams = None
     if rel_type == 'founded' or rel_type == 'employment':
         e1_type = "ORG"
         e2_type = "PER"
