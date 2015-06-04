@@ -374,6 +374,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     queue = m.Queue()
     g_dash = m.list()
     num_cpus = multiprocessing.cpu_count()
+    g_minus_d = set()
 
     # check if superset G' for e1_type, e2_type already exists
     # if it exists load into g_dash_set
@@ -383,7 +384,14 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         g_dash_set = cPickle.load(f)
         f.close()
 
-    # else generate G'
+        # check if G' minus KB for rel_type exists
+        # if it exists load into g_minus_d
+        f = open(rel_type + "_g_minus_d.pkl")
+        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl", "wb"
+        g_minus_d = cPickle.load(f)
+        f.close()
+
+    # else generate G' and G minus D
     else:
         with open(corpus) as f:
             data = f.readlines()
@@ -421,7 +429,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     # check if already exists for this particular relationship
     if os.path.isfile(rel_type + "_g_intersection_d.pkl"):
         f = open(rel_type + "_g_intersection_d.pkl", "r")
-        print "\nLoading G intersected with D'", rel_type + "_g_intersection_d.pkl"
+        print "\nLoading G intersected with D", rel_type + "_g_intersection_d.pkl"
         g_intersect_d = cPickle.load(f)
         f.close()
 
@@ -430,6 +438,9 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         g_intersect_d = set()
         print "G':", len(g_dash_set)
         print "Database:", len(database_1.keys())
+
+        # Facts not in the database, to use in estimating set d
+        g_minus_d = set()
 
         queue = manager.Queue()
         results = [manager.list() for _ in range(num_cpus)]
@@ -454,7 +465,10 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for l in results:
             g_intersect_d.update(l)
 
-        print "Filtering intersection with KB based on keywords"
+        for l in no_matches:
+            g_minus_d.update(l)
+
+        print "Extra filtering: from the intersection of G' with D, select only those based on keywords"
         print len(g_intersect_d)
         filtered = set()
         for r in g_intersect_d:
@@ -465,57 +479,59 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
             if any(x in rel_words_unigrams for x in unigrams_bet):
                 filtered.add(r)
                 continue
-
             if any(x in rel_words_unigrams for x in unigrams_bef):
-                """
-                print "ACCEPTED"
-                print r.sentence
-                print r.ent1, '\t', r.ent2
-                print r.before
-                print
-                """
                 filtered.add(r)
                 continue
-
             if any(x in rel_words_unigrams for x in unigrams_aft):
                 filtered.add(r)
-                """
-                print "ACCEPTED"
-                print r.sentence
-                print r.ent1, '\t', r.ent2
-                print r.after
-                print
-                """
                 continue
-
             elif any(x in rel_words_bigrams for x in bigrams_bet):
-                """
-                print "ACCEPTED"
-                print r.sentence
-                print r.ent1, '\t', r.ent2
-                print r.between
-                print
-                """
                 filtered.add(r)
                 continue
-
         g_intersect_d = filtered
         print len(g_intersect_d), "relationships in the corpus which are in the KB"
-
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
             f = open(rel_type + "_g_intersection_d.pkl", "wb")
             cPickle.dump(g_intersect_d, f)
             f.close()
 
+        print "Extra filtering: from the G' not in D, select only those based on keywords"
+        filtered = set()
+        for r in g_minus_d:
+            unigrams_bet = word_tokenize(r.between)
+            unigrams_bef = word_tokenize(r.before)
+            unigrams_aft = word_tokenize(r.after)
+            bigrams_bet = extract_bigrams(r.between)
+            if any(x in rel_words_unigrams for x in unigrams_bet):
+                filtered.add(r)
+                continue
+            if any(x in rel_words_unigrams for x in unigrams_bef):
+                filtered.add(r)
+                continue
+            if any(x in rel_words_unigrams for x in unigrams_aft):
+                filtered.add(r)
+                continue
+            elif any(x in rel_words_bigrams for x in bigrams_bet):
+                filtered.add(r)
+                continue
+        g_minus_d = filtered
+        print len(g_minus_d), "relationships in the corpus not in the KB"
+        if len(g_minus_d) > 0:
+            # dump G - D to file, relationships in the corpus not in KB
+            f = open(rel_type + "_g_minus_d.pkl", "wb")
+            cPickle.dump(g_minus_d, f)
+            f.close()
+
     # having B and G_intersect_D => |c| = |G_intersect_D| - |b|
     #TODO: ver como eh feita a subtracção de conjuntos
     c = g_intersect_d.difference(set(b))
-    return c, g_dash_set
+    assert len(g_minus_d) > 0
+    return c, g_minus_d
 
 
 @timecall
-def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams):
+def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams):
     # contains facts described in the corpus that are not in the system output nor in the database
     #
     # by applying the PMI of the facts not in the database (i.e., G' \in D)
@@ -537,7 +553,7 @@ def calculate_d(g_dash, a, e1_type, e2_type, index, rel_type, rel_words_unigrams
         num_cpus = multiprocessing.cpu_count()
         results = [m.list() for _ in range(num_cpus)]
 
-        for r in g_dash:
+        for r in g_minus_d:
             queue.put(r)
 
         # calculate PMI for r not in database
@@ -576,14 +592,10 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
     count = 0
     distance = MAX_TOKENS_AWAY
     q_limit = 500
-    cache = set()
     with idx.searcher() as searcher:
         while True:
             try:
                 r = queue.get_nowait()
-                if (r.ent1, r.ent2) in cache:
-                    print r.ent1, '\t', r.ent2, "found in cache"
-                    continue
                 if count % 50 == 0:
                     print "\n", multiprocessing.current_process(), "In Queue", queue.qsize(), \
                         "Total Matched: ", len(results)
@@ -643,7 +655,6 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                                 tmp = s_r.ent2
                                 s_r.ent2 = s_r.ent1
                                 s_r.ent1 = tmp
-                            cache.add((s_r.ent1, s_r.ent2))
                             results.append(r)
                             """
                             print "**ADDED**:", entity1, '\t', entity2
@@ -652,7 +663,6 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                             print "PMI", pmi
                             print
                             """
-                cache.add((r.ent1, r.ent2))
                 count += 1
             except Queue.Empty:
                 break
@@ -764,7 +774,6 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
     idx = open_dir(index)
     count = 0
     q_limit = 500
-    cache = set()
     with idx.searcher() as searcher:
         while True:
             try:
@@ -860,7 +869,6 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                         """
                 else:
                     not_found.append(r)
-                cache.add((s_r.ent1, s_r.ent2))
                 count += 1
 
             except Queue.Empty:
@@ -875,8 +883,8 @@ def main():
     # D  - database (freebase)
     # G  - will be the resulting ground truth
     # G' - superset, contains true facts, and wrong facts
-    #
     # a  - contains correct facts from the system output
+    #
     # b  - intersection between the system output and the database (i.e., freebase),
     #      it is assumed that every fact in this region is correct
     # c  - contains the database facts described in the corpus but not extracted by the system
@@ -906,7 +914,7 @@ def main():
 
     # corpus from which the system extracted relationships
     #corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
-    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase.txt"
+    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase_added_tags.txt"
 
     # index to be used to estimate proximity PMI
     #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
@@ -977,7 +985,7 @@ def main():
     # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
-    c, superset = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type,
+    c, g_minus_d = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type,
                               rel_words_unigrams, rel_words_bigrams)
     assert len(c) > 0
 
@@ -988,7 +996,7 @@ def main():
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
-    d = calculate_d(superset, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams)
+    d = calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams)
 
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
