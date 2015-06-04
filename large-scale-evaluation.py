@@ -374,21 +374,15 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     queue = m.Queue()
     g_dash = m.list()
     num_cpus = multiprocessing.cpu_count()
-    g_minus_d = set()
 
-    # check if superset G' for e1_type, e2_type already exists
+    # check if superset G' for e1_type, e2_type already exists and
+    # if G' minus KB for rel_type exists
+
     # if it exists load into g_dash_set
     if os.path.isfile("superset_" + e1_type + "_" + e2_type + ".pkl"):
         f = open("superset_" + e1_type + "_" + e2_type + ".pkl")
         print "\nLoading superset G'", "superset_" + e1_type + "_" + e2_type + ".pkl"
         g_dash_set = cPickle.load(f)
-        f.close()
-
-        # check if G' minus KB for rel_type exists
-        # if it exists load into g_minus_d
-        f = open(rel_type + "_g_minus_d.pkl")
-        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl", "wb"
-        g_minus_d = cPickle.load(f)
         f.close()
 
     # else generate G' and G minus D
@@ -427,10 +421,15 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
     # Estimate G \in D, look for facts in G' that a match a fact in the database
     # check if already exists for this particular relationship
-    if os.path.isfile(rel_type + "_g_intersection_d.pkl"):
+    if os.path.isfile(rel_type + "_g_intersection_d.pkl") and os.path.isfile(rel_type + "_g_minus_d.pkl"):
         f = open(rel_type + "_g_intersection_d.pkl", "r")
         print "\nLoading G intersected with D", rel_type + "_g_intersection_d.pkl"
         g_intersect_d = cPickle.load(f)
+        f.close()
+
+        f = open(rel_type + "_g_minus_d.pkl")
+        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl", "wb"
+        g_minus_d = cPickle.load(f)
         f.close()
 
     else:
