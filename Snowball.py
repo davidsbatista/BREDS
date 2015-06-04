@@ -225,13 +225,6 @@ class Snowball(object):
             f_output.write("\n")
         f_output.close()
 
-        print "Writing generated patterns to disk"
-        f_output = open("patterns.txt", "w")
-        tmp = sorted(self.patterns, reverse=True)
-        for p in tmp:
-            f_output.write(str([str(t) for t in p.tuples])+'\t'+str(p.confidence)+'\n')
-        f_output.close()
-
     def similarity(self, t, extraction_pattern):
 
         (bef, bet, aft) = (0, 0, 0)
