@@ -939,6 +939,7 @@ def main():
 
     elif rel_type == 'headquarters':
         # load dbpedia relationships
+        print "Loading extra DBPedia relationships for", rel_type
         load_dbpedia(sys.argv[5], database_1, database_2)
         e1_type = "ORG"
         e2_type = "LOC"
