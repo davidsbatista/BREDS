@@ -51,7 +51,7 @@ PMI = 0.7
 # Parameters for relationship extraction from Sentence
 MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1
-CONTEXT_WINDOW = 3
+CONTEXT_WINDOW = 2
 
 # DEBUG stuff
 PRINT_NOT_FOUND = False
