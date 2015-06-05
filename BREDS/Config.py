@@ -104,6 +104,8 @@ class Config(object):
             if line.startswith("semantic_drift"):
                 self.semantic_drift = int(line.split("=")[1].strip())
 
+        assert self.alpha+self.beta+self.gamma == 1
+
         self.read_seeds(seeds_file)
         self.read_negative_seeds(negative_seeds)
         fileinput.close()
