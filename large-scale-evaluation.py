@@ -667,7 +667,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                 break
 
 
-#TODO: this can be improved, lookt at failed matches to understand what is missing
+#TODO: this can be improved, lookt at failed matches to understand what is missing, e2_type not used?
 def string_matching_parallel(matches, no_matches, database_1, database_2, database_3, queue, e1_type, e2_type):
     count = 0
     while True:
