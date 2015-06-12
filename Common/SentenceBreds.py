@@ -30,7 +30,7 @@ class Relationship:
 
 class Sentence:
 
-    def __init__(self, _sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, config):
+    def __init__(self, _sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, config=None):
         """
         - finds named-entities
         - for each pair of entities checks:
@@ -43,11 +43,20 @@ class Sentence:
 
         self.relationships = list()
         self.tagged = None
+        if config is None:
+            entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+            tags_regex = re.compile('</?[A-Z]+>', re.U)
 
         # find named-entities
         entities = []
-        for m in re.finditer(config.entities_regex, _sentence):
-            entities.append(m)
+
+        if config is None:
+            for m in re.finditer(entities_regex, _sentence):
+                entities.append(m)
+
+        else:
+            for m in re.finditer(config.entities_regex, _sentence):
+                entities.append(m)
 
         if len(entities) >= 2:
             for x in range(0, len(entities) - 1):
@@ -76,7 +85,11 @@ class Sentence:
                         arg2_parts = arg2.split()
 
                         if self.tagged is None:
-                            sentence_no_tags = re.sub(config.tags_regex, "", _sentence)
+                            if config is None:
+                                sentence_no_tags = re.sub(tags_regex, "", _sentence)
+                            else:
+                                sentence_no_tags = re.sub(config.tags_regex, "", _sentence)
+
                             text_tokens = word_tokenize(sentence_no_tags)
                             self.tagged = pos_tag(text_tokens)
 
@@ -117,13 +130,16 @@ class Sentence:
 
 class SentenceParser:
 
-    def __init__(self, _sentence, e1_type, e2_type):
+    def __init__(self, _sentence, e1_type, e2_type, config=None):
         self.relationships = set()
         self.sentence = _sentence
         self.entities = list()
         self.valid = False
         self.tree = None
         self.deps = None
+
+        if config is None:
+            entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
         for m in re.finditer(entities_regex, self.sentence):
             self.entities.append(m.group())
