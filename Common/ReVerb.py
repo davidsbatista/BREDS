@@ -269,22 +269,35 @@ class Reverb(object):
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
-        # to be + past verb + by
+        passive_voice = False
         #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo:
-        # ORG1 'which is being bought by' ORG2
-        # 'has received a binding offer from'
-        # "ENT1 was first put forward by ENT2
-        # <ORG>Sun Microsystems</ORG> , which was acquired instead by business software giant <ORG>Oracle</ORG> .
+            # ORG1 'which is being bought by' ORG2
+            # 'has received a binding offer from'
+            # "ENT1 was first put forward by ENT2
+            # <ORG>Sun Microsystems</ORG> , which was acquired instead by business software giant <ORG>Oracle</ORG> .
+
+        # to be + past verb + by
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
                 if verb in self.aux_verbs:
                     if (pattern[1][1] == 'VBN' or pattern[1][1] == 'VBD') and pattern[-1][0] == 'by':
-                        return True
-                    else:
-                        return False
-            return False
-        return False
+                        passive_voice = True
+
+                    # past verb + by
+                    elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+                        passive_voice = True
+
+                # past verb + by
+                elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+                        passive_voice = True
+
+        # past verb + by
+        elif len(pattern) >= 2:
+            if (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+                passive_voice = True
+
+        return passive_voice
 
 
 def main():
@@ -292,15 +305,19 @@ def main():
     # the named-entities tagged
     reverb = Reverb()
     for line in fileinput.input():
-        sentence = Sentence(line, "PER", "ORG", 9, 1, 2)
+        sentence = Sentence(line, "ORG", "ORG", 6, 1, 2, None)
         for r in sentence.relationships:
-            pattern_tags = reverb.extract_reverb_patterns_ptb(r.between)
+            pattern_tags = reverb.extract_reverb_patterns_tagged_ptb(r.between)
             # simple passive voice
             # auxiliary verb be + main verb past participle + 'by'
+            print r.ent1, '\t', r.ent2
+            print r.sentence
+            print pattern_tags
             if reverb.detect_passive_voice(pattern_tags):
                 print "Passive Voice: True"
             else:
                 print "Passive Voice: False"
+            print "\n"
     fileinput.close()
 
 if __name__ == "__main__":
