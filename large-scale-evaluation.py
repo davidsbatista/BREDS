@@ -180,6 +180,8 @@ def process_output(data, threshold, rel_type):
                 r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
             else:
                 r = ExtractedFact(e1, e2, float(score), bef, bet, aft, sentence, passive_voice)
+            if ("'s parent" in bet or 'subsidiary of' in bet) and rel_type == 'acquired':
+                r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
             system_output.append(r)
 
     fileinput.close()
@@ -213,7 +215,15 @@ def process_freebase(data, rel_type):
     founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union', 'United Nations']
 
     for line in fileinput.input(data):
-        e1, r, e2 = line.split('\t')
+        if line.startswith('#'):
+            continue
+        try:
+            e1, r, e2 = line.split('\t')
+        except Exception:
+            print line
+            print line.split('\t')
+            sys.exit()
+
         # ignore some entities, which are Freebase identifiers or which are ambigious
         if e1.startswith('/') or e2.startswith('/'):
             continue
