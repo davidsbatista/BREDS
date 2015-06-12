@@ -180,7 +180,8 @@ def process_output(data, threshold, rel_type):
                 r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
             else:
                 r = ExtractedFact(e1, e2, float(score), bef, bet, aft, sentence, passive_voice)
-            if ("'s parent" in bet or 'subsidiary of' in bet) and rel_type == 'acquired':
+
+            if ("'s parent" in bet or 'subsidiary of' in bet or bet == 'subsidiary') and rel_type == 'acquired':
                 r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
             system_output.append(r)
 
@@ -438,7 +439,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         f.close()
 
         f = open(rel_type + "_g_minus_d.pkl")
-        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl", "wb"
+        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl"
         g_minus_d = cPickle.load(f)
         f.close()
 
