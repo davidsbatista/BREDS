@@ -272,9 +272,13 @@ class Reverb(object):
         passive_voice = False
         #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo:
             # ORG1 'which is being bought by' ORG2
-            # 'has received a binding offer from'
+            #
             # "ENT1 was first put forward by ENT2
+            #
             # <ORG>Sun Microsystems</ORG> , which was acquired instead by business software giant <ORG>Oracle</ORG> .
+            #
+            # This placement allowed <ORG>AOL</ORG> to draw users very quickly and gave Explorer prominence over rival
+            # <ORG>Netscape</ORG> , which was later bought by <ORG>AOL</ORG>.
 
         # to be + past verb + by
         if len(pattern) >= 3:
