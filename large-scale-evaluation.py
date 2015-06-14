@@ -240,7 +240,7 @@ def process_freebase(data, rel_type):
             if "(" in e2:
                 e2 = re.sub(r"\(.*\)", "", e2).strip()
 
-            if rel_type == 'founded' or rel_type == 'employer':
+            if rel_type == 'founder' or rel_type == 'employer':
                 database_1[(e2.strip(), e1.strip())].append(r)
                 database_2[e2.strip()].append(e1.strip())
                 database_3[e1.strip()].append(e2.strip())
@@ -935,7 +935,7 @@ def main():
     rel_words_unigrams = None
     rel_words_bigrams = None
 
-    if rel_type == 'founded':
+    if rel_type == 'founder':
         e1_type = "ORG"
         e2_type = "PER"
         rel_words_unigrams = founded_unigrams
@@ -968,7 +968,7 @@ def main():
 
     else:
         print "Invalid relationship type", rel_type
-        print "Use: founded, acquired, headquarters, employer"
+        print "Use: founder, acquired, headquarters, employer"
         sys.exit(0)
 
     print "\nRelationship Type:", rel_type
