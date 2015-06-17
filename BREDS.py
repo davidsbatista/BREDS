@@ -242,6 +242,9 @@ class BREDS(object):
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
 
+                #TODO: actualizar aqui a confidence dos padroes
+                # isto permite também correr o algoritmo de forma distribuida
+
                 # normalize patterns confidence
                 # find the maximum value of confidence and divide all by the maximum
                 max_confidence = 0
