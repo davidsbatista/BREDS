@@ -114,6 +114,21 @@ class BREDS(object):
         """
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
+    def similarity_3_contexts_tanimoto(self, p, t):
+        #TODO: implementar esta medida
+        (bef, bet, aft) = (0, 0, 0)
+
+        if t.bef_vector is not None and p.bef_vector is not None:
+            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
+
+        if t.bet_vector is not None and p.bet_vector is not None:
+            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
+
+        if t.aft_vector is not None and p.aft_vector is not None:
+            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
+
+        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
+
     def average_similarity(self, r, current, previous):
         # calculate similarity with current
         avg_sim_current = 0.0
@@ -241,9 +256,6 @@ class BREDS(object):
                     if iter > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence()
-
-                #TODO: actualizar aqui a confidence dos padroes
-                # isto permite também correr o algoritmo de forma distribuida
 
                 # normalize patterns confidence
                 # find the maximum value of confidence and divide all by the maximum
