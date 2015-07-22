@@ -62,7 +62,7 @@ def load_sentences(directory, dbpedia_entities):
                     organisations_s = set()
                     places_s = set()
 
-                    # extracte all entities in a sentence with a regex
+                    # extract all entities in a sentence with a regex
                     wikilink_rx = re.compile(r'\[\[[^\]]+\]\]')
                     entities = re.findall(wikilink_rx, s)
 
