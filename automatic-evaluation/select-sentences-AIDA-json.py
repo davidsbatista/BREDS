@@ -109,7 +109,7 @@ def load_sentences(directory, dbpedia_entities):
                                 # entities that are grounded to wikipedia but are not selected
                                 # i.e., they are not classified as person, location or organisation
                                 print "No found in persons, places, orgs", e
-                                sys.exit(0)
+                                #sys.exit(0)
 
                         print urllib2.unquote(s.encode("utf8"))
                         #print "==================================="
