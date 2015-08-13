@@ -42,7 +42,7 @@ class Config(object):
         self.instance_confidance = confidance
         self.word2vecwrapper = Word2VecWrapper()
         self.reverb = Reverb()
-        self.dictionary = None
+        #self.dictionary = None
         self.word2vec = None
         self.vec_dim = None
 
@@ -104,6 +104,9 @@ class Config(object):
             if line.startswith("semantic_drift"):
                 self.semantic_drift = int(line.split("=")[1].strip())
 
+            if line.startswith("tags_type"):
+                self.tag_type = line.split("=")[1].strip()
+
         assert self.alpha+self.beta+self.gamma == 1
 
         self.read_seeds(seeds_file)
@@ -149,6 +152,7 @@ class Config(object):
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
 
+            """
             if os.path.isfile("vocabulary_words.pkl"):
                 print "Loading vocabulary from disk"
                 f = open("vocabulary_words.pkl")
@@ -162,6 +166,7 @@ class Config(object):
                 f.close()
 
             print len(self.dictionary.token2id), "unique tokens"
+            """
 
     def read_word2vec(self):
         print "Loading word2vec model ...\n"
@@ -175,7 +180,9 @@ class Config(object):
         count = 0
         print "Generating vocabulary index from sentences..."
         for line in f_sentences:
+            # simple tags
             line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
+            print line
             # remove stop words and tokenize
             document = [word for word in word_tokenize(line.lower()) if word not in self.stopwords]
             #document = [word for word in word_tokenize(line.lower())]
