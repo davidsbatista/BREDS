@@ -27,6 +27,7 @@ def load_dbpedia_entities(data):
         for line in f:
             e = line.split()
             if e[2].startswith('<http://dbpedia.org/ontology/'):
+                # add other types of entities to extract different types of relationships
                 if e[2].endswith('/Organisation>') or e[2].endswith('/Person>') or e[2].endswith('/Place>'):
                     entity_name = re.search(r'resource/(.*)>', e[0]).group(1)
                     entities[entity_name] = (e[0], e[2])
@@ -42,16 +43,17 @@ def load_sentences(directory, dbpedia_entities):
     #sentences = multiprocessing.Manager.Queue()
     #count = 0
     files = [f for f in listdir(directory) if isfile(join(directory, f))]
+    ookbe_regex = re.compile(r'\[\[AIDA:--OOKBE--\|([^\]]+)\]\]')
     for f in files:
         if f.endswith('.json'):
-            #print join(directory, f)
+            print join(directory, f)
             with open(join(directory, f)) as data_file:
                 data = json.load(data_file)
                 # first load the entities identified into a strucutre which
                 # can be searched as we process each sentence
                 entities_data = data['entityMetadata']
 
-                # go through all sentences and select only sentences that have at least two entities
+                # go through all the sentences and select only sentences that have at least two entities
                 # grounded to dbpedia/wikipedia and whose type is organisation, person or location
                 sentences = data['annotatedText'].split('\n')
                 for s in sentences:
@@ -61,6 +63,7 @@ def load_sentences(directory, dbpedia_entities):
                     persons_s = set()
                     organisations_s = set()
                     places_s = set()
+                    others = set()
 
                     # extract all entities in a sentence with a regex
                     wikilink_rx = re.compile(r'\[\[[^\]]+\]\]')
@@ -89,29 +92,35 @@ def load_sentences(directory, dbpedia_entities):
                             elif e_type.endswith('/Place>'):
                                 places_s.add(e)
                         else:
-                            #print "NOT FOUND", entity_wiki_url
-                            #print "\n"
-                            pass
+                            # store other entity types
+                            # build an histogram of other entity types
+                            # can be usefull to analyze what we are missing
+                            print "NOT in DBpedia", entity_name, e
+                            others.add(e)
 
                     if entities_in_dbpedia >= 2:
                         for e in valid_entities:
                             entity_id = e.split('[[')[1].split('|')[0]
                             entity_wiki_url = entities_data[entity_id]['url']
                             entity_name = re.search(r'\|(.+)\]\]', e).group(1)
+                            url = entity_wiki_url.replace("%20", "_")
 
+                            # the selected types
                             if e in persons_s:
-                                s = s.replace(e, "<PER url="+entity_wiki_url+">"+entity_name.encode("utf8")+"</PER>")
+                                s = s.replace(e, "<PER url="+url+">"+entity_name.encode("utf8")+"</PER>")
                             elif e in places_s:
-                                s = s.replace(e, "<LOC url="+entity_wiki_url+">"+entity_name.encode("utf8")+"</LOC>")
+                                s = s.replace(e, "<LOC url="+url+">"+entity_name.encode("utf8")+"</LOC>")
                             elif e in organisations_s:
-                                s = s.replace(e, "<ORG url="+entity_wiki_url+">"+entity_name.encode("utf8")+"</ORG>")
-                            else:
-                                # entities that are grounded to wikipedia but are not selected
-                                # i.e., they are not classified as person, location or organisation
-                                print "No found in persons, places, orgs", e
-                                #sys.exit(0)
+                                s = s.replace(e, "<ORG url="+url+">"+entity_name.encode("utf8")+"</ORG>")
 
-                        print urllib2.unquote(s.encode("utf8"))
+                            # other entities, grounded to wikipedia but not part of the selected types
+                            elif e in others:
+                                s = s.replace(e, entity_name.encode("utf8"))
+
+                        # clean the Out-of-Knowledge base entities, i.e.: AIDA:--OOKBE-
+                        sentence_no_ookbe = re.sub(ookbe_regex, r'\g<1>', s)
+                        # print sentence to stdout
+                        print urllib2.unquote(sentence_no_ookbe.encode("utf8"))
                         #print "==================================="
                         print "\n"
 
