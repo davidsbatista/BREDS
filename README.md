@@ -3,7 +3,7 @@ Bootstrapping Relationship Extractors with Distributional Semantics
 
 Usage:
 
- BREDS.py parameters.cfg sentences\_file seeds_file_positive seeds_file_negative similarity_threshold confidance_threshold
+    BREDS.py parameters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold confidance_threshold
 
 **parameters.cfg**:
 
