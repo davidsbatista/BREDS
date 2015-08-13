@@ -7,7 +7,13 @@ __email__ = "dsbatista@inesc-id.pt"
 import re
 from nltk import word_tokenize
 
-regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+# regex for simple tags, e.g.:
+# <PER>Bill Gates</PER>
+regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+
+# regex for wikipedia linked tags e.g.:
+# <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Mark Elliot Zuckerberg</PER>
+regex_linked = re.compile('<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>', re.U)
 
 
 class Relationship:
@@ -23,11 +29,10 @@ class Relationship:
         self.ent2 = _ent2
         self.arg1type = _arg1type
         self.arg2type = _arg2type
-        self.sigs = None
 
         if _before is None and _between is None and _after is None and _sentence is not None:
             matches = []
-            for m in re.finditer(regex, self.sentence):
+            for m in re.finditer(regex_linked, self.sentence):
                 matches.append(m)
 
             for x in range(0, len(matches) - 1):
@@ -67,7 +72,9 @@ class Sentence:
         self.relationships = set()
         self.sentence = _sentence
         matches = []
-        for m in re.finditer(regex, self.sentence):
+
+        #TODO: regex to used depends on Config.tags_type
+        for m in re.finditer(regex_linked, self.sentence):
             matches.append(m)
 
         if len(matches) >= 2:
@@ -95,6 +102,10 @@ class Sentence:
                 # is less than 'max_tokens' and greater than 'min_tokens'
                 number_bet_tokens = len(word_tokenize(between))
                 if not number_bet_tokens > max_tokens and not number_bet_tokens < min_tokens:
+
+                    #TODO: run code according to Config.tags_type
+                    # simple tags
+                    """
                     ent1 = matches[x].group()
                     ent2 = matches[x + 1].group()
                     arg1match = re.match("<[A-Z]+>", ent1)
@@ -103,6 +114,26 @@ class Sentence:
                     ent2 = re.sub("</?[A-Z]+>", "", ent2, count=2, flags=0)
                     arg1type = arg1match.group()[1:-1]
                     arg2type = arg2match.group()[1:-1]
+                    """
+
+                    # linked tags
+                    ent1 = re.findall('url=([^>]+)', matches[x].group())[0]
+                    ent2 = re.findall('url=([^>]+)', matches[x+1].group())[0]
+                    arg1type = re.findall('<([A-Z]+)', matches[x].group())[0]
+                    arg2type = re.findall('<([A-Z]+)', matches[x+1].group())[0]
+
+                    #DEBUG
+                    """
+                    print _sentence
+                    print matches[x].group()
+                    print matches[x+1].group()
+                    print "BEF", before
+                    print "BET", between
+                    print "AFT", after
+                    print "ent1", ent1, arg1type
+                    print "ent2", ent2, arg2type
+                    print "==========================================\n"
+                    """
 
                     if ent1 == ent2:
                         continue
@@ -110,6 +141,7 @@ class Sentence:
                     if e1_type is not None and e2_type is not None:
                         # restrict relationships by the arguments semantic types
                         if arg1type == e1_type and arg2type == e2_type:
+
                             rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
                                                _type=None)
                             self.relationships.add(rel)
