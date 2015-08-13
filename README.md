@@ -12,7 +12,8 @@ A sample configuration is provided in parameters.cfg
 
 **sentences_file**:
 A text file containing the documents, one sentence per line with tags identifing the named entities, e.g.:
- ''The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.''
+ 
+    The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
 
 
 **seeds_file_positive**
@@ -20,11 +21,11 @@ A file with examples of the relationships to be bootstrapped. The file must also
 entities in the relationships. The first two lines specify that first entity in the relationship is of type ORG
 and that the second is of type LOC. Then a seed relationship is specified per line, e.g.:
 
- e1:ORG
- e2:LOC
+    e1:ORG
+    e2:LOC
 
- Nokia;Espoo
- Pfizer;New York
+    Nokia;Espoo
+    Pfizer;New York
 
 **seeds_file_negative**
 The same thing as for positive relationships, but containing seeds that do not represent the relationships to be
