@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import cPickle
 import os
 
@@ -7,7 +8,6 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import re
-import urllib2
 import codecs
 import sys
 import json
@@ -41,12 +41,16 @@ def load_dbpedia_entities(data):
 
 def load_sentences(directory, dbpedia_entities):
     #sentences = multiprocessing.Manager.Queue()
-    #count = 0
+    count = 0
     files = [f for f in listdir(directory) if isfile(join(directory, f))]
     ookbe_regex = re.compile(r'\[\[AIDA:--OOKBE--\|([^\]]+)\]\]')
+    f_other = open("other_types.txt", "w")
+    f_sentences = open("sentences.txt", "w")
     for f in files:
+        if count % 100 == 0:
+            sys.stdout.write(".")
         if f.endswith('.json'):
-            print join(directory, f)
+            #print join(directory, f)
             with open(join(directory, f)) as data_file:
                 data = json.load(data_file)
                 # first load the entities identified into a strucutre which
@@ -95,7 +99,7 @@ def load_sentences(directory, dbpedia_entities):
                             # store other entity types
                             # build an histogram of other entity types
                             # can be usefull to analyze what we are missing
-                            print "NOT in DBpedia", entity_name, e
+                            f_other.write(e.encode("utf8")+'\n')
                             others.add(e)
 
                     if entities_in_dbpedia >= 2:
@@ -107,22 +111,25 @@ def load_sentences(directory, dbpedia_entities):
 
                             # the selected types
                             if e in persons_s:
-                                s = s.replace(e, "<PER url="+url+">"+entity_name.encode("utf8")+"</PER>")
+                                #s = s.replace(e, "<PER url="+url+">"+entity_name.encode("utf8")+"</PER>")
+                                s = s.replace(e, "<PER url="+url+">"+entity_name+"</PER>")
                             elif e in places_s:
-                                s = s.replace(e, "<LOC url="+url+">"+entity_name.encode("utf8")+"</LOC>")
+                                #s = s.replace(e, "<LOC url="+url+">"+entity_name.encode("utf8")+"</LOC>")
+                                s = s.replace(e, "<LOC url="+url+">"+entity_name+"</LOC>")
                             elif e in organisations_s:
-                                s = s.replace(e, "<ORG url="+url+">"+entity_name.encode("utf8")+"</ORG>")
-
+                                #s = s.replace(e, "<ORG url="+url+">"+entity_name.encode("utf8")+"</ORG>")
+                                s = s.replace(e, "<ORG url="+url+">"+entity_name+"</ORG>")
                             # other entities, grounded to wikipedia but not part of the selected types
                             elif e in others:
-                                s = s.replace(e, entity_name.encode("utf8"))
+                                    s = s.replace(e, entity_name)
 
                         # clean the Out-of-Knowledge base entities, i.e.: AIDA:--OOKBE-
                         sentence_no_ookbe = re.sub(ookbe_regex, r'\g<1>', s)
                         # print sentence to stdout
-                        print urllib2.unquote(sentence_no_ookbe.encode("utf8"))
-                        #print "==================================="
-                        print "\n"
+                        #print urllib2.unquote(sentence_no_ookbe.encode("utf8"))
+                        f_sentences.write(sentence_no_ookbe.encode("utf8")+'\n')
+        count += 1
+    f_other.close()
 
 
 def main():
@@ -137,7 +144,7 @@ def main():
         #for e in dbpedia_entities.keys():
         #    print type(e)
 
-        load_sentences(sys.argv[2], dbpedia_entities)
+        load_sentences(sys.argv[1], dbpedia_entities)
 
     else:
         dbpedia_entities = load_dbpedia_entities(sys.argv[1])
