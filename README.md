@@ -38,8 +38,8 @@ A text file containing sentences, one per line, with tags identifing the named e
  
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
     <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
-    <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers .
     <ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion ($1.96 billion).
+    <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
 
 **positive_seeds**
 
