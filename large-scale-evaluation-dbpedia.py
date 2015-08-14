@@ -534,7 +534,6 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
             f.close()
 
     # having B and G_intersect_D => |c| = |G_intersect_D| - |b|
-    #TODO: ver como eh feita a subtracção de conjuntos
     c = g_intersect_d.difference(set(b))
     assert len(g_minus_d) > 0
     return c, g_minus_d
@@ -590,7 +589,6 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigr
             cPickle.dump(g_minus_d, f)
             f.close()
 
-    #TODO: ver esta diferença
     return g_minus_d.difference(a)
 
 
