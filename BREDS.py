@@ -534,8 +534,7 @@ class BREDS(object):
 
 def main():
     if len(sys.argv) != 7:
-        print "\nBREDS.py parameters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
-              " confidance_threshold\n"
+        print "\nBREDS.py parameters sentences positive_seeds negative_simties similarity confidance\n"
         sys.exit(0)
     else:
         configuration = sys.argv[1]
