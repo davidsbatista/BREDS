@@ -393,9 +393,9 @@ class BREDS(object):
         for t in tmp:
             f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
             f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern_bef: " + t.bef_words+'\n')
-            f_output.write("pattern_bet: " + t.bet_words+'\n')
-            f_output.write("pattern_aft: " + t.aft_words+'\n')
+            f_output.write("pattern_bef: " + t.bef_words.encode("utf8")+'\n')
+            f_output.write("pattern_bet: " + t.bet_words.encode("utf8")+'\n')
+            f_output.write("pattern_aft: " + t.aft_words.encode("utf8")+'\n')
             if t.passive_voice is False:
                 f_output.write("passive voice: False\n")
             elif t.passive_voice is True:
