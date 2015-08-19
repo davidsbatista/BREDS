@@ -32,7 +32,7 @@ acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
 acquired_bigrams = []
 
 headquarters_unigrams = ['headquarters', 'headquartered', 'offices', 'office', 'building', 'buildings', 'factory',
-                         'plant', 'compund']
+                         'plant', 'compound']
 headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in',
                         'office in', 'branch in', 'store in', 'firm in', 'factory in', 'plant in', 'head office',
                         'head offices', 'in central', 'in downton', 'outskirts of', 'suburs of']
@@ -922,7 +922,8 @@ def main():
 
     # corpus from which the system extracted relationships
     #corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
-    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase_added_tags.txt"
+    #corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase_added_tags.txt"
+    corpus = "/home/dsbatista/gigaword/AFP-AIDA-Linked/all_sentences.txt"
 
     # index to be used to estimate proximity PMI
     #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
