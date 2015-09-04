@@ -79,45 +79,6 @@ class BREDS(object):
     def similarity_3_contexts(self, p, t):
         (bef, bet, aft) = (0, 0, 0)
 
-        """
-        print "Tuple"
-        print t.e1, '\t', t.e2
-        print t.sentence
-        print t.bef_words
-        print t.bet_words
-        print t.aft_words
-
-        print "Pattern"
-        print p.e1, '\t', p.e2
-        print p.sentence
-        print p.bef_words
-        print p.bet_words
-        print p.aft_words
-        """
-
-        if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
-
-        if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
-
-        if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
-
-        """
-        print "scores:"
-        print "bef", bef
-        print "bet", bet
-        print "aft", aft
-        print "score", self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-        print "\n"
-        """
-        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-
-    def similarity_3_contexts_tanimoto(self, p, t):
-        #TODO: implementar esta medida
-        (bef, bet, aft) = (0, 0, 0)
-
         if t.bef_vector is not None and p.bef_vector is not None:
             bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
 
@@ -128,31 +89,6 @@ class BREDS(object):
             aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
 
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-
-    def average_similarity(self, r, current, previous):
-        # calculate similarity with current
-        avg_sim_current = 0.0
-        for t in current:
-            if t == r:
-                continue
-            avg_sim_current += self.similarity_3_contexts(t, r)
-        if avg_sim_current > 0:
-            avg_sim_current /= len(current)
-        else:
-            avg_sim_current = 0
-
-        # calculate similarity with previous
-        avg_sim_previous = 0.0
-        for t in previous:
-            if t == r:
-                continue
-            avg_sim_previous += self.similarity_3_contexts(t, r)
-        if avg_sim_previous > 0:
-            avg_sim_previous /= len(previous)
-        else:
-            avg_sim_previous = 0
-
-        return avg_sim_previous, avg_sim_current
 
     def init_bootstrapp(self, tuples):
         """
@@ -234,7 +170,7 @@ class BREDS(object):
                         sys.stdout.flush()
                     sim_best = 0
                     for extraction_pattern in self.patterns:
-                        accept, score = self.similarity_all_1(t, extraction_pattern)
+                        accept, score = self.similarity_all(t, extraction_pattern)
                         if accept is True:
                             extraction_pattern.update_selectivity(t, self.config)
                             if score > sim_best:
@@ -322,66 +258,6 @@ class BREDS(object):
                                 # keeps tracks of the seeds instances extracted at each iteration
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
 
-                elif self.config.semantic_drift == 1 and self.curr_iteration > 0:
-                    # update seed set of tuples to use in next iteration
-                    # seeds = { T | conf(T) > instance_confidance }
-                    if self.curr_iteration < self.config.number_iterations+1:
-                        added = 0
-                        # gather all previous
-                        previous = list()
-                        for i in range(self.curr_iteration):
-                            previous.extend(self.seeds_by_iteration[i])
-
-                        print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
-                        self.seeds_by_iteration[self.curr_iteration] = list()
-                        for t in self.candidate_tuples.keys():
-                            if t.confidence >= self.config.instance_confidance:
-                                # for filtering semantic drift by comparing with previous sentence extractions
-                                # keeps tracks of the seeds instances extracted at each iteration
-                                self.seeds_by_iteration[self.curr_iteration].append(t)
-
-                        if len(previous) > 0 and len(self.seeds_by_iteration[self.curr_iteration]) > 0:
-                            print "Using distributional similarity to filter seeds"
-                            print "previous:", len(previous)
-                            print "current :", len(self.seeds_by_iteration[self.curr_iteration])
-                            count = 0
-                            for r in self.seeds_by_iteration[self.curr_iteration]:
-                                if count % 1000 == 0:
-                                    sys.stdout.write(".")
-                                    sys.stdout.flush()
-                                avg_sim_previous, avg_sim_current = self.average_similarity(r, self.seeds_by_iteration[self.curr_iteration], previous)
-                                if avg_sim_current > avg_sim_previous:
-                                    if avg_sim_current-avg_sim_previous > 0.1:
-                                        print "ELIMINATED FROM SEEDS:"
-                                        print r.e1, '\t', r.e2
-                                        print r.sentence
-                                        print "avg_sim_previous :", avg_sim_previous
-                                        print "avg_sim_current  :", avg_sim_current
-                                        print "difference       :", avg_sim_current-avg_sim_previous
-                                    else:
-                                        seed = Seed(t.e1, t.e2)
-                                        self.config.seed_tuples.add(seed)
-                                        added += 1
-                                else:
-                                    seed = Seed(t.e1, t.e2)
-                                    self.config.seed_tuples.add(seed)
-                                    added += 1
-
-                                count += 1
-
-                        print added, "tuples added"
-
-                elif self.config.semantic_drift == 1 and self.curr_iteration == 0:
-                    print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
-                    self.seeds_by_iteration[self.curr_iteration] = list()
-                    for t in self.candidate_tuples.keys():
-                        if t.confidence >= self.config.instance_confidance:
-                            seed = Seed(t.e1, t.e2)
-                            self.config.seed_tuples.add(seed)
-                            # for filtering semantic drift by comparing with previous sentence extractions
-                            # keeps tracks of the seeds instances extracted at each iteration
-                            self.seeds_by_iteration[self.curr_iteration].append(t)
-
                 # increment the number of iterations
                 self.curr_iteration += 1
 
@@ -403,7 +279,7 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def similarity_all_1(self, t, extraction_pattern):
+    def similarity_all(self, t, extraction_pattern):
         """
         Cosine similarity between all patterns part of a Cluster/Extraction Pattern
         and the vector of a ReVerb pattern extracted from a sentence
@@ -424,33 +300,6 @@ class BREDS(object):
 
         if good >= bad:
             return True, max_similarity
-        else:
-            return False, 0.0
-
-    def similarity_all_2(self, t, extraction_pattern):
-        """
-        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-        and the vector of a ReVerb pattern extracted from a sentence
-        returns the average
-        """
-        good = 0
-        bad = 0
-        max_similarity = 0
-        similarities = list()
-
-        for p in list(extraction_pattern.tuples):
-            score = self.similarity_3_contexts(t, p)
-            if score > max_similarity:
-                max_similarity = score
-            if score >= self.config.threshold_similarity:
-                good += 1
-                similarities.append(score)
-            else:
-                bad += 1
-
-        if good >= bad:
-            assert good == len(similarities)
-            return True, float(sum(similarities)) / float(good)
         else:
             return False, 0.0
 
@@ -541,10 +390,8 @@ def main():
         sentences_file = sys.argv[2]
         seeds_file = sys.argv[3]
         negative_seeds = sys.argv[4]
-        # threshold similarity for clustering/extracting instances
-        similarity = sys.argv[5]
-        # confidence threshold of an instance to used as seed
-        confidance = sys.argv[6]
+        similarity = sys.argv[5]    # threshold similarity for clustering/extracting instances
+        confidance = sys.argv[6]    # confidence threshold of an instance to used as seed
         breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
         if sentences_file.endswith('.pkl'):
             print "Loading pre-processed sentences", sentences_file

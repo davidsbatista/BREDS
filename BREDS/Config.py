@@ -101,9 +101,6 @@ class Config(object):
             if line.startswith("gamma"):
                 self.gamma = float(line.split("=")[1])
 
-            if line.startswith("semantic_drift"):
-                self.semantic_drift = int(line.split("=")[1].strip())
-
             if line.startswith("tags_type"):
                 self.tag_type = line.split("=")[1].strip()
 
