@@ -36,9 +36,7 @@ class Tuple(object):
             self.deps_path = None
             self.matrix = None
             self.features = None
-
-            if config.embeddings == 'sum':
-                self.extract_patterns(config)
+            self.extract_patterns(config)
 
         def __str__(self):
             return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
@@ -60,11 +58,7 @@ class Tuple(object):
             pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
 
             if len(pattern) >= 1:
-                if config.embeddings == 'average':
-                    pattern_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
-                elif config.embeddings == 'sum':
-                    pattern_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
+                pattern_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
                 return pattern_vector
 
         def construct_words_vectors(self, words, config):
@@ -75,11 +69,7 @@ class Tuple(object):
 
             pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
             if len(pattern) >= 1:
-                if config.embeddings == 'average':
-                    words_vector = config.word2vecwrapper.pattern2vector_average(pattern, config)
-                elif config.embeddings == 'sum':
-                    words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-
+                words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
                 return words_vector
 
         def extract_patterns(self, config):

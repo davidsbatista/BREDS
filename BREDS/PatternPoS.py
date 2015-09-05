@@ -4,6 +4,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import uuid
 from numpy import zeros
 from math import log
 
@@ -11,6 +12,7 @@ from math import log
 class Pattern(object):
 
     def __init__(self, config, t=None):
+        self.id = uuid.uuid4()
         self.single_vector = zeros(config.vec_dim)
         self.positive = 0
         self.negative = 0

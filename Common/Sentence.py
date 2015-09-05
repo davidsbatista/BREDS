@@ -74,7 +74,8 @@ class Sentence:
         matches = []
 
         #TODO: regex to used depends on Config.tags_type
-        for m in re.finditer(regex_linked, self.sentence):
+        #for m in re.finditer(regex_linked, self.sentence):
+        for m in re.finditer(regex_simple, self.sentence):
             matches.append(m)
 
         if len(matches) >= 2:
@@ -105,7 +106,6 @@ class Sentence:
 
                     #TODO: run code according to Config.tags_type
                     # simple tags
-                    """
                     ent1 = matches[x].group()
                     ent2 = matches[x + 1].group()
                     arg1match = re.match("<[A-Z]+>", ent1)
@@ -114,13 +114,14 @@ class Sentence:
                     ent2 = re.sub("</?[A-Z]+>", "", ent2, count=2, flags=0)
                     arg1type = arg1match.group()[1:-1]
                     arg2type = arg2match.group()[1:-1]
-                    """
 
+                    """
                     # linked tags
                     ent1 = re.findall('url=([^>]+)', matches[x].group())[0]
                     ent2 = re.findall('url=([^>]+)', matches[x+1].group())[0]
                     arg1type = re.findall('<([A-Z]+)', matches[x].group())[0]
                     arg2type = re.findall('<([A-Z]+)', matches[x+1].group())[0]
+                    """
 
                     #DEBUG
                     """

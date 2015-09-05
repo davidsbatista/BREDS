@@ -5,19 +5,14 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
-import os
 import re
-import codecs
-import cPickle
-import sys
 
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
-from nltk import word_tokenize
+from gensim.models import Word2Vec
+
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
-from gensim.models import Word2Vec
-from gensim import corpora
 from Word2VecWrapper import Word2VecWrapper
 
 
@@ -42,7 +37,6 @@ class Config(object):
         self.instance_confidance = confidance
         self.word2vecwrapper = Word2VecWrapper()
         self.reverb = Reverb()
-        #self.dictionary = None
         self.word2vec = None
         self.vec_dim = None
 
@@ -76,9 +70,6 @@ class Config(object):
 
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
-
-            if line.startswith("embeddings"):
-                self.embeddings = line.split("=")[1].strip()
 
             if line.startswith("single_vector"):
                 self.single_vector = line.split("=")[1].strip()
@@ -121,8 +112,7 @@ class Config(object):
         print "min tokens away      :", self.min_tokens_away
         print "Word2Vec Model       :", self.word2vecmodelpath
 
-        print "\nVectors"
-        print "embeddings type      :", self.embeddings
+        print "\nContext Weighting"
         print "alpha                :", self.alpha
         print "beta                 :", self.beta
         print "gamma                :", self.gamma
@@ -139,9 +129,9 @@ class Config(object):
         print "min_pattern_support  :", self.min_pattern_support
         print "iterations           :", self.number_iterations
         print "iteration wUpdt      :", self.wUpdt
-        print "semantic drift filter:", self.semantic_drift
         print "\n"
 
+        """
         if self.embeddings == 'fcm':
             # Load Stanford Parser using NLTK interface and PyStanfordDependencies to get the syntactic dependencies
             # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
@@ -149,7 +139,6 @@ class Config(object):
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
 
-            """
             if os.path.isfile("vocabulary_words.pkl"):
                 print "Loading vocabulary from disk"
                 f = open("vocabulary_words.pkl")
@@ -163,33 +152,13 @@ class Config(object):
                 f.close()
 
             print len(self.dictionary.token2id), "unique tokens"
-            """
+        """
 
     def read_word2vec(self):
         print "Loading word2vec model ...\n"
         self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.layer1_size
         print self.vec_dim, "dimensions"
-
-    def generate_dictionary(self, sentences_file):
-        f_sentences = codecs.open(sentences_file, encoding='utf-8')
-        documents = list()
-        count = 0
-        print "Generating vocabulary index from sentences..."
-        for line in f_sentences:
-            # simple tags
-            line = re.sub('<[A-Z]+>[^<]+</[A-Z]+>', '', line)
-            print line
-            # remove stop words and tokenize
-            document = [word for word in word_tokenize(line.lower()) if word not in self.stopwords]
-            #document = [word for word in word_tokenize(line.lower())]
-            documents.append(document)
-            count += 1
-            if count % 10000 == 0:
-                sys.stdout.write(".")
-
-        f_sentences.close()
-        self.dictionary = corpora.Dictionary(documents)
 
     def read_seeds(self, seeds_file):
         for line in fileinput.input(seeds_file):
