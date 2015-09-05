@@ -6,7 +6,6 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import cPickle
 import sys
-import os
 import codecs
 import operator
 import multiprocessing
@@ -33,57 +32,45 @@ class BREDS(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
 
-        m = multiprocessing.Manager()
-        self.queue = m.Queue()
+        self.m = multiprocessing.Manager()
+        self.queue = self.m.Queue()
         self.num_cpus = multiprocessing.cpu_count()
 
-        self.processed_tuples = m.list()
-        self.candidate_tuples = m.defaultdict(list)
+        self.processed_tuples = list()
+        self.candidate_tuples = defaultdict(list)
 
         self.curr_iteration = 0
         self.patterns = list()
 
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file)
 
-        # to control the semantic drift using the seeds from different iterations
-        self.seeds_by_iteration = dict()
-
     def generate_tuples(self, sentences_file):
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
         """
-        try:
-            os.path.isfile("processed_tuples.pkl")
-            f = open("processed_tuples.pkl", "r")
-            print "\nLoading processed tuples from disk..."
-            self.processed_tuples = cPickle.load(f)
-            f.close()
-            print len(self.processed_tuples), "tuples loaded"
+        self.config.read_word2vec()
+        print "\nGenerating relationship instances from sentences"
+        f_sentences = codecs.open(sentences_file, encoding='utf-8')
+        count = 0
+        for line in f_sentences:
+            count += 1
+            if count % 10000 == 0:
+                sys.stdout.write(".")
 
-        except IOError:
-            self.config.read_word2vec()
-            print "\nGenerating relationship instances from sentences"
-            f_sentences = codecs.open(sentences_file, encoding='utf-8')
-            count = 0
-            for line in f_sentences:
-                count += 1
-                if count % 10000 == 0:
-                    sys.stdout.write(".")
+            sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
+                                self.config.min_tokens_away, self.config.context_window_size)
+            for rel in sentence.relationships:
+                if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
+                    t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                    self.processed_tuples.append(t)
 
-                sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                    self.config.min_tokens_away, self.config.context_window_size)
-                for rel in sentence.relationships:
-                    if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
+        f_sentences.close()
 
-            f_sentences.close()
-
-            print "\n", len(self.processed_tuples), "tuples generated"
-            print "Writing generated tuples to disk"
-            f = open("processed_tuples.pkl", "wb")
-            cPickle.dump(self.processed_tuples, f)
-            f.close()
+        print "\n", len(self.processed_tuples), "tuples generated"
+        print "Writing generated tuples to disk"
+        f = open("processed_tuples.pkl", "wb")
+        cPickle.dump(self.processed_tuples, f)
+        f.close()
 
     def similarity_3_contexts(self, p, t):
         (bef, bet, aft) = (0, 0, 0)
@@ -105,7 +92,7 @@ class BREDS(object):
         """
         if tuples is not None:
             f = open(tuples, "r")
-            print "\nLoading processed tuples from disk..."
+            print "Loading pre-processed sentences", tuples
             self.processed_tuples = cPickle.load(f)
             f.close()
             print len(self.processed_tuples), "tuples loaded"
@@ -171,19 +158,26 @@ class BREDS(object):
 
                 print "\nCollecting instances based on extraction patterns"
 
-                # create copies of patterns to be passed to each process
+                # create copies of patterns to be passed to each process, each copy will have its number of positive and
+                # negative matches accordingly to the number of correct/incorrect instances extracted
                 patterns_copies = [self.m.list() for _ in range(self.num_cpus)]
                 for i in range(len(patterns_copies)):
                     patterns_copies[i] = list(self.patterns)
 
-                # candidate tuples structure for each process
-                tuples_results = [self.m.list() for _ in range(self.num_cpus)]
+                # copy all tuples into a Queue shared by all processes
+                for t in self.processed_tuples:
+                    self.queue.put(t)
 
-                #TODO:  garantir que a leitura dos processed_tuples poder ser feita de forma concurrente
-                #TODO:  garantir que a escrita em candidate_tuples poder ser feita de forma concurrente
-                processes = [multiprocessing.Process(target=self.find_instances(),
+                # each distinct process receives as arguments:
+                #   - a shared Queue of the tuples
+                #   - a copy of all the extraction patterns
+                #   - a list to store the tuples which matched a pattern
+                tuples_results = [defaultdict(list) for _ in range(self.num_cpus)]
+                processes = [multiprocessing.Process(target=self.find_instances,
                                                      args=(patterns_copies[i], tuples_results[i], self.queue))
                              for i in range(self.num_cpus)]
+
+                print "Lauching ", len(processes), " processes"
 
                 for proc in processes:
                     proc.start()
@@ -191,19 +185,25 @@ class BREDS(object):
                 for proc in processes:
                     proc.join()
 
-                # TODO: para paralelizar o finding instances
-                # single-core: updates a mediada que encontra uma instancia, esta a fazer on-line
-                # paralelo:
-                #   final de computar a similaridade entre as instances e todos os patterns
-                #   1º aggregar os positive, negatives, unknown de todos os patterns
-                #   2º actualizar a confidence
-
-
+                # TODO:
+                # patterns_copies -> patterns com positive/negative/unknown que precisam de ser agregados
+                # tuples_results é o candidate tuples, cada tuple é unico é necessário apenas fazer o merge
                 """
-                # update extraction pattern confidence
-                if iter > 0:
-                    extraction_pattern.confidence_old = extraction_pattern.confidence
-                    extraction_pattern.update_confidence()
+                for i in range(len(patterns_copies)):
+                    for p_copy in patterns_copies[i]:
+                        for p_original in self.patterns:
+                            if p_copy.id == p_original.id:
+                                print "Original"
+                                print p_original.positive
+                                print p_original.negative
+                                print "Copy"
+                                print p_copy.positive
+                                print p_copy.negative
+
+                                # update extraction pattern confidence
+                                if iter > 0:
+                                    extraction_pattern.confidence_old = extraction_pattern.confidence
+                                    extraction_pattern.update_confidence()
                 """
 
                 # normalize patterns confidence
@@ -261,19 +261,13 @@ class BREDS(object):
                 # seeds = { T | conf(T) > instance_confidance }
                 if self.curr_iteration < self.config.number_iterations+1:
                     print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
-                    self.seeds_by_iteration[self.curr_iteration] = list()
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
                             seed = Seed(t.e1, t.e2)
                             self.config.seed_tuples.add(seed)
-                            # for filtering semantic drift by comparing with previous sentence extractions
-                            # keeps tracks of the seeds instances extracted at each iteration
-                            self.seeds_by_iteration[self.curr_iteration].append(t)
 
                 # increment the number of iterations
                 self.curr_iteration += 1
-
-                #TODO: se há novos tuplos válidos extraidos ou os patterns a alterarem a confianca, entao continua, senao para
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
@@ -291,7 +285,7 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def similarity_all_1(self, t, extraction_pattern):
+    def similarity_all(self, t, extraction_pattern):
         """
         Cosine similarity between all patterns part of a Cluster/Extraction Pattern
         and the vector of a ReVerb pattern extracted from a sentence
@@ -343,8 +337,7 @@ class BREDS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
                 try:
-                    #accept, score = self.similarity_all_1(t, extraction_pattern)
-                    accept, score = self.similarity_all_2(t, extraction_pattern)
+                    accept, score = self.similarity_all(t, extraction_pattern)
                     if accept is True and score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i
@@ -392,33 +385,36 @@ class BREDS(object):
     def tokenize(text):
         return [word for word in word_tokenize(text.lower()) if word not in stopwords.words('english')]
 
-    def find_instances(self, patterns, results, instances):
-
+    def find_instances(self, patterns, candidate_tuples, instances):
         while True:
             try:
-                tuple = instances.get_nowait()
+                t = instances.get_nowait()
                 for extraction_pattern in patterns:
                     # measure similarity towards an extraction pattern
                     sim_best = 0
-                    accept, score = self.similarity_all_1(tuple, extraction_pattern)
+                    accept, score = self.similarity_all(t, extraction_pattern)
                     if accept is True:
-                        extraction_pattern.update_selectivity(tuple, self.config)
+                        extraction_pattern.update_selectivity(t, self.config)
                         if score > sim_best:
                             sim_best = score
                             pattern_best = extraction_pattern
 
                     # if its above a threshold associated the pattern with it
                     if sim_best >= self.config.threshold_similarity:
+                        print multiprocessing.current_process(), instances.qsize()
                         # if this tuple was already extracted, check if this extraction pattern is already associated
                         # with it, if not, associate this pattern with it and similarity score
-                        patterns = self.candidate_tuples[tuple]
+                        patterns = candidate_tuples[tuple]
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
-                                self.candidate_tuples[t].append((pattern_best, sim_best))
+                                candidate_tuples[t].append((pattern_best, sim_best))
                         # If this tuple was not extracted before, associate this pattern with the instance
                         # and the similarity score
                         else:
-                            self.candidate_tuples[t].append((pattern_best, sim_best))
+                            candidate_tuples[t].append((pattern_best, sim_best))
+                        if self.curr_iteration > 0:
+                            extraction_pattern.confidence_old = extraction_pattern.confidence
+                            extraction_pattern.update_confidence()
 
             except Queue.Empty:
                 print "Queue is Empty"
@@ -435,13 +431,10 @@ def main():
         sentences_file = sys.argv[2]
         seeds_file = sys.argv[3]
         negative_seeds = sys.argv[4]
-        # threshold similarity for clustering/extracting instances
-        similarity = sys.argv[5]
-        # confidence threshold of an instance to used as seed
-        confidance = sys.argv[6]
+        similarity = sys.argv[5]    # threshold similarity for clustering/extracting instances
+        confidance = sys.argv[6]    # confidence threshold of an instance to used as seed
         breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
         if sentences_file.endswith('.pkl'):
-            print "Loading pre-processed sentences", sentences_file
             breads.init_bootstrapp(tuples=sentences_file)
         else:
             breads.generate_tuples(sentences_file)
