@@ -102,7 +102,7 @@ class Config(object):
         fileinput.close()
 
         print "Configuration parameters"
-        print "========================"
+        print "========================\n"
 
         print "Relationship Representation"
         print "e1 type              :", self.e1_type

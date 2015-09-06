@@ -54,10 +54,6 @@ class Pattern(object):
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    def add_pattern(self, p):
-        pass
-        #part of DBSCAN clustering
-
     def merge_patterns(self):
         for t in self.tuples:
             for p in t.patterns_words:
