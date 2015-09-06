@@ -123,6 +123,7 @@ class BREDS(object):
                 # Cluster the matched instances: generate patterns/update patterns
                 print "\nClustering matched instances to generate patterns"
                 self.cluster_tuples(matched_tuples)
+
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
                 self.patterns = new_patterns
@@ -185,26 +186,30 @@ class BREDS(object):
                 for proc in processes:
                     proc.join()
 
-                # TODO:
                 # patterns_copies -> patterns com positive/negative/unknown que precisam de ser agregados
-                # tuples_results é o candidate tuples, cada tuple é unico é necessário apenas fazer o merge
-                """
                 for i in range(len(patterns_copies)):
                     for p_copy in patterns_copies[i]:
                         for p_original in self.patterns:
                             if p_copy.id == p_original.id:
-                                print "Original"
+                                p_original.positive += p_copy.positive
+                                p_original.negative += p_copy.negative
+                                p_original.unknown += p_copy.unknown
                                 print p_original.positive
                                 print p_original.negative
-                                print "Copy"
-                                print p_copy.positive
-                                print p_copy.negative
+                                print p_original.unknown
+                                print len(tuples_results[i])
 
-                                # update extraction pattern confidence
-                                if iter > 0:
-                                    extraction_pattern.confidence_old = extraction_pattern.confidence
-                                    extraction_pattern.update_confidence()
-                """
+                # tuples_results é o candidate tuples, cada tuple é unico é necessário apenas fazer o merge
+                self.candidate_tuples.clear()
+                for i in range(len(tuples_results)):
+                    for results in tuples_results[i]:
+                        self.candidate_tuples.update(results)
+
+                # update all patterns confidence
+                if iter > 0:
+                    for p in self.patterns:
+                        p.confidence_old = p.confidence
+                        p.update_confidence()
 
                 # normalize patterns confidence
                 # find the maximum value of confidence and divide all by the maximum
@@ -385,6 +390,7 @@ class BREDS(object):
     def tokenize(text):
         return [word for word in word_tokenize(text.lower()) if word not in stopwords.words('english')]
 
+    #TODO: verificar que isto esta a correr bem!
     def find_instances(self, patterns, candidate_tuples, instances):
         while True:
             try:
