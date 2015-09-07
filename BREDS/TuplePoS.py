@@ -28,8 +28,8 @@ class Tuple(object):
             self.passive_voice = False
             self.extract_patterns(config)
 
-        #def __str__(self):
-        #    return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
+        def __str__(self):
+            return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
 
         def __hash__(self):
             return hash(self.e1) ^ hash(self.e2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
