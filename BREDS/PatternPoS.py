@@ -74,5 +74,6 @@ class Pattern(object):
                             self.negative += 1
                 self.unknown += 1
 
+        #TODO: if this is set patterns confidence will be updated on-line
         #self.update_confidence()
-        self.update_confidence_2003(config)
+        #self.update_confidence_2003(config)
