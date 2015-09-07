@@ -41,15 +41,13 @@ class Pattern(object):
         else:
             return 0
 
-    def update_confidence_2003(self, config):
+    def update_confidence(self, config):
         if self.positive > 0:
-            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive + self.unknown * config.wUnk + self.negative * config.wNeg))
+            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive +
+                                                                                           self.unknown * config.wUnk +
+                                                                                           self.negative * config.wNeg))
         elif self.positive == 0:
             self.confidence = 0
-
-    def update_confidence(self):
-        if self.positive > 0 or self.negative > 0:
-            self.confidence = float(self.positive) / float(self.positive + self.negative)
 
     def add_tuple(self, t):
         self.tuples.add(t)
@@ -60,7 +58,6 @@ class Pattern(object):
                 self.patterns_words.add(p)
 
     def update_selectivity(self, t, config):
-        #TODO: usar seeds em que e1, faz match com varios e2, e alterar a forma
         for s in config.seed_tuples:
             if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
                 if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
@@ -76,4 +73,3 @@ class Pattern(object):
 
         #TODO: if this is set patterns confidence will be updated on-line
         #self.update_confidence()
-        #self.update_confidence_2003(config)
