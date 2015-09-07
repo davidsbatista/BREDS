@@ -19,7 +19,6 @@ class Tuple(object):
             self.e2 = _e2
             self.sentence = _sentence
             self.confidence = 0
-            self.confidence_old = 0
             self.bef_words = _before
             self.bet_words = _between
             self.aft_words = _after
@@ -27,19 +26,17 @@ class Tuple(object):
             self.bet_vector = None
             self.aft_vector = None
             self.passive_voice = False
-            self.patterns_vectors = list()
-            self.patterns_words = list()
-            self.debug = False
-            self.dependencies = None
-            self.head_e1 = None
-            self.head_e2 = None
-            self.deps_path = None
-            self.matrix = None
-            self.features = None
             self.extract_patterns(config)
 
-        def __str__(self):
-            return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
+        #def __str__(self):
+        #    return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
+
+        def __hash__(self):
+            return hash(self.e1) ^ hash(self.e2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
+
+        def __eq__(self, other):
+            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
+                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
 
         def __cmp__(self, other):
             if other.confidence > self.confidence:
@@ -48,10 +45,6 @@ class Tuple(object):
                 return 1
             else:
                 return 0
-
-        def __eq__(self, other):
-            return (self.e1 == other.e1 and self.e2 == other.e2 and self.bef_words == other.bef_words and
-                    self.bet_words == other.bet_words and self.aft_words == other.aft_words)
 
         def construct_pattern_vector(self, pattern_tags, config):
             # remove stopwords and adjectives
