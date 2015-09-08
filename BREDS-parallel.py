@@ -220,7 +220,7 @@ class BREDS(object):
                 # update all patterns confidence
                 for p in self.patterns:
                     p.confidence_old = p.confidence
-                    p.update_confidence()
+                    p.update_confidence(self.config)
 
                 # normalize patterns confidence
                 # find the maximum value of confidence and divide all by the maximum
