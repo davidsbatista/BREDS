@@ -1,7 +1,0 @@
-e1:ORG
-e2:PER
-
-Red Bull;Dietrich Mateschitz
-Google;Sergey Brin
-LinkedIn;Reid Hoffman
-Amazon.com;Jeff Bezos

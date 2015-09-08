@@ -1,8 +1,0 @@
-e1:PER
-e2:ORG
-
-Yusuf Mehdi;Microsoft
-Alan Mulally;Boeing
-Steve Jobs;Apple
-Peter Piot;UNAIDS
-#Gerry Adams;Sinn Fein

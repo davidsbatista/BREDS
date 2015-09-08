@@ -1,8 +1,0 @@
-e1:ORG
-e2:ORG
-
-Fiat;Chrysler
-Geely;Volvo
-AOL;Mirabilis
-Zipcar;Flexcar
-Google;Aardvark
