@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from BREDS import Sentence, Seed
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -17,11 +18,9 @@ from numpy import dot
 from gensim import matutils
 from collections import defaultdict
 
-from BREDS.PatternPoS import Pattern
+from BREDS.Pattern import Pattern
 from BREDS.Config import Config
-from BREDS.TuplePoS import Tuple
-from Common.Sentence import Sentence, SentenceNew
-from Common.Seed import Seed
+from BREDS.Tuple import Tuple
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -30,23 +29,19 @@ PRINT_PATTERNS = False
 
 class BREDS(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file, num_cores):
-
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, num_cores):
         self.manager = multiprocessing.Manager()
         self.queue = self.manager.Queue()
         if num_cores == 0:
             self.num_cpus = multiprocessing.cpu_count()
         else:
             self.num_cpus = num_cores
-
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-
         self.curr_iteration = 0
         self.patterns = list()
         self.patterns_index = dict()
-
-        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file)
+        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
 
     def generate_tuples(self, sentences_file):
         """
@@ -61,14 +56,12 @@ class BREDS(object):
             if count % 10000 == 0:
                 sys.stdout.write(".")
             sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                   self.config.min_tokens_away, self.config.context_window_size)
+                                self.config.min_tokens_away, self.config.context_window_size)
             for rel in sentence.relationships:
                 if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                     t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                     self.processed_tuples.append(t)
-
         f_sentences.close()
-
         print "\n", len(self.processed_tuples), "tuples generated"
         print "Writing generated tuples to disk"
         f = open("processed_tuples.pkl", "wb")
@@ -105,7 +98,7 @@ class BREDS(object):
             print "=========================================="
             print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches of:"
-            for s in self.config.seed_tuples:
+            for s in self.config.positive_seed_tuples:
                 print s.e1, '\t', s.e2
 
             # Looks for sentences macthing the seed instances
@@ -291,7 +284,7 @@ class BREDS(object):
                     for t in self.candidate_tuples.keys():
                         if t.confidence >= self.config.instance_confidance:
                             seed = Seed(t.e1, t.e2)
-                            self.config.seed_tuples.add(seed)
+                            self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations
                 self.curr_iteration += 1
@@ -423,7 +416,7 @@ class BREDS(object):
         matched_tuples = list()
         count_matches = dict()
         for t in self.processed_tuples:
-            for s in self.config.seed_tuples:
+            for s in self.config.positive_seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
                     try:
@@ -451,8 +444,7 @@ def main():
         similarity = sys.argv[5]        # threshold similarity for clustering/extracting instances
         confidance = sys.argv[6]        # confidence threshold of an instance to used as seed
         num_cores = int(sys.argv[7])    # confidence threshold of an instance to used as seed
-        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file,
-                       num_cores)
+        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), num_cores)
         if sentences_file.endswith('.pkl'):
             breads.init_bootstrap(tuples=sentences_file)
         else:

@@ -7,7 +7,7 @@ import sys
 from os import listdir
 from os.path import isfile, join
 
-from Common import Sentence
+from BREDS import Sentence
 
 
 __author__ = 'dsbatista'

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
@@ -16,11 +17,10 @@ from numpy import dot
 from gensim import matutils
 from collections import defaultdict
 
-from BREDS.PatternPoS import Pattern
+from BREDS import Sentence, Seed
+from BREDS.Pattern import Pattern
 from BREDS.Config import Config
-from BREDS.TuplePoS import Tuple
-from Common.Sentence import Sentence
-from Common.Seed import Seed
+from BREDS.Tuple import Tuple
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -106,7 +106,7 @@ class BREDS(object):
             print "=========================================="
             print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches of:"
-            for s in self.config.seed_tuples:
+            for s in self.config.positive_seed_tuples:
                 print s.e1, '\t', s.e2
 
             # Looks for sentences macthing the seed instances
@@ -253,7 +253,7 @@ class BREDS(object):
                         for t in self.candidate_tuples.keys():
                             if t.confidence >= self.config.instance_confidance:
                                 seed = Seed(t.e1, t.e2)
-                                self.config.seed_tuples.add(seed)
+                                self.config.positive_seed_tuples.add(seed)
                                 # for filtering semantic drift by comparing with previous sentence extractions
                                 # keeps tracks of the seeds instances extracted at each iteration
                                 self.seeds_by_iteration[self.curr_iteration].append(t)
@@ -366,7 +366,7 @@ class BREDS(object):
         matched_tuples = list()
         count_matches = dict()
         for t in self.processed_tuples:
-            for s in self.config.seed_tuples:
+            for s in self.config.positive_seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
                     try:

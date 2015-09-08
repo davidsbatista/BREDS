@@ -4,6 +4,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
+import sys
 import re
 from nltk import word_tokenize, pos_tag
 
@@ -66,93 +67,6 @@ class Relationship:
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
 
 
-"""
-class Sentence:
-
-    def __init__(self, _sentence, e1_type, e2_type, max_tokens, min_tokens, window_size):
-        self.relationships = set()
-        self.sentence = _sentence
-        matches = []
-
-        #TODO: regex to used depends on Config.tags_type
-        #for m in re.finditer(regex_linked, self.sentence):
-        for m in re.finditer(regex_simple, self.sentence):
-            matches.append(m)
-
-        if len(matches) >= 2:
-            for x in range(0, len(matches) - 1):
-                if x == 0:
-                    start = 0
-                if x > 0:
-                    start = matches[x - 1].end()
-                try:
-                    end = matches[x + 2].start()
-                except IndexError:
-                    end = len(self.sentence) - 1
-
-                before = self.sentence[start:matches[x].start()]
-                between = self.sentence[matches[x].end():matches[x + 1].start()]
-                after = self.sentence[matches[x + 1].end(): end]
-
-                # select 'window_size' tokens from left and right context
-                before = word_tokenize(before)[-window_size:]
-                after = word_tokenize(after)[:window_size]
-                before = ' '.join(before)
-                after = ' '.join(after)
-
-                # only consider relationships where the distance between the two entities
-                # is less than 'max_tokens' and greater than 'min_tokens'
-                number_bet_tokens = len(word_tokenize(between))
-                if not number_bet_tokens > max_tokens and not number_bet_tokens < min_tokens:
-
-                    #TODO: run code according to Config.tags_type
-                    # simple tags
-                    ent1 = matches[x].group()
-                    ent2 = matches[x + 1].group()
-                    arg1match = re.match("<[A-Z]+>", ent1)
-                    arg2match = re.match("<[A-Z]+>", ent2)
-                    ent1 = re.sub("</?[A-Z]+>", "", ent1, count=2, flags=0)
-                    ent2 = re.sub("</?[A-Z]+>", "", ent2, count=2, flags=0)
-                    arg1type = arg1match.group()[1:-1]
-                    arg2type = arg2match.group()[1:-1]
-
-
-                    # linked tags
-                    #ent1 = re.findall('url=([^>]+)', matches[x].group())[0]
-                    #ent2 = re.findall('url=([^>]+)', matches[x+1].group())[0]
-                    #arg1type = re.findall('<([A-Z]+)', matches[x].group())[0]
-                    #arg2type = re.findall('<([A-Z]+)', matches[x+1].group())[0]
-
-                    #DEBUG
-                    #print _sentence
-                    #print matches[x].group()
-                    #print matches[x+1].group()
-                    #print "BEF", before
-                    #print "BET", between
-                    #print "AFT", after
-                    #print "ent1", ent1, arg1type
-                    ##print "ent2", ent2, arg2type
-                    #print "==========================================\n"
-
-                    if ent1 == ent2:
-                        continue
-
-                    if e1_type is not None and e2_type is not None:
-                        # restrict relationships by the arguments semantic types
-                        if arg1type == e1_type and arg2type == e2_type:
-
-                            rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
-                                               _type=None)
-                            self.relationships.add(rel)
-
-                    elif e1_type is None and e2_type is None:
-                        # create all possible relationship types
-                        rel = Relationship(_sentence, before, between, after, ent1, ent2, arg1type, arg2type,
-                                           _type=None)
-                        self.relationships.add(rel)
-"""
-
-
 class Sentence:
 
     def __init__(self, _sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, config=None):
@@ -174,14 +88,8 @@ class Sentence:
 
         # find named-entities
         entities = []
-
-        if config is None:
-            for m in re.finditer(entities_regex, _sentence):
-                entities.append(m)
-
-        else:
-            for m in re.finditer(config.entities_regex, _sentence):
-                entities.append(m)
+        for m in re.finditer(entities_regex, _sentence):
+            entities.append(m)
 
         if len(entities) >= 2:
             for x in range(0, len(entities) - 1):
@@ -206,14 +114,11 @@ class Sentence:
                         continue
 
                     else:
-                        arg1_parts = arg1.split()
-                        arg2_parts = arg2.split()
+                        arg1_parts = word_tokenize(arg1)
+                        arg2_parts = word_tokenize(arg2)
 
                         if self.tagged is None:
-                            if config is None:
-                                sentence_no_tags = re.sub(tags_regex, "", _sentence)
-                            else:
-                                sentence_no_tags = re.sub(config.tags_regex, "", _sentence)
+                            sentence_no_tags = re.sub(tags_regex, "", _sentence)
 
                             # split text into tokens and tag them using NLTK's default English tagger
                             # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
@@ -245,36 +150,18 @@ class Sentence:
                                 after_i = i
                                 break
 
-                        before_tags = self.tagged[:before_i]
-                        between_tags = self.tagged[before_i+len(arg1_parts):after_i]
-                        after_tags = self.tagged[after_i+len(arg2_parts):]
-                        before_tags_cut = before_tags[-window_size:]
-                        after_tags_cut = after_tags[:window_size]
+                        try:
+                            before_tags = self.tagged[:before_i]
+                            between_tags = self.tagged[before_i+len(arg1_parts):after_i]
+                            after_tags = self.tagged[after_i+len(arg2_parts):]
+                            before_tags_cut = before_tags[-window_size:]
+                            after_tags_cut = after_tags[:window_size]
+
+                        except Exception, e:
+                            print e
+                            print _sentence
+                            sys.exit(0)
 
                         r = Relationship(_sentence, before_tags_cut, between_tags, after_tags_cut, arg1, arg2,
                                          arg1type, arg2type)
                         self.relationships.append(r)
-
-
-class SentenceParser:
-
-    def __init__(self, _sentence, e1_type, e2_type):
-        self.relationships = set()
-        self.sentence = _sentence
-        self.entities = list()
-        self.valid = False
-        self.tree = None
-        self.deps = None
-
-        for m in re.finditer(regex, self.sentence):
-            self.entities.append(m.group())
-
-        for e1 in self.entities:
-            for e2 in self.entities:
-                if e1 == e2:
-                    continue
-                arg1match = re.match("<([A-Z]+)>", e1)
-                arg2match = re.match("<([A-Z]+)>", e2)
-                if arg1match.group(1) == e1_type and arg2match.group(1) == e2_type:
-                    self.valid = True
-                    break;

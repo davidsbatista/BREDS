@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import fileinput
 import StringIO
+
+from BREDS import Sentence
 from nltk import pos_tag
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
 from nltk.tokenize.punkt import PunktWordTokenizer
-from SentenceBreds import Sentence
 
 
 class Reverb(object):

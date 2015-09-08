@@ -10,9 +10,8 @@ import re
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
 from gensim.models import Word2Vec
-
-from Common.Seed import Seed
-from Common.ReVerb import Reverb
+from BREDS import Seed
+from BREDS.ReVerb import Reverb
 
 
 class Config(object):
@@ -122,28 +121,6 @@ class Config(object):
         print "iterations           :", self.number_iterations
         print "iteration wUpdt      :", self.wUpdt
         print "\n"
-
-        """
-        if self.embeddings == 'fcm':
-            # Load Stanford Parser using NLTK interface and PyStanfordDependencies to get the syntactic dependencies
-            # JAVA_HOME needs to be set, calling 'java -version' should show: java version "1.8.0_45" or higher
-            # PARSER and STANFORD_MODELS enviroment variables need to be set
-            os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-            os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-            if os.path.isfile("vocabulary_words.pkl"):
-                print "Loading vocabulary from disk"
-                f = open("vocabulary_words.pkl")
-                self.dictionary = cPickle.load(f)
-                f.close()
-            else:
-                # generate a dictionary of all the words
-                self.generate_dictionary(sentences_file)
-                f = open("vocabulary_words.pkl", "w")
-                cPickle.dump(self.dictionary, f)
-                f.close()
-
-            print len(self.dictionary.token2id), "unique tokens"
-        """
 
     def read_word2vec(self):
         print "Loading word2vec model ...\n"

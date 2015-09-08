@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from BREDS import Sentence
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -21,7 +22,6 @@ from whoosh import query
 from nltk import word_tokenize, bigrams
 from nltk.corpus import stopwords
 from collections import defaultdict
-from Common.Sentence import Sentence
 
 # relational words to be used in calculating the set C and D aplpying the  with the proximity PMI
 

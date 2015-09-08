@@ -1,9 +1,0 @@
-sentence :The survey , which ranks every member of <ORG>Congress</ORG> based on very <LOC>Washington</LOC> wonk criteria: committee and leadership positions , political influence and legislative activity.
-
-sentence : <PER>Anthony Shadid</PER> is an <ORG>Associated Press</ORG> newsman based in <LOC>Cairo</LOC> .
-
-sentence: <ORG>Toshiba</ORG> is not headquartered in the <LOC>Ginza</LOC> building .
-
-sentence: `` We will hold on to any small hope to save them , '' <PER>Ryu Haeng-sik</PER> , 36 , husband of hostage Kim Yoon-yong , 35 , told The <ORG>Associated Press</ORG> outside the embassy in central <LOC>Seoul</LOC> , his eyes red from weeping and fatigue .
-
-sentence: Earlier in the day , <ORG>Olivetti</ORG> share prices soared on the <LOC>Milan</LOC> bourse , closing at 511.5 lire , up 9.93 percent on speculative trading , after falling nearly 30 percent over 10 trading sessions .
