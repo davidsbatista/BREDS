@@ -19,15 +19,11 @@ A sample configuration is provided in ''parameters.cfg''. The file contains valu
     wNeg=2                      # weight given to extracted relationship instances
     min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
 
-    embeddings = sum            # sum of embeddings
     word2vec_path = vectors.bin # path to a word2vecmodel in binary format
 
     alpha = 0.2                 # weight of the BEF context in the similarity function
     beta = 0.6                  # weight of the BET context in the similarity function
     gamma = 0.2                 # weight of the AFT context in the similarity function
-
-    embeddings = fcm            # TODO: combine embeddings with syntactic dependencies
-    semantic_drift = 0          # TODO: an extra filtering step in controling the semantic dritf
 
 
 
