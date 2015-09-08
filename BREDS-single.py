@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
@@ -17,10 +16,11 @@ from numpy import dot
 from gensim import matutils
 from collections import defaultdict
 
-from BREDS import Sentence, Seed
+from BREDS.Seed import Seed
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
 from BREDS.Tuple import Tuple
+from BREDS.Sentence import Sentence
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -29,12 +29,12 @@ PRINT_PATTERNS = False
 
 class BREDS(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance):
         self.curr_iteration = 0
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file)
+        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
 
         # to control the semantic drift using the seeds from different iterations
         self.seeds_by_iteration = dict()
@@ -392,7 +392,7 @@ def main():
         negative_seeds = sys.argv[4]
         similarity = sys.argv[5]    # threshold similarity for clustering/extracting instances
         confidance = sys.argv[6]    # confidence threshold of an instance to used as seed
-        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), sentences_file)
+        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance))
         if sentences_file.endswith('.pkl'):
             print "Loading pre-processed sentences", sentences_file
             breads.init_bootstrapp(tuples=sentences_file)
