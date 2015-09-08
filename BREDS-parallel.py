@@ -20,7 +20,7 @@ from collections import defaultdict
 from BREDS.PatternPoS import Pattern
 from BREDS.Config import Config
 from BREDS.TuplePoS import Tuple
-from Common.Sentence import Sentence
+from Common.Sentence import Sentence, SentenceNew
 from Common.Seed import Seed
 
 # usefull stuff for debugging
@@ -60,9 +60,8 @@ class BREDS(object):
             count += 1
             if count % 10000 == 0:
                 sys.stdout.write(".")
-
             sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                self.config.min_tokens_away, self.config.context_window_size)
+                                   self.config.min_tokens_away, self.config.context_window_size)
             for rel in sentence.relationships:
                 if rel.arg1type == self.config.e1_type and rel.arg2type == self.config.e2_type:
                     t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)

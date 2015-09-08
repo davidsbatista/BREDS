@@ -69,7 +69,5 @@ class Pattern(object):
                     if n.e1 == t.e1 or n.e1.strip() == t.e1.strip():
                         if n.e2 == t.e2.strip() or n.e2.strip() == t.e2.strip():
                             self.negative += 1
-                self.unknown += 1
-
-        #TODO: if this is set patterns confidence will be updated on-line
-        #self.update_confidence()
+                    else:
+                        self.unknown += 1
