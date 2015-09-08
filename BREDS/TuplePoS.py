@@ -108,39 +108,3 @@ class Tuple(object):
                     pass
 
             return pattern_vector
-
-        """
-        def extract_patterns(self, config):
-            # extract ReVerb pattern and detect the presence of the passive voice
-            patterns_bet_tags = Reverb.extract_reverb_patterns_ptb(self.bet_words)
-            if len(patterns_bet_tags) > 0:
-                self.passive_voice = config.reverb.detect_passive_voice(patterns_bet_tags)
-                # forced hack since _'s_ is always tagged as VBZ, (u"'s", 'VBZ') and causes ReVerb to identify
-                # a pattern which is wrong, if this happens, ignore that a pattern was extracted
-                if patterns_bet_tags[0][0] == "'s":
-                    self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-                else:
-                    self.bet_vector = self.construct_pattern_vector(patterns_bet_tags, config)
-            else:
-                self.bet_vector = self.construct_words_vectors(self.bet_words, config)
-
-            # extract two words before the first entity, and two words after the second entity
-            if len(self.bef_words) > 0:
-                self.bef_vector = self.construct_words_vectors(self.bef_words, config)
-
-            if len(self.aft_words) > 0:
-                self.aft_vector = self.construct_words_vectors(self.aft_words, config)
-        """
-
-        """
-        def construct_words_vectors(self, words, config):
-            # split text into tokens and tag them using NLTK's default English tagger
-            # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-            text_tokens = word_tokenize(words)
-            tags_ptb = pos_tag(text_tokens)
-
-            pattern = [t[0] for t in tags_ptb if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-            if len(pattern) >= 1:
-                words_vector = config.word2vecwrapper.pattern2vector_sum(pattern, config)
-                return words_vector
-        """
