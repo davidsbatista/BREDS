@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from BREDS import Sentence, Seed
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -21,6 +20,8 @@ from collections import defaultdict
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
 from BREDS.Tuple import Tuple
+from BREDS.Sentence import Sentence
+from BREDS.Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
@@ -172,7 +173,6 @@ class BREDS(object):
                 #   - a copy of all the extraction patterns
                 #   - a list to store the tuples which matched a pattern
                 #   - a list to store the altered patterns
-
                 collected_tuples = [self.manager.list() for _ in range(self.num_cpus)]
                 processes = [multiprocessing.Process(target=self.find_instances,
                                                      args=(patterns_copies[i], updated_patterns[i], collected_tuples[i],
@@ -399,15 +399,10 @@ class BREDS(object):
             if max_similarity < self.config.threshold_similarity:
                 c = Pattern(self.config, t)
                 self.patterns.append(c)
-                #print "New Cluster", c.patterns_words
-                #print "\n"
 
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
-                #print "\n"
-                #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
-                #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
 
     def match_seeds_tuples(self):
         """
