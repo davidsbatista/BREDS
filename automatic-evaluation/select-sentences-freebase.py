@@ -1,16 +1,17 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
 
 import codecs
 import fileinput
 import multiprocessing
 import sys
+
 from os import listdir
 from os.path import isfile, join
-
 from BREDS import Sentence
-
-
-__author__ = 'dsbatista'
 
 MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1

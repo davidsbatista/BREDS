@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = 'dsbatista'
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
 
 import re
 import fileinput
-import os
 import sys
 from collections import defaultdict
 

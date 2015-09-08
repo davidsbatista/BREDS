@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import cPickle
-import sys
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
+
+import cPickle
+import sys
 
 
 class ExtractedFact(object):

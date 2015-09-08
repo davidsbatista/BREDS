@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from BREDS import Sentence
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -16,6 +15,7 @@ import cPickle
 import jellyfish
 import Queue
 
+from BREDS import Sentence
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
