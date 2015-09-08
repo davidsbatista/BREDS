@@ -36,9 +36,6 @@ class BREDS(object):
         self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidance)
 
-        # to control the semantic drift using the seeds from different iterations
-        self.seeds_by_iteration = dict()
-
     def generate_tuples(self, sentences_file):
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
