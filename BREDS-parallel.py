@@ -220,7 +220,6 @@ class BREDS(object):
                             self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
 
                 # update all patterns confidence
-                #if self.curr_iteration > 0:
                 for p in self.patterns:
                     p.confidence_old = p.confidence
                     p.update_confidence()
