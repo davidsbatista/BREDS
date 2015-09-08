@@ -82,7 +82,7 @@ class Sentence:
 
         self.relationships = list()
         self.tagged = None
-        #if config is None:
+        #TODO: handle othe type of tagged entities
         entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
         tags_regex = re.compile('</?[A-Z]+>', re.U)
 
@@ -114,8 +114,17 @@ class Sentence:
                         continue
 
                     else:
-                        arg1_parts = word_tokenize(arg1)
-                        arg2_parts = word_tokenize(arg2)
+                        # hard-coded examples, because tokenizer splits some entities with points.
+                        # e.g.: "U.S" becomes: [u'U.S, u'.']
+                        if arg1 == "U.S.":
+                            arg1_parts = [arg1]
+                        else:
+                            arg1_parts = word_tokenize(arg1)
+
+                        if arg2 == "U.S.":
+                            arg2_parts = [arg2]
+                        else:
+                            arg2_parts = word_tokenize(arg2)
 
                         if self.tagged is None:
                             sentence_no_tags = re.sub(tags_regex, "", _sentence)
@@ -143,7 +152,11 @@ class Sentence:
                         for i in range(before_i, len(self.tagged)):
                             j = i
                             z = 0
+                            #print "self.tagged[j][0]", self.tagged[j][0]
+                            #print "arg2_parts[z]", arg2_parts[z]
                             while (z <= len(arg2_parts)-1) and self.tagged[j][0] == arg2_parts[z]:
+                                #print "self.tagged[j][0]", self.tagged[j][0]
+                                #print "arg2_parts[z]", arg2_parts[z]
                                 j += 1
                                 z += 1
                             if z == len(arg2_parts):
