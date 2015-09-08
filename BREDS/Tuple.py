@@ -33,6 +33,9 @@ class Tuple(object):
             return str(self.e1+'\t'+self.e2+'\t'+self.bef_words+'\t'+self.bet_words+'\t'+self.aft_words).encode("utf8")
 
         def __hash__(self):
+            print self.bet_words
+            print self.bet_words
+            print self.aft_words
             return hash(self.e1) ^ hash(self.e2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
 
         def __eq__(self, other):
@@ -70,7 +73,6 @@ class Tuple(object):
             if len(reverb_pattern) > 0:
                 self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
                 self.bet_vector = self.construct_pattern_vector(reverb_pattern, config)
-                self.bet_words = reverb_pattern
             else:
                 self.passive_voice = False
                 self.construct_words_vectors(reverb_pattern, "between", config)
