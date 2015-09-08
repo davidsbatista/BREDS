@@ -437,7 +437,7 @@ def main():
         negative_seeds = sys.argv[4]
         similarity = sys.argv[5]        # threshold similarity for clustering/extracting instances
         confidance = sys.argv[6]        # confidence threshold of an instance to used as seed
-        num_cores = int(sys.argv[7])    # confidence threshold of an instance to used as seed
+        num_cores = int(sys.argv[7])    # number of parallel jobs to launch
         breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidance), num_cores)
         if sentences_file.endswith('.pkl'):
             breads.init_bootstrap(tuples=sentences_file)
