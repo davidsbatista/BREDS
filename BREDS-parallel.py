@@ -317,6 +317,8 @@ class BREDS(object):
         while True:
             try:
                 t = instances.get_nowait()
+                if instances.qsize() % 10000 == 0:
+                    print multiprocessing.current_process(), "Instances to process", instances.qsize()
                 for p in patterns:
                     # measure similarity towards an extraction pattern
                     sim_best = 0
