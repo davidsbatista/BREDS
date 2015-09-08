@@ -11,8 +11,6 @@ import operator
 import multiprocessing
 import Queue
 
-from nltk.corpus import stopwords
-from nltk import word_tokenize
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
@@ -419,10 +417,6 @@ class BREDS(object):
                         count_matches[(t.e1, t.e2)] = 1
 
         return count_matches, matched_tuples
-
-    @staticmethod
-    def tokenize(text):
-        return [word for word in word_tokenize(text.lower()) if word not in stopwords.words('english')]
 
 
 def main():
