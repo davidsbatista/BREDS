@@ -13,12 +13,11 @@ from gensim.models import Word2Vec
 
 from Common.Seed import Seed
 from Common.ReVerb import Reverb
-from Word2VecWrapper import Word2VecWrapper
 
 
 class Config(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, sentences_file):
+    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidance):
 
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         # select everything except stopwords, ADJ and ADV
@@ -26,7 +25,7 @@ class Config(object):
         self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
         self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
-        self.seed_tuples = set()
+        self.positive_seed_tuples = set()
         self.negative_seed_tuples = set()
         self.vec_dim = 0
         self.e1_type = None
@@ -35,7 +34,6 @@ class Config(object):
         self.lmtzr = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidance = confidance
-        self.word2vecwrapper = Word2VecWrapper()
         self.reverb = Reverb()
         self.word2vec = None
         self.vec_dim = None
@@ -56,9 +54,6 @@ class Config(object):
             if line.startswith("number_iterations"):
                 self.number_iterations = int(line.split("=")[1])
 
-            if line.startswith("use_RlogF"):
-                self.use_RlogF = bool(line.split("=")[1])
-
             if line.startswith("min_pattern_support"):
                 self.min_pattern_support = int(line.split("=")[1])
 
@@ -70,9 +65,6 @@ class Config(object):
 
             if line.startswith("context_window_size"):
                 self.context_window_size = int(line.split("=")[1])
-
-            if line.startswith("single_vector"):
-                self.single_vector = line.split("=")[1].strip()
 
             if line.startswith("similarity"):
                 self.similarity = line.split("=")[1].strip()
@@ -97,8 +89,8 @@ class Config(object):
 
         assert self.alpha+self.beta+self.gamma == 1
 
-        self.read_seeds(seeds_file)
-        self.read_negative_seeds(negative_seeds)
+        self.read_seeds(positive_seeds, self.positive_seed_tuples)
+        self.read_seeds(negative_seeds, self.negative_seed_tuples)
         fileinput.close()
 
         print "Configuration parameters"
@@ -118,7 +110,7 @@ class Config(object):
         print "gamma                :", self.gamma
 
         print "\nSeeds"
-        print "positive seeds       :", len(self.seed_tuples)
+        print "positive seeds       :", len(self.positive_seed_tuples)
         print "negative seeds       :", len(self.negative_seed_tuples)
         print "negative seeds wNeg  :", self.wNeg
         print "unknown seeds wUnk   :", self.wUnk
@@ -138,7 +130,6 @@ class Config(object):
             # PARSER and STANFORD_MODELS enviroment variables need to be set
             os.environ['STANFORD_PARSER'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
             os.environ['STANFORD_MODELS'] = '/home/dsbatista/stanford-parser-full-2015-04-20/'
-
             if os.path.isfile("vocabulary_words.pkl"):
                 print "Loading vocabulary from disk"
                 f = open("vocabulary_words.pkl")
@@ -160,7 +151,7 @@ class Config(object):
         self.vec_dim = self.word2vec.layer1_size
         print self.vec_dim, "dimensions"
 
-    def read_seeds(self, seeds_file):
+    def read_seeds(self, seeds_file, holder):
         for line in fileinput.input(seeds_file):
             if line.startswith("#") or len(line) == 1:
                 continue
@@ -172,18 +163,4 @@ class Config(object):
                 e1 = line.split(";")[0].strip()
                 e2 = line.split(";")[1].strip()
                 seed = Seed(e1, e2)
-                self.seed_tuples.add(seed)
-
-    def read_negative_seeds(self, negative_seeds):
-        for line in fileinput.input(negative_seeds):
-                if line.startswith("#") or len(line) == 1:
-                    continue
-                if line.startswith("e1"):
-                    self.e1_type = line.split(":")[1].strip()
-                elif line.startswith("e2"):
-                    self.e2_type = line.split(":")[1].strip()
-                else:
-                    e1 = line.split(";")[0].strip()
-                    e2 = line.split(";")[1].strip()
-                    seed = Seed(e1, e2)
-                    self.negative_seed_tuples.add(seed)
+                holder.add(seed)
