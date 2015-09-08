@@ -10,7 +10,7 @@ import re
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
 from gensim.models import Word2Vec
-from BREDS import Seed
+from BREDS.Seed import Seed
 from BREDS.ReVerb import Reverb
 
 
