@@ -311,6 +311,7 @@ class BREDS(object):
                 for p in patterns:
                     # measure similarity towards an extraction pattern
                     sim_best = 0
+                    pattern_best = None
                     accept, score = self.similarity_all(t, p)
                     if accept is True:
                         p.update_selectivity(t, self.config)
