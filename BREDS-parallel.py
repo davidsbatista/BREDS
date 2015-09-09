@@ -415,6 +415,7 @@ class BREDS(object):
         matched_tuples = list()
         count_matches = dict()
         for t in self.processed_tuples:
+            print t.e1, t.e2
             for s in self.config.positive_seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
