@@ -8,19 +8,11 @@ import sys
 import re
 from nltk import word_tokenize, pos_tag
 
-# regex for simple tags, e.g.:
-# <PER>Bill Gates</PER>
-regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
-
-# regex for wikipedia linked tags e.g.:
-# <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Mark Elliot Zuckerberg</PER>
-regex_linked = re.compile('<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>', re.U)
-
 
 class Relationship:
 
     def __init__(self, _sentence, _before=None, _between=None, _after=None, _ent1=None, _ent2=None, _arg1type=None,
-                 _arg2type=None):
+                 _arg2type=None, config=None):
 
         self.sentence = _sentence
         self.before = _before
@@ -33,7 +25,13 @@ class Relationship:
 
         if _before is None and _between is None and _after is None and _sentence is not None:
             matches = []
-            for m in re.finditer(regex_simple, self.sentence):
+            #determine which type of regex to use according to how named-entties are tagged
+            entities_regex = None
+            if config.tag_type == "simple":
+                entities_regex = config.regex_simple
+            elif config.tag_type == "linked":
+                entities_regex = config.regex_linked
+            for m in re.finditer(entities_regex, self.sentence):
                 matches.append(m)
 
             for x in range(0, len(matches) - 1):
@@ -82,9 +80,13 @@ class Sentence:
 
         self.relationships = list()
         self.tagged = None
-        #TODO: handle othe type of tagged entities
-        entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
-        tags_regex = re.compile('</?[A-Z]+>', re.U)
+
+        #determine which type of regex to use according to how named-entties are tagged
+        entities_regex = None
+        if config.tag_type == "simple":
+            entities_regex = config.regex_simple
+        elif config.tag_type == "linked":
+            entities_regex = config.regex_linked
 
         # find named-entities
         entities = []
@@ -93,16 +95,24 @@ class Sentence:
 
         if len(entities) >= 2:
             for x in range(0, len(entities) - 1):
-                ent1 = entities[x].group()
-                ent2 = entities[x+1].group()
-                arg1 = re.sub("</?[A-Z]+>", "", ent1)
-                arg2 = re.sub("</?[A-Z]+>", "", ent2)
-                arg1match = re.match("<[A-Z]+>", ent1)
-                arg2match = re.match("<[A-Z]+>", ent2)
-                arg1type = arg1match.group()[1:-1]
-                arg2type = arg2match.group()[1:-1]
 
-                if (arg1type != e1_type or arg2type != e2_type) or (arg1 == arg2):
+                if config.tag_type == "simple":
+                    ent1 = entities[x].group()
+                    ent2 = entities[x+1].group()
+                    ent1 = re.sub("</?[A-Z]+>", "", ent1)
+                    ent2 = re.sub("</?[A-Z]+>", "", ent2)
+                    arg1match = re.match("<[A-Z]+>", ent1)
+                    arg2match = re.match("<[A-Z]+>", ent2)
+                    arg1type = arg1match.group()[1:-1]
+                    arg2type = arg2match.group()[1:-1]
+
+                elif config.tag_type == "linked":
+                    ent1 = entities[x].group()
+                    ent2 = entities[x+1].group()
+                    arg1type = re.findall('<([A-Z]+)', entities[x].group())[0]
+                    arg2type = re.findall('<([A-Z]+)', entities[x+1].group())[0]
+
+                if (arg1type != e1_type or arg2type != e2_type) or (ent1 == ent2):
                     continue
 
                 else:
@@ -116,21 +126,33 @@ class Sentence:
                     else:
                         # hard-coded examples, because tokenizer splits some entities with points.
                         # e.g.: "U.S" becomes: [u'U.S, u'.']
-                        if arg1 == "U.S.":
-                            arg1_parts = [arg1]
+                        if ent1 == "U.S.":
+                            ent1_parts = [ent1]
                         else:
-                            arg1_parts = word_tokenize(arg1)
+                            if config.tag_type == "simple":
+                                ent1_parts = word_tokenize(ent1)
+                            elif config.tag_type == "linked":
+                                ent1_parts = word_tokenize(re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', ent1)[0])
 
-                        if arg2 == "U.S.":
-                            arg2_parts = [arg2]
+                        if ent2 == "U.S.":
+                            ent2_parts = [ent2]
                         else:
-                            arg2_parts = word_tokenize(arg2)
+                            if config.tag_type == "simple":
+                                ent1_parts = word_tokenize(ent2)
+                            elif config.tag_type == "linked":
+                                ent2_parts = word_tokenize(re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', ent2)[0])
 
                         if self.tagged is None:
-                            sentence_no_tags = re.sub(tags_regex, "", _sentence)
-
+                            # clean tags from text and perform part-of-speech tagging
                             # split text into tokens and tag them using NLTK's default English tagger
                             # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
+
+                            if config.tag_type == "simple":
+                                sentence_no_tags = re.sub(config.tags_regex, "", _sentence)
+
+                            elif config.tag_type == "linked":
+                                sentence_no_tags = re.sub(r"</[A-Z]+>|<[A-Z]+ url=[^>]+>", "", _sentence)
+
                             text_tokens = word_tokenize(sentence_no_tags)
                             self.tagged = pos_tag(text_tokens)
 
@@ -142,10 +164,10 @@ class Sentence:
                         for i in range(0, len(self.tagged)):
                             j = i
                             z = 0
-                            while (z <= len(arg1_parts)-1) and self.tagged[j][0] == arg1_parts[z]:
+                            while (z <= len(ent1_parts)-1) and self.tagged[j][0] == ent1_parts[z]:
                                 j += 1
                                 z += 1
-                            if z == len(arg1_parts):
+                            if z == len(ent1_parts):
                                 before_i = i
                                 break
 
@@ -153,20 +175,20 @@ class Sentence:
                             j = i
                             z = 0
                             #print "self.tagged[j][0]", self.tagged[j][0]
-                            #print "arg2_parts[z]", arg2_parts[z]
-                            while (z <= len(arg2_parts)-1) and self.tagged[j][0] == arg2_parts[z]:
+                            #print "arg2_parts[z]", ent2_parts[z]
+                            while (z <= len(ent2_parts)-1) and self.tagged[j][0] == ent2_parts[z]:
                                 #print "self.tagged[j][0]", self.tagged[j][0]
-                                #print "arg2_parts[z]", arg2_parts[z]
+                                #print "arg2_parts[z]", ent2_parts[z]
                                 j += 1
                                 z += 1
-                            if z == len(arg2_parts):
+                            if z == len(ent2_parts):
                                 after_i = i
                                 break
 
                         try:
                             before_tags = self.tagged[:before_i]
-                            between_tags = self.tagged[before_i+len(arg1_parts):after_i]
-                            after_tags = self.tagged[after_i+len(arg2_parts):]
+                            between_tags = self.tagged[before_i+len(ent1_parts):after_i]
+                            after_tags = self.tagged[after_i+len(ent2_parts):]
                             before_tags_cut = before_tags[-window_size:]
                             after_tags_cut = after_tags[:window_size]
 
@@ -175,6 +197,6 @@ class Sentence:
                             print _sentence
                             sys.exit(0)
 
-                        r = Relationship(_sentence, before_tags_cut, between_tags, after_tags_cut, arg1, arg2,
-                                         arg1type, arg2type)
+                        r = Relationship(_sentence, before_tags_cut, between_tags, after_tags_cut, ent1, ent2,
+                                         arg1type, arg2type, config)
                         self.relationships.append(r)

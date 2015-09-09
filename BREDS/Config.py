@@ -36,6 +36,9 @@ class Config(object):
         self.reverb = Reverb()
         self.word2vec = None
         self.vec_dim = None
+        self.regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)  # simple tags, e.g.: <PER>Bill Gates</PER>
+        #linked tags e.g.: <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
+        self.regex_linked = re.compile('<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>', re.U)
 
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
@@ -95,9 +98,10 @@ class Config(object):
         print "Configuration parameters"
         print "========================\n"
 
-        print "Relationship Representation"
+        print "Relationship/Sentence Representation"
         print "e1 type              :", self.e1_type
         print "e2 type              :", self.e2_type
+        print "tags type            :", self.tag_type
         print "context window       :", self.context_window_size
         print "max tokens away      :", self.max_tokens_away
         print "min tokens away      :", self.min_tokens_away
