@@ -46,11 +46,17 @@ class BREDS(object):
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
         """
-        self.config.read_word2vec()
+        self.config.read_word2vec()     # load word2vec model
         print "\nGenerating relationship instances from sentences"
         f_sentences = codecs.open(sentences_file, encoding='utf-8')
         count = 0
         for line in f_sentences:
+            if line.startswith("#"):
+                continue
+            # hard-coded fix
+            # replace "’s" with "'s" to be correctly tokenized by word_tokenizer()
+            line = line.encode("utf8").replace("\xe2\x80\x99s", "'s")
+            line = line.decode("utf8")
             count += 1
             if count % 10000 == 0:
                 sys.stdout.write(".")
@@ -404,7 +410,7 @@ class BREDS(object):
 
     def match_seeds_tuples(self):
         """
-        checks if an extracted tuple matches seeds tuples
+        Checks if an extracted tuple matches seeds tuples
         """
         matched_tuples = list()
         count_matches = dict()
@@ -416,7 +422,6 @@ class BREDS(object):
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
                         count_matches[(t.e1, t.e2)] = 1
-
         return count_matches, matched_tuples
 
 

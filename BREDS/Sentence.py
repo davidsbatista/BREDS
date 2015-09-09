@@ -151,10 +151,20 @@ class Sentence:
                                 sentence_no_tags = re.sub(config.tags_regex, "", _sentence)
 
                             elif config.tag_type == "linked":
-                                sentence_no_tags = re.sub(r"</[A-Z]+>|<[A-Z]+ url=[^>]+>", "", _sentence)
+                                sentence_no_tags = re.sub(r"</[A-Z]+>|<[A-Z]+ url=[^>]+>", " ", _sentence)
 
-                            text_tokens = word_tokenize(sentence_no_tags)
-                            self.tagged = pos_tag(text_tokens)
+                            try:
+                                text_tokens = word_tokenize(sentence_no_tags)
+                                self.tagged = pos_tag(text_tokens)
+                            except Exception, e:
+                                print e
+                                print _sentence
+                                print sentence_no_tags
+                                print ent1_parts
+                                print ent2_parts
+                                print self.tagged
+                                print
+                                sys.exit(0)
 
                         # to split the tagged sentence into contexts, preserving the PoS-tags
                         # has to take into consideration multi-word entities
@@ -174,11 +184,19 @@ class Sentence:
                         for i in range(before_i, len(self.tagged)):
                             j = i
                             z = 0
-                            #print "self.tagged[j][0]", self.tagged[j][0]
-                            #print "arg2_parts[z]", ent2_parts[z]
+                            """
+                            print "fora!"
+                            print "self.tagged[j][0]", self.tagged[j][0]
+                            print "arg2_parts[z]", ent2_parts[z]
+                            print
+                            """
                             while (z <= len(ent2_parts)-1) and self.tagged[j][0] == ent2_parts[z]:
-                                #print "self.tagged[j][0]", self.tagged[j][0]
-                                #print "arg2_parts[z]", ent2_parts[z]
+                                """
+                                print "entrei!"
+                                print "self.tagged[j][0]", self.tagged[j][0]
+                                print "arg2_parts[z]", ent2_parts[z]
+                                print
+                                """
                                 j += 1
                                 z += 1
                             if z == len(ent2_parts):
@@ -193,9 +211,19 @@ class Sentence:
                             after_tags_cut = after_tags[:window_size]
 
                         except Exception, e:
+                            print
                             print e
                             print _sentence
+                            print sentence_no_tags
+                            print ent1_parts
+                            print ent2_parts
+                            print self.tagged
+                            print
                             sys.exit(0)
+
+                        if config.tag_type == "linked":
+                            ent1 = re.findall('url=([^>]+)', ent1)
+                            ent2 = re.findall('url=([^>]+)', ent2)
 
                         r = Relationship(_sentence, before_tags_cut, between_tags, after_tags_cut, ent1, ent2,
                                          arg1type, arg2type, config)
