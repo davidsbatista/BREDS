@@ -44,8 +44,8 @@ class Relationship:
                 except IndexError:
                     end = len(self.sentence) - 1
 
-                self.before = self.sentence[start:matches[x].init_bootstrap()]
-                self.between = self.sentence[matches[x].end():matches[x + 1].init_bootstrap()]
+                self.before = self.sentence[start:matches[x].start()]
+                self.between = self.sentence[matches[x].end():matches[x + 1].start()]
                 self.after = self.sentence[matches[x + 1].end(): end]
                 self.ent1 = matches[x].group()
                 self.ent2 = matches[x + 1].group()
