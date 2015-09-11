@@ -143,6 +143,12 @@ class Sentence:
                             elif config.tag_type == "linked":
                                 ent1_parts = word_tokenize(re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', ent1)[0])
 
+                            if ent1_parts[-1] == '.':
+                                replace = ent1_parts[-2]+ent1_parts[-1]
+                                del ent1_parts[-1]
+                                del ent1_parts[-1]
+                                ent1_parts.append(replace)
+
                         if ent2_string in problematic_entities:
                             ent2_parts = [ent2_string]
                         else:
@@ -150,6 +156,12 @@ class Sentence:
                                 ent1_parts = word_tokenize(ent2)
                             elif config.tag_type == "linked":
                                 ent2_parts = word_tokenize(re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', ent2)[0])
+
+                                if ent2_parts[-1] == '.':
+                                    replace = ent2_parts[-2]+ent2_parts[-1]
+                                    del ent2_parts[-1]
+                                    del ent2_parts[-1]
+                                    ent2_parts.append(replace)
 
                         if self.tagged is None:
                             # clean tags from text and perform part-of-speech tagging
