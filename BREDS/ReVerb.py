@@ -8,8 +8,8 @@ __email__ = "dsbatista@inesc-id.pt"
 import fileinput
 import StringIO
 
-from BREDS import Sentence
-from nltk import pos_tag
+from Sentence import Sentence
+from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
 from nltk.tokenize.punkt import PunktWordTokenizer
@@ -138,15 +138,13 @@ class Reverb(object):
         # TODO: detect negations
         # ('rejected', 'VBD'), ('a', 'DT'), ('takeover', 'NN')
 
-        # TODO: If there are multiple possible matches in a sentence for a single verb, the longest possible
-        # match is chosen.
-
         while i <= limit:
             tmp = StringIO.StringIO()
             tmp_tags = []
 
             # a ReVerb pattern always starts with a verb
             if tags[i][1] in verb:
+
                 tmp.write(tags[i][0]+' ')
                 t = (tags[i][0], tags[i][1])
                 tmp_tags.append(t)
@@ -273,15 +271,7 @@ class Reverb(object):
     def detect_passive_voice(self, pattern):
         passive_voice = False
         #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo:
-            # ORG1 'which is being bought by' ORG2
-            #
-            # "ENT1 was first put forward by ENT2
-            #
-            # <ORG>Sun Microsystems</ORG> , which was acquired instead by business software giant <ORG>Oracle</ORG> .
-            #
-            # This placement allowed <ORG>AOL</ORG> to draw users very quickly and gave Explorer prominence over rival
-            # <ORG>Netscape</ORG> , which was later bought by <ORG>AOL</ORG>.
-
+        # (to be) + (adj|adv) + past_verb + by
         # to be + past verb + by
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
@@ -307,23 +297,18 @@ class Reverb(object):
 
 
 def main():
-    # for testing, it extracts PER-ORG relationships from a file, where each line is a sentence with
-    # the named-entities tagged
     reverb = Reverb()
     for line in fileinput.input():
-        sentence = Sentence(line, "ORG", "ORG", 6, 1, 2, None)
-        for r in sentence.relationships:
-            pattern_tags = reverb.extract_reverb_patterns_tagged_ptb(r.between)
-            # simple passive voice
-            # auxiliary verb be + main verb past participle + 'by'
-            print r.ent1, '\t', r.ent2
-            print r.sentence
-            print pattern_tags
-            if reverb.detect_passive_voice(pattern_tags):
-                print "Passive Voice: True"
-            else:
-                print "Passive Voice: False"
-            print "\n"
+        tokens = word_tokenize(line.strip())
+        tokens_tagged = pos_tag(tokens)
+        print tokens_tagged
+        pattern_tags = reverb.extract_reverb_patterns_tagged_ptb(tokens_tagged)
+        print pattern_tags
+        if reverb.detect_passive_voice(pattern_tags):
+            print "Passive Voice: True"
+        else:
+            print "Passive Voice: False"
+        print "\n"
     fileinput.close()
 
 if __name__ == "__main__":
