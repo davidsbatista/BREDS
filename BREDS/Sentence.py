@@ -88,6 +88,7 @@ class Sentence:
 
     def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, config=None):
         self.relationships = list()
+        self.tagged_text = None
 
         #determine which type of regex to use according to how named-entties are tagged
         entities_regex = None
@@ -102,16 +103,13 @@ class Sentence:
             entities.append(m)
 
         if len(entities) >= 2:
-            # clean tags from text and perform part-of-speech tagging
-            # split text into tokens and tag them using NLTK's default English tagger
-            # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
+            # clean tags from text
             sentence_no_tags = None
             if config.tag_type == "simple":
                 sentence_no_tags = re.sub(config.regex_clean_simple, "", sentence)
             elif config.tag_type == "linked":
                 sentence_no_tags = re.sub(config.regex_clean_linked, "", sentence)
             text_tokens = word_tokenize(sentence_no_tags)
-            tagged_text = pos_tag(text_tokens)
 
             # extract information about the entity, create an Entity instance and store in a
             # structure to hold information collected about all the entities in the sentence
@@ -151,21 +149,29 @@ class Sentence:
                 e1 = locations[sorted_keys[i]]
                 e2 = locations[sorted_keys[i+1]]
                 if max_tokens >= distance >= min_tokens and e1.type == e1_type and e2.type == e2_type:
-                    before = tagged_text[:sorted_keys[i]]
+
+                    # ignore relationships between the same entity
+                    if config.tag_type == "simple":
+                        if e1.string == e2.string:
+                            continue
+                    elif config.tag_type == "linked":
+                        if e1.url == e2.url:
+                            continue
+
+                    # run PoS-tagger over the sentence only onces
+                    if self.tagged_text is None:
+                        # split text into tokens and tag them using NLTK's default English tagger
+                        # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
+                        self.tagged_text = pos_tag(text_tokens)
+
+                    before = self.tagged_text[:sorted_keys[i]]
                     before = before[-window_size:]
-                    between = tagged_text[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]
-                    after = tagged_text[sorted_keys[i+1]+len(e2.parts):]
+                    between = self.tagged_text[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]
+                    after = self.tagged_text[sorted_keys[i+1]+len(e2.parts):]
                     after = after[:window_size]
 
+                    # ignore relationships where BET context is only stopwords or other invalid words
                     if all(x in not_valid for x in text_tokens[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]):
-                        print "DISCARDED"
-                        print sentence
-                        print e1_type, r.e1
-                        print e2_type, r.e2
-                        print before
-                        print between
-                        print after
-                        print
                         continue
 
                     if config.tag_type == "simple":
