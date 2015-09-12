@@ -8,12 +8,8 @@ import re
 from nltk import word_tokenize, pos_tag
 
 
-def tokenize_entity(config, entity):
-    parts = None
-    if config.tag_type == "simple":
-        parts = word_tokenize(entity)
-    elif config.tag_type == "linked":
-        parts = word_tokenize(re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', entity)[0])
+def tokenize_entity(entity):
+    parts = word_tokenize(entity)
     if parts[-1] == '.':
         replace = parts[-2] + parts[-1]
         del parts[-1]
@@ -22,9 +18,9 @@ def tokenize_entity(config, entity):
     return parts
 
 
-def find_locations(config, entity, text_tokens):
+def find_locations(entity_string, text_tokens):
     locations = []
-    e_parts = tokenize_entity(config, entity)
+    e_parts = tokenize_entity(entity_string)
     for i in range(len(text_tokens)):
         if text_tokens[i:i + len(e_parts)] == e_parts:
             locations.append(i)
@@ -116,20 +112,19 @@ class Sentence:
             entities_info = set()
             for x in range(0, len(entities)):
                 if config.tag_type == "simple":
-                    e_string = entities[x].group()
-                    ent1 = re.sub('</?[A-Z]+>', '', ent1)
-                    arg1match = re.match('<[A-Z]+>', ent1)
-                    e_type = arg1match.group()[1:-1]
-                    e_parts, locations = find_locations(config, entity, text_tokens)
-                    e = EntitySimple(e_string, e_parts, e_type, locations, None)
+                    entity = entities[x].group()
+                    e_string = re.findall('<[A-Z]+>([^<]+)</[A-Z]+>', entity)[0]
+                    e_type = re.findall('<([A-Z]+)', entity)[0]
+                    e_parts, locations = find_locations(e_string, text_tokens)
+                    e = EntitySimple(e_string, e_parts, e_type, locations)
                     entities_info.add(e)
 
                 elif config.tag_type == "linked":
                     entity = entities[x].group()
                     e_url = re.findall('url=([^>]+)', entity)[0]
                     e_string = re.findall('<[A-Z]+ url=[^>]+>([^<]+)</[A-Z]+>', entity)[0]
-                    e_type = re.findall('<([A-Z]+)', entities[x].group())[0]
-                    e_parts, locations = find_locations(config, entity, text_tokens)
+                    e_type = re.findall('<([A-Z]+)', entity)[0]
+                    e_parts, locations = find_locations(e_string, text_tokens)
                     e = EntityLinked(e_string, e_parts, e_type, locations, e_url)
                     entities_info.add(e)
 
@@ -150,7 +145,6 @@ class Sentence:
                 e1 = locations[sorted_keys[i]]
                 e2 = locations[sorted_keys[i+1]]
                 if max_tokens >= distance >= min_tokens and e1.type == e1_type and e2.type == e2_type:
-
                     before = tagged_text[:sorted_keys[i]]
                     before = before[-window_size:]
                     between = tagged_text[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]
@@ -165,9 +159,9 @@ class Sentence:
                     print r.sentence
                     print r.e1_type, r.e1
                     print r.e2_type, r.e2
-                    print before
-                    print between
-                    print after
+                    print r.before
+                    print r.between
+                    print r.after
                     print
 
-                    #self.relationships.append(r)
+                    self.relationships.append(r)

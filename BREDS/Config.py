@@ -21,7 +21,7 @@ class Config(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         # select everything except stopwords, ADJ and ADV
         self.filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
-        self.regex_clean_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+        self.regex_clean_simple = re.compile('</?[A-Z]+>', re.U)
         self.regex_clean_linked = re.compile('</[A-Z]+>|<[A-Z]+ url=[^>]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
         self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
