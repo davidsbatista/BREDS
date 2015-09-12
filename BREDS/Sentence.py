@@ -6,6 +6,12 @@ __email__ = "dsbatista@inesc-id.pt"
 
 import re
 from nltk import word_tokenize, pos_tag
+from nltk.corpus import stopwords
+
+# tokens between entities which do not represent relationships
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+stopwords = stopwords.words('english')
+not_valid = bad_tokens + stopwords
 
 
 def tokenize_entity(entity):
@@ -151,17 +157,20 @@ class Sentence:
                     after = tagged_text[sorted_keys[i+1]+len(e2.parts):]
                     after = after[:window_size]
 
+                    if all(x in not_valid for x in text_tokens[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]):
+                        print "DISCARDED"
+                        print sentence
+                        print e1_type, r.e1
+                        print e2_type, r.e2
+                        print before
+                        print between
+                        print after
+                        print
+                        continue
+
                     if config.tag_type == "simple":
                         r = Relationship(sentence, before, between, after, e1.string, e2.string, e1_type, e2.type)
                     elif config.tag_type == "linked":
                         r = Relationship(sentence, before, between, after, e1.url, e2.url, e1.type, e2.type)
-
-                    print r.sentence
-                    print r.e1_type, r.e1
-                    print r.e2_type, r.e2
-                    print r.before
-                    print r.between
-                    print r.after
-                    print
 
                     self.relationships.append(r)
