@@ -21,7 +21,8 @@ class Config(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         # select everything except stopwords, ADJ and ADV
         self.filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
-        self.entities_regex = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+        self.regex_clean_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+        self.regex_clean_linked = re.compile('</[A-Z]+>|<[A-Z]+ url=[^>]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
         self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
         self.positive_seed_tuples = set()
@@ -36,7 +37,10 @@ class Config(object):
         self.reverb = Reverb()
         self.word2vec = None
         self.vec_dim = None
-        self.regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)  # simple tags, e.g.: <PER>Bill Gates</PER>
+
+        # simple tags, e.g.: <PER>Bill Gates</PER>
+        self.regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+
         #linked tags e.g.: <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
         self.regex_linked = re.compile('<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>', re.U)
 
