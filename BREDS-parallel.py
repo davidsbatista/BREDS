@@ -10,11 +10,14 @@ import codecs
 import operator
 import multiprocessing
 import Queue
+import os
+import time
 
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
-from guppy import hpy
+from pympler import muppy
+from pympler import summary
 
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
@@ -30,8 +33,6 @@ PRINT_PATTERNS = False
 class BREDS(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidance, num_cores):
-        self.manager = multiprocessing.Manager()
-        self.queue = self.manager.Queue()
         if num_cores == 0:
             self.num_cpus = multiprocessing.cpu_count()
         else:
@@ -161,26 +162,34 @@ class BREDS(object):
                 # create copies of patterns to be passed to each process, each copy will have its number of positive and
                 # negative matches accordingly to the number of correct/incorrect instances extracted
                 # each process stores the altered patterns in updated_patterns structure
-                patterns_copies = [self.manager.list() for _ in range(self.num_cpus)]
+                patterns_copies = [list() for _ in range(self.num_cpus)]
                 for i in range(len(patterns_copies)):
                     patterns_copies[i] = list(self.patterns)
 
-                updated_patterns = [self.manager.list() for _ in range(self.num_cpus)]
+                updated_patterns = [list() for _ in range(self.num_cpus)]
 
                 # copy all tuples into a Queue shared by all processes
+                manager = multiprocessing.Manager()
+                queue = manager.Queue()
                 for t in self.processed_tuples:
-                    self.queue.put(t)
+                    queue.put(t)
 
                 # each distinct process receives as arguments:
                 #   - a shared Queue of the tuples
                 #   - a copy of all the extraction patterns
                 #   - a list to store the tuples which matched a pattern
                 #   - a list to store the altered patterns
-                collected_tuples = [self.manager.list() for _ in range(self.num_cpus)]
+                collected_tuples = [list() for _ in range(self.num_cpus)]
                 processes = [multiprocessing.Process(target=self.find_instances,
                                                      args=(patterns_copies[i], updated_patterns[i], collected_tuples[i],
-                                                           self.queue))
+                                                           queue))
                              for i in range(self.num_cpus)]
+
+                """
+                all_objects = muppy.get_objects()
+                sum1 = summary.summarize(all_objects)
+                summary.print_(sum1)
+                """
 
                 print "Running", len(processes), " processes"
                 for proc in processes:
@@ -190,15 +199,13 @@ class BREDS(object):
 
                 # Extraction patterns aggregation happens here:
                 for i in range(len(updated_patterns)):
+                    print "updated_patterns", i, "->",len(updated_patterns[i])
                     for p_updated in updated_patterns[i]:
                         for p_original in self.patterns:
                             if p_original.id == p_updated.id:
                                 p_original.positive += p_updated.positive
                                 p_original.negative += p_updated.negative
                                 p_original.unknown += p_updated.unknown
-                                break
-
-                updated_patterns = None     # free memory
 
                 # Index the patterns in an hashtable for later use
                 for p in self.patterns:
@@ -207,6 +214,7 @@ class BREDS(object):
                 # Candidate tuples aggregation happens here:
                 print "Collecting generated candidate tuples"
                 for i in range(len(collected_tuples)):
+                    print "collected_tuples", i, "->", len(collected_tuples[i])
                     for e in collected_tuples[i]:
                         t = e[0]
                         pattern_best = e[1]
@@ -316,8 +324,9 @@ class BREDS(object):
         while True:
             try:
                 t = instances.get_nowait()
-                if instances.qsize() % 1000 == 0:
+                if instances.qsize() % 500 == 0:
                     print multiprocessing.current_process(), "Instances to process", instances.qsize()
+
                 for p in patterns:
                     # measure similarity towards an extraction pattern
                     sim_best = 0
@@ -337,6 +346,9 @@ class BREDS(object):
                 print multiprocessing.current_process(), "Queue is Empty"
                 for p in patterns:
                     update_patterns.append(p)
+
+                print multiprocessing.current_process(), "updated_patterns", len(update_patterns)
+                print multiprocessing.current_process(), "candidate_tuples", len(candidate_tuples)
                 break
 
     def similarity_all(self, t, extraction_pattern):
