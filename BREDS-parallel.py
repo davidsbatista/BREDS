@@ -14,6 +14,7 @@ import Queue
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
+from guppy import hpy
 
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
@@ -117,7 +118,6 @@ class BREDS(object):
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
                 for t in sorted_counts:
                     print t[0][0], '\t', t[0][1], t[1]
-
                 print "\n", len(matched_tuples), "tuples matched"
 
                 # Cluster the matched instances: generate patterns/update patterns
@@ -196,13 +196,16 @@ class BREDS(object):
                                 p_original.positive += p_updated.positive
                                 p_original.negative += p_updated.negative
                                 p_original.unknown += p_updated.unknown
+                                break
+
+                updated_patterns = None     # free memory
 
                 # Index the patterns in an hashtable for later use
                 for p in self.patterns:
                     self.patterns_index[p.id] = p
 
                 # Candidate tuples aggregation happens here:
-                print "Collecting candidate tuples"
+                print "Collecting generated candidate tuples"
                 for i in range(len(collected_tuples)):
                     for e in collected_tuples[i]:
                         t = e[0]
@@ -221,6 +224,8 @@ class BREDS(object):
                         # and the similarity score
                         else:
                             self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
+
+                collected_tuples = None     # free memory
 
                 # update all patterns confidence
                 for p in self.patterns:
@@ -311,7 +316,7 @@ class BREDS(object):
         while True:
             try:
                 t = instances.get_nowait()
-                if instances.qsize() % 10000 == 0:
+                if instances.qsize() % 1000 == 0:
                     print multiprocessing.current_process(), "Instances to process", instances.qsize()
                 for p in patterns:
                     # measure similarity towards an extraction pattern
@@ -414,7 +419,6 @@ class BREDS(object):
         matched_tuples = list()
         count_matches = dict()
         for t in self.processed_tuples:
-            print t.e1, t.e2
             for s in self.config.positive_seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
