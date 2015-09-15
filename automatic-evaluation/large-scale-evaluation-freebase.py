@@ -12,7 +12,6 @@ import time
 import sys
 import os
 import cPickle
-import jellyfish
 import Queue
 
 from BREDS import Sentence
