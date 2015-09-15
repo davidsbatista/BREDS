@@ -14,8 +14,6 @@ import Queue
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
-from pympler import muppy
-from pympler import summary
 
 from BREDS.Pattern import Pattern
 from BREDS.Config import Config
@@ -193,8 +191,8 @@ class BREDS(object):
                     patterns = data[1]
                     tuples = data[2]
                     print child_pid, "patterns", len(patterns), "tuples", len(tuples)
-                    patterns_updated.append(patterns)
-                    collected_tuples.append(tuples)
+                    patterns_updated[i] = patterns
+                    collected_tuples[i] = tuples
 
                 for proc in processes:
                     proc.join()
@@ -205,11 +203,6 @@ class BREDS(object):
                     for p_updated in patterns_updated[i]:
                         for p_original in self.patterns:
                             if p_original.id == p_updated.id:
-                                """
-                                print "p_updated.positive", p_updated.positive
-                                print "p_updated.negative", p_updated.negative
-                                print "p_updated.unknown ", p_updated.unknown
-                                """
                                 p_original.positive += p_updated.positive
                                 p_original.negative += p_updated.negative
                                 p_original.unknown += p_updated.unknown
