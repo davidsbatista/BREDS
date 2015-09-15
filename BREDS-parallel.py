@@ -10,8 +10,6 @@ import codecs
 import operator
 import multiprocessing
 import Queue
-import os
-import time
 
 from numpy import dot
 from gensim import matutils
@@ -163,36 +161,41 @@ class BREDS(object):
                 # create copies of generated extraction patterns to be passed to each process
                 patterns = [list(self.patterns) for _ in range(self.num_cpus)]
 
-                # structure to store each process altered patterns
-                manager = multiprocessing.Manager()
-                patterns_updated = [manager.list() for _ in range(self.num_cpus)]
-
-                # structure to store each process collected tuple instances
-                collected_tuples = [manager.list() for _ in range(self.num_cpus)]
-
                 # copy all tuples into a Queue shared by all processes
+                manager = multiprocessing.Manager()
                 queue = manager.Queue()
                 for t in self.processed_tuples:
                     queue.put(t)
-
 
                 # each distinct process receives as arguments:
                 #   - a list, copy of all the original extraction patterns
                 #   - a Queue of the tuples
                 #   - a list to store the tuples which matched a pattern
                 #   - a list to store the altered patterns
-                processes = [multiprocessing.Process(target=self.find_instances, args=(patterns[i], patterns_updated[i],
-                                                                                       collected_tuples[i], queue))
+
+                pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
+                processes = [multiprocessing.Process(target=self.find_instances, args=(patterns[i], queue, pipes[i][1]))
                              for i in range(self.num_cpus)]
-                """
-                all_objects = muppy.get_objects()
-                sum1 = summary.summarize(all_objects)
-                summary.print_(sum1)
-                """
 
                 print "Running", len(processes), " processes"
                 for proc in processes:
                     proc.start()
+
+                # structure to store each process altered patterns
+                patterns_updated = [list() for _ in range(self.num_cpus)]
+
+                # structure to store each process collected tuple instances
+                collected_tuples = [list() for _ in range(self.num_cpus)]
+
+                for i in range(len(pipes)):
+                    data = pipes[i][0].recv()
+                    child_pid = data[0]
+                    patterns = data[1]
+                    tuples = data[2]
+                    print child_pid, "patterns", len(patterns), "tuples", len(tuples)
+                    patterns_updated.append(patterns)
+                    collected_tuples.append(tuples)
+
                 for proc in processes:
                     proc.join()
 
@@ -202,9 +205,11 @@ class BREDS(object):
                     for p_updated in patterns_updated[i]:
                         for p_original in self.patterns:
                             if p_original.id == p_updated.id:
+                                """
                                 print "p_updated.positive", p_updated.positive
                                 print "p_updated.negative", p_updated.negative
                                 print "p_updated.unknown ", p_updated.unknown
+                                """
                                 p_original.positive += p_updated.positive
                                 p_original.negative += p_updated.negative
                                 p_original.unknown += p_updated.unknown
@@ -320,7 +325,9 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def find_instances(self, patterns, updated_patterns, candidate_tuples, instances):
+    def find_instances(self, patterns, instances, child_conn):
+        updated_patterns = list()
+        candidate_tuples = list()
         while True:
             try:
                 t = instances.get_nowait()
@@ -354,6 +361,8 @@ class BREDS(object):
                     updated_patterns.append(p)
                 print multiprocessing.current_process(), "updated_patterns", len(updated_patterns)
                 print multiprocessing.current_process(), "candidate_tuples", len(candidate_tuples)
+                pid = multiprocessing.current_process().pid
+                child_conn.send((pid, updated_patterns, candidate_tuples))
                 break
 
     def similarity_all(self, t, extraction_pattern):
