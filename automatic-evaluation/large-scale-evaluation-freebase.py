@@ -14,7 +14,7 @@ import os
 import cPickle
 import Queue
 
-from BREDS import Sentence
+from BREDS.Sentence import Sentence
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
@@ -209,7 +209,7 @@ def process_freebase(data, rel_type):
     database_3 = defaultdict(list)
 
     # regex used to clean entities
-    numbered = re.compile('#[0-9]+$')
+    numbered = re.compile(r'#[0-9]+$')
 
     # for the 'founder' relationships don't load those from freebase, as it lists countries as founders and not persons
     founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union', 'United Nations']
