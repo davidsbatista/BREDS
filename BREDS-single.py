@@ -184,10 +184,11 @@ class BREDS(object):
                         # and the similarity score
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
+
                     # update extraction pattern confidence
-                    if iter > 0:
+                    if self.curr_iteration > 0:
                         extraction_pattern.confidence_old = extraction_pattern.confidence
-                        extraction_pattern.update_confidence()
+                        extraction_pattern.update_confidence(self.config)
 
                 # normalize patterns confidence
                 # find the maximum value of confidence and divide all by the maximum
@@ -228,6 +229,7 @@ class BREDS(object):
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
                     if iter > 0:
+                        print iter
                         t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # sort tuples by confidence and print
@@ -240,24 +242,14 @@ class BREDS(object):
                         print t.confidence
                         print "\n"
 
-                if self.config.semantic_drift == 0:
-                    # update seed set of tuples to use in next iteration
-                    # seeds = { T | conf(T) > instance_confidance }
-                    if self.curr_iteration < self.config.number_iterations+1:
-                        print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
-                        self.seeds_by_iteration[self.curr_iteration] = list()
-                        for t in self.candidate_tuples.keys():
-                            if t.confidence >= self.config.instance_confidance:
-                                seed = Seed(t.e1, t.e2)
-                                self.config.positive_seed_tuples.add(seed)
-                                # for filtering semantic drift by comparing with previous sentence extractions
-                                # keeps tracks of the seeds instances extracted at each iteration
-                                self.seeds_by_iteration[self.curr_iteration].append(t)
+                print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
+                for t in self.candidate_tuples.keys():
+                    if t.confidence >= self.config.instance_confidance:
+                        seed = Seed(t.e1, t.e2)
+                        self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations
                 self.curr_iteration += 1
-
-                #TODO: se há novos tuplos válidos extraidos ou os patterns a alterarem a confianca, entao continua, senao para
 
         print "\nWriting extracted relationships to disk"
         f_output = open("relationships.txt", "w")
@@ -327,8 +319,7 @@ class BREDS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
                 try:
-                    #accept, score = self.similarity_all_1(t, extraction_pattern)
-                    accept, score = self.similarity_all_2(t, extraction_pattern)
+                    accept, score = self.similarity_all(t, extraction_pattern)
                     if accept is True and score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i

@@ -292,12 +292,11 @@ class BREDS(object):
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | conf(T) > instance_confidance }
-                if self.curr_iteration < self.config.number_iterations+1:
-                    print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
-                    for t in self.candidate_tuples.keys():
-                        if t.confidence >= self.config.instance_confidance:
-                            seed = Seed(t.e1, t.e2)
-                            self.config.positive_seed_tuples.add(seed)
+                print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
+                for t in self.candidate_tuples.keys():
+                    if t.confidence >= self.config.instance_confidance:
+                        seed = Seed(t.e1, t.e2)
+                        self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations
                 self.curr_iteration += 1
