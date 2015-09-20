@@ -11,13 +11,22 @@ import sys
 
 from os import listdir
 from os.path import isfile, join
-from BREDS import Sentence
+from BREDS.Sentence import Sentence
 
 MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1
 CONTEXT_WINDOW = 2
 
 manager = multiprocessing.Manager()
+
+
+#TODO: considerar a DBpedia e o Yago
+def load_yago_entities(data_file):
+    pass
+
+
+def load_dbpedia_entities(data_file):
+    pass
 
 
 def load_freebase_entities(directory):
@@ -28,12 +37,19 @@ def load_freebase_entities(directory):
         print "Processing", directory+data_file
         count = 0
         for line in fileinput.input(directory+data_file):
-            e1, r, e2 = line.split('\t')
-            entities[e1] = 'dummy'
-            entities[e2] = 'dummy'
-            count += 1
-            if count % 100000 == 0:
-                print count, "processed"
+            if line.startswith("#"):
+                continue
+            try:
+                e1, r, e2 = line.split('\t')
+                entities[e1] = 'dummy'
+                entities[e2] = 'dummy'
+                count += 1
+                if count % 100000 == 0:
+                    print count, "processed"
+            except Exception, e:
+                print e
+                print line
+                sys.exit(0)
         fileinput.close()
     return entities
 
@@ -49,25 +65,6 @@ def load_sentences(data_file):
                 print count, "processed"
 
         return sentences
-
-        """
-        # Size 0 will read the ENTIRE file into memory!
-        # File is open read-only
-        m = mmap.mmap(f.fileno(), 0, prot=mmap.PROT_READ)
-
-        # Proceed with your code here -- note the file is already in memory
-        # so "readine" here will be as fast as could be
-        data = m.readline()
-        count = 0
-        while data:
-            # Do stuff
-            data = m.readline()
-            sentences.put(data.strip())
-            count += 1
-            if count % 100000 == 0:
-                print count, "processed"
-        return sentences
-        """
 
 
 def get_sentences(sentences, freebase, results):
@@ -100,7 +97,16 @@ def get_sentences(sentences, freebase, results):
 def main():
     # load freebase entities into a shared data structure
     freebase = load_freebase_entities(sys.argv[1])
-    print len(freebase), " freebase entities loaded"
+    print len(freebase), " Freebase entities loaded"
+
+    # load freebase entities into a shared data structure
+    dbpedia = load_dbpedia_entities(sys.argv[2])
+    print len(freebase), " DBpedia entities loaded"
+
+    # load freebase entities into a shared data structure
+    yago = load_yago_entities(sys.argv[2])
+    print len(freebase), " DBpedia entities loaded"
+
     print "Loading sentences"
     sentences = load_sentences(sys.argv[2])
     print sentences.qsize(), " sentences loaded"
@@ -112,7 +118,9 @@ def main():
     num_cpus = multiprocessing.cpu_count()
     results = [manager.list() for _ in range(num_cpus)]
 
-    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, freebase, results[i])) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, freebase, results[i]))
+                 for i in range(num_cpus)]
+
     for proc in processes:
         proc.start()
 
@@ -124,7 +132,7 @@ def main():
         selected_sentences.update(l)
 
     print "Writing sentences to disk"
-    f = open("sentences_matched_freebase.txt", "w")
+    f = open("sentences_matched_output.txt", "w")
     for s in selected_sentences:
         try:
             f.write(s+'\n')
@@ -132,7 +140,7 @@ def main():
             print e
             print type(s)
             print s
-    f.close
+    f.close()
 
 if __name__ == "__main__":
     main()
