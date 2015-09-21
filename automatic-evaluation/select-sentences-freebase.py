@@ -20,13 +20,46 @@ CONTEXT_WINDOW = 2
 manager = multiprocessing.Manager()
 
 
-#TODO: considerar a DBpedia e o Yago
 def load_yago_entities(data_file):
-    pass
+    entities = manager.dict()
+    count = 0
+    for line in fileinput.input(data_file):
+        if line.startswith("#"):
+            continue
+        try:
+            e1, r, e2 = line.split('\t')
+            entities[e1] = 'dummy'
+            entities[e2] = 'dummy'
+            count += 1
+            if count % 100000 == 0:
+                print count, "processed"
+        except Exception, e:
+            print e
+            print line
+            sys.exit(0)
+        fileinput.close()
+    return entities
 
 
 def load_dbpedia_entities(data_file):
-    pass
+    entities = manager.dict()
+    count = 0
+    for line in fileinput.input(data_file):
+        if line.startswith("#"):
+            continue
+        try:
+            e1, r, e2 = line.split('\t')
+            entities[e1] = 'dummy'
+            entities[e2] = 'dummy'
+            count += 1
+            if count % 100000 == 0:
+                print count, "processed"
+        except Exception, e:
+            print e
+            print line
+            sys.exit(0)
+        fileinput.close()
+    return entities
 
 
 def load_freebase_entities(directory):
@@ -101,17 +134,17 @@ def main():
 
     # load freebase entities into a shared data structure
     dbpedia = load_dbpedia_entities(sys.argv[2])
-    print len(freebase), " DBpedia entities loaded"
+    print len(dbpedia), " DBpedia entities loaded"
 
     # load freebase entities into a shared data structure
     yago = load_yago_entities(sys.argv[2])
-    print len(freebase), " DBpedia entities loaded"
+    print len(yago), " YAGO entities loaded"
 
     print "Loading sentences"
     sentences = load_sentences(sys.argv[2])
     print sentences.qsize(), " sentences loaded"
 
-    print "Looking for sentences with Freebase entities"
+    print "Selecting sentences with entities in the KB"
     # launch different processes, each reads a sentence from AFP/APW news corpora
     # transform sentence into relationships, if both entities in relationship occur in freebase
     # select sentence
