@@ -5,7 +5,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import re
-from nltk import word_tokenize, pos_tag
+from nltk import word_tokenize
 from nltk.corpus import stopwords
 
 # tokens between entities which do not represent relationships
@@ -86,7 +86,7 @@ class Relationship:
 
 class Sentence:
 
-    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, config=None):
+    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger, config=None):
         self.relationships = list()
         self.tagged_text = None
 
@@ -162,7 +162,7 @@ class Sentence:
                     if self.tagged_text is None:
                         # split text into tokens and tag them using NLTK's default English tagger
                         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
-                        self.tagged_text = pos_tag(text_tokens)
+                        self.tagged_text = pos_tagger.tag(text_tokens)
 
                     before = self.tagged_text[:sorted_keys[i]]
                     before = before[-window_size:]
