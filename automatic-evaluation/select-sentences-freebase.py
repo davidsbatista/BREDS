@@ -105,7 +105,7 @@ def load_sentences(data_file):
         return sentences
 
 
-def get_sentences(sentences, entities, results):
+def get_sentences(sentences, entities, results, discarded):
     count = 0
     while True:
         try:
@@ -126,6 +126,9 @@ def get_sentences(sentences, entities, results):
 
             if discard is False:
                 results.append(sentence)
+
+            elif discard is True:
+                discarded.append(sentence)
 
             if count % 50000 == 0:
                 print multiprocessing.current_process(), "queue size", sentences.qsize()
@@ -160,10 +163,12 @@ def main():
     # transform sentence into relationships, if both entities in relationship occur in DB sentence is selected
     num_cpus = multiprocessing.cpu_count()
     results = [manager.list() for _ in range(num_cpus)]
+    discarded = [manager.list() for _ in range(num_cpus)]
     entities_shr_dict = manager.dict(entities)
     print len(entities_shr_dict), " entities loaded"
 
-    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, entities_shr_dict, results[i]))
+    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, entities_shr_dict, results[i],
+                                                                     discarded[i]))
                  for i in range(num_cpus)]
 
     for proc in processes:
@@ -176,9 +181,23 @@ def main():
     for l in results:
         selected_sentences.update(l)
 
+    discarded_sentences = set()
+    for l in results:
+        discarded_sentences.update(l)
+
     print "Writing sentences to disk"
     f = open("sentences_matched_output.txt", "w")
     for s in selected_sentences:
+        try:
+            f.write(s.encode("utf8")+'\n')
+        except Exception, e:
+            print e
+            print type(s)
+            print s
+    f.close()
+
+    f = open("sentences_discarded_output.txt", "w")
+    for s in discarded_sentences:
         try:
             f.write(s.encode("utf8")+'\n')
         except Exception, e:
