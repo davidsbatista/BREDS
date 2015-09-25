@@ -30,6 +30,7 @@ def load_relationships(directory):
         print "Processing", directory+data_file
         count = 0
 
+        # DBpedia
         if data_file.startswith("dbpedia_"):
             for line in fileinput.input(directory+data_file):
                 if line.startswith("#"):
@@ -51,6 +52,7 @@ def load_relationships(directory):
                     sys.exit(0)
             fileinput.close()
 
+        # Freebase
         elif data_file.startswith("freebase_"):
             for line in fileinput.input(directory+data_file):
                 if line.startswith("#"):
@@ -69,6 +71,7 @@ def load_relationships(directory):
                     sys.exit(0)
             fileinput.close()
 
+        # YAGO
         elif data_file.startswith("yago_"):
             for line in fileinput.input(directory+data_file):
                 if line.startswith("#"):
@@ -182,7 +185,7 @@ def main():
         selected_sentences.update(l)
 
     discarded_sentences = set()
-    for l in results:
+    for l in discarded:
         discarded_sentences.update(l)
 
     print "Writing sentences to disk"
