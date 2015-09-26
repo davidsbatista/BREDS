@@ -78,9 +78,6 @@ class Config(object):
             if line.startswith("word2vec_path"):
                 self.word2vecmodelpath = line.split("=")[1].strip()
 
-            if line.startswith("vector"):
-                self.vector = line.split("=")[1].strip()
-
             if line.startswith("alpha"):
                 self.alpha = float(line.split("=")[1])
 
