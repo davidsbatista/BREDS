@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sklearn.cluster import DBSCAN
-import math
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import cPickle
 import sys
+import math
 import codecs
 import operator
 import multiprocessing
@@ -195,9 +194,9 @@ class BREDS(object):
                         patterns = [list(self.patterns) for _ in range(self.num_cpus)]
 
                         pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
-                        processes = [multiprocessing.Process(target=self.cluster_tuples_parallel(), args=(patterns[i],
-                                                                                                          chunks[i],
-                                                                                                          pipes[i][1]))
+                        processes = [multiprocessing.Process(target=self.cluster_tuples_parallel, args=(patterns[i],
+                                                                                                        chunks[i],
+                                                                                                        pipes[i][1]))
                                      for i in range(self.num_cpus)]
 
                         print "Running", len(processes), " processes"
@@ -210,7 +209,6 @@ class BREDS(object):
                             child_pid = data[0]
                             patterns = data[1]
                             print child_pid, "patterns", len(patterns), "tuples", len(tuples)
-                            patterns_updated[i] = patterns
 
                         #TODO: agregar todos os patterns recebidos por id
                         # atenção, cada processo pode ter criado patterns novos
@@ -581,6 +579,7 @@ class BREDS(object):
                 updated_patterns[max_similarity_cluster_index].add_tuple(t)
 
         pid = multiprocessing.current_process().pid
+        print pid, multiprocessing.current_process(), len(updated_patterns)
         child_conn.send((pid, updated_patterns))
 
 
