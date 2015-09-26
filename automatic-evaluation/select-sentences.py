@@ -108,8 +108,10 @@ def load_sentences(data_file):
         return sentences
 
 
-def get_sentences(sentences, entities, results, discarded):
+def get_sentences(sentences, entities, child_conn):
     count = 0
+    selected = list()
+    discarded = list()
     while True:
         try:
             sentence = sentences.get_nowait()
@@ -128,7 +130,7 @@ def get_sentences(sentences, entities, results, discarded):
                 discard = True
 
             if discard is False:
-                results.append(sentence)
+                selected.append(sentence)
 
             elif discard is True:
                 discarded.append(sentence)
@@ -137,6 +139,11 @@ def get_sentences(sentences, entities, results, discarded):
                 print multiprocessing.current_process(), "queue size", sentences.qsize()
 
         except Queue.Empty:
+            print multiprocessing.current_process(), "Queue is Empty"
+            print multiprocessing.current_process(), "selected", len(selected)
+            print multiprocessing.current_process(), "discarded", len(discarded)
+            pid = multiprocessing.current_process().pid
+            child_conn.send((pid, selected, discarded))
             break
 
 
@@ -165,28 +172,31 @@ def main():
     # launch different processes, each reads a sentence from AFP/APW news corpora
     # transform sentence into relationships, if both entities in relationship occur in DB sentence is selected
     num_cpus = multiprocessing.cpu_count()
-    results = [manager.list() for _ in range(num_cpus)]
-    discarded = [manager.list() for _ in range(num_cpus)]
     entities_shr_dict = manager.dict(entities)
     print len(entities_shr_dict), " entities loaded"
 
-    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, entities_shr_dict, results[i],
-                                                                     discarded[i]))
+    pipes = [multiprocessing.Pipe(False) for _ in range(num_cpus)]
+    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, entities_shr_dict, pipes[i][1]))
                  for i in range(num_cpus)]
 
+    print "Running", len(processes), " processes"
     for proc in processes:
         proc.start()
 
+    selected_sentences = set()
+    discarded_sentences = set()
+
+    for i in range(len(pipes)):
+        data = pipes[i][0].recv()
+        child_pid = data[0]
+        selected = data[1]
+        discarded = data[2]
+        print child_pid, "selected", len(selected), "discarded", len(discarded)
+        selected_sentences.update(selected)
+        discarded_sentences.union(discarded)
+
     for proc in processes:
         proc.join()
-
-    selected_sentences = set()
-    for l in results:
-        selected_sentences.update(l)
-
-    discarded_sentences = set()
-    for l in discarded:
-        discarded_sentences.update(l)
 
     print "Writing sentences to disk"
     f = open("sentences_matched_output.txt", "w")
