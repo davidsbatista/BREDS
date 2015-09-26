@@ -193,7 +193,7 @@ def main():
         discarded = data[2]
         print child_pid, "selected", len(selected), "discarded", len(discarded)
         selected_sentences.update(selected)
-        discarded_sentences.union(discarded)
+        discarded_sentences.update(discarded)
 
     for proc in processes:
         proc.join()
