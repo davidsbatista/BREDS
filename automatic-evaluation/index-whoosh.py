@@ -57,6 +57,7 @@ def index_sentences(writer):
         invalid = 0
         s = Sentence(l, max_tokens, min_tokens, context_window)
         if len(s.relationships) == 0:
+            count += 1
             continue
         else:
             for r in s.relationships:
