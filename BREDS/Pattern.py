@@ -20,9 +20,6 @@ class Pattern(object):
         if tuple is not None:
             self.tuples.add(t)
 
-    def __hash__(self):
-        return hash(self.tuples)
-
     def __eq__(self, other):
         return self.tuples == other.tuples
 
