@@ -88,6 +88,47 @@ class BREDS(object):
 
         return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
 
+    def similarity_all(self, t, extraction_pattern):
+        """
+        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+        and the vector of a ReVerb pattern extracted from a sentence
+        returns the max
+        """
+        good = 0
+        bad = 0
+        max_similarity = 0
+
+        for p in list(extraction_pattern.tuples):
+            score = self.similarity_3_contexts(t, p)
+            if score > max_similarity:
+                max_similarity = score
+            if score >= self.config.threshold_similarity:
+                good += 1
+            else:
+                bad += 1
+
+        if good >= bad:
+            return True, max_similarity
+        else:
+            return False, 0.0
+
+    def match_seeds_tuples(self):
+        """
+        checks if an extracted tuple matches seeds tuples
+        """
+        matched_tuples = list()
+        count_matches = dict()
+        for t in self.processed_tuples:
+            for s in self.config.positive_seed_tuples:
+                if t.e1 == s.e1 and t.e2 == s.e2:
+                    matched_tuples.append(t)
+                    try:
+                        count_matches[(t.e1, t.e2)] += 1
+                    except KeyError:
+                        count_matches[(t.e1, t.e2)] = 1
+
+        return count_matches, matched_tuples
+
     def init_bootstrapp(self, tuples):
         """
         starts a bootstrap iteration
@@ -265,33 +306,9 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def similarity_all(self, t, extraction_pattern):
-        """
-        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-        and the vector of a ReVerb pattern extracted from a sentence
-        returns the max
-        """
-        good = 0
-        bad = 0
-        max_similarity = 0
-
-        for p in list(extraction_pattern.tuples):
-            score = self.similarity_3_contexts(t, p)
-            if score > max_similarity:
-                max_similarity = score
-            if score >= self.config.threshold_similarity:
-                good += 1
-            else:
-                bad += 1
-
-        if good >= bad:
-            return True, max_similarity
-        else:
-            return False, 0.0
-
     def cluster_tuples(self, matched_tuples):
         """
-        Single-pass Clustering
+        Single-Pass Clustering
         """
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
@@ -343,23 +360,6 @@ class BREDS(object):
                 #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
                 #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
-
-    def match_seeds_tuples(self):
-        """
-        checks if an extracted tuple matches seeds tuples
-        """
-        matched_tuples = list()
-        count_matches = dict()
-        for t in self.processed_tuples:
-            for s in self.config.positive_seed_tuples:
-                if t.e1 == s.e1 and t.e2 == s.e2:
-                    matched_tuples.append(t)
-                    try:
-                        count_matches[(t.e1, t.e2)] += 1
-                    except KeyError:
-                        count_matches[(t.e1, t.e2)] = 1
-
-        return count_matches, matched_tuples
 
 
 def main():
