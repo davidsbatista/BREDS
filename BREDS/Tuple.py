@@ -54,7 +54,7 @@ class Tuple(object):
 
         def construct_words_vectors(self, tagged_words, context, config):
             # remove stopwords and adjective
-            words = [t for t in tagged_words if t[0].lower() not in config.stopwords and t[1] not in config.filter_pos]
+            words = [t[0] for t in tagged_words if t[0].lower() not in config.stopwords and t[1] not in config.filter_pos]
             if len(words) >= 1:
                 vector = self.pattern2vector_sum(words, config)
                 if context == 'before':
@@ -102,7 +102,7 @@ class Tuple(object):
 
             elif len(tokens) == 1:
                 try:
-                    pattern_vector = config.word2vec[tokens[0][0].strip()]
+                    pattern_vector = config.word2vec[tokens[0].strip()]
                 except KeyError:
                     pass
 
