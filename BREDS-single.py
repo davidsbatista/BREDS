@@ -23,7 +23,7 @@ from BREDS.Sentence import Sentence
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
-PRINT_PATTERNS = False
+PRINT_PATTERNS = True
 
 
 class BREDS(object):
@@ -49,7 +49,6 @@ class BREDS(object):
 
         except IOError:
             self.config.read_word2vec()
-            # NLTK PoS-tagger cannot be shared among processes
             tagger = load('taggers/maxent_treebank_pos_tagger/english.pickle')
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
@@ -163,10 +162,12 @@ class BREDS(object):
                 count = 0
 
                 for t in self.processed_tuples:
+
                     count += 1
                     if count % 1000 == 0:
                         sys.stdout.write(".")
                         sys.stdout.flush()
+
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         accept, score = self.similarity_all(t, extraction_pattern)
@@ -177,12 +178,14 @@ class BREDS(object):
                                 pattern_best = extraction_pattern
 
                     if sim_best >= self.config.threshold_similarity:
+                        print t.e1, t.e2, sim_best, t.bet_words, pattern_best.id
                         # if this tuple was already extracted, check if this extraction pattern is already associated
                         # with it, if not, associate this pattern with it and similarity score
                         patterns = self.candidate_tuples[t]
                         if patterns is not None:
                             if pattern_best not in [x[0] for x in patterns]:
                                 self.candidate_tuples[t].append((pattern_best, sim_best))
+
                         # If this tuple was not extracted before, associate this pattern with the instance
                         # and the similarity score
                         else:
@@ -190,7 +193,6 @@ class BREDS(object):
 
                     # update extraction pattern confidence
                     if self.curr_iteration > 0:
-                        extraction_pattern.confidence_old = extraction_pattern.confidence
                         extraction_pattern.update_confidence(self.config)
 
                 # normalize patterns confidence
