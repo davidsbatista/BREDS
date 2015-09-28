@@ -86,7 +86,7 @@ class Relationship:
 
 class Sentence:
 
-    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger, config=None):
+    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None, config=None):
         self.relationships = list()
         self.tagged_text = None
 

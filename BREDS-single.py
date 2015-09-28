@@ -13,6 +13,7 @@ import operator
 from numpy import dot
 from gensim import matutils
 from collections import defaultdict
+from nltk.data import load
 
 from BREDS.Seed import Seed
 from BREDS.Pattern import Pattern
@@ -48,6 +49,8 @@ class BREDS(object):
 
         except IOError:
             self.config.read_word2vec()
+            # NLTK PoS-tagger cannot be shared among processes
+            tagger = load('taggers/maxent_treebank_pos_tagger/english.pickle')
             print "\nGenerating relationship instances from sentences"
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
@@ -59,7 +62,7 @@ class BREDS(object):
                     sys.stdout.write(".")
 
                 sentence = Sentence(line.strip(), self.config.e1_type, self.config.e2_type, self.config.max_tokens_away,
-                                    self.config.min_tokens_away, self.config.context_window_size, self.config)
+                                    self.config.min_tokens_away, self.config.context_window_size, tagger, self.config)
                 for rel in sentence.relationships:
                     t = Tuple(rel.e1, rel.e2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                     self.processed_tuples.append(t)
@@ -225,13 +228,6 @@ class BREDS(object):
                         confidence *= 1 - (p[0].confidence * p[1])
                     t.confidence = 1 - confidence
 
-                    # use past confidence values to calculate new confidence
-                    # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
-                    # which will lead to more conservative patterns and have a damping effect.
-                    if iter > 0:
-                        print iter
-                        t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
-
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
                     extracted_tuples = self.candidate_tuples.keys()
@@ -297,7 +293,7 @@ class BREDS(object):
         """
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
-            c1 = Pattern(self.config, matched_tuples[0])
+            c1 = Pattern(matched_tuples[0])
             self.patterns.append(c1)
             #print "Pattern Words", self.patterns[0].patterns_words
 
@@ -334,7 +330,7 @@ class BREDS(object):
 
             # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:
-                c = Pattern(self.config, t)
+                c = Pattern(t)
                 self.patterns.append(c)
                 #print "New Cluster", c.patterns_words
                 #print "\n"

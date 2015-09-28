@@ -25,7 +25,7 @@ from BREDS.Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
-PRINT_PATTERNS = False
+PRINT_PATTERNS = True
 
 
 class BREDS(object):
@@ -115,20 +115,6 @@ class BREDS(object):
                 child_conn.send((pid, instances))
                 break
 
-    def similarity_3_contexts(self, p, t):
-        (bef, bet, aft) = (0, 0, 0)
-
-        if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
-
-        if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
-
-        if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
-
-        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-
     def init_bootstrap(self, tuples):
         """
         starts a bootstrap iteration
@@ -145,25 +131,21 @@ class BREDS(object):
             print "=========================================="
             print "\nStarting iteration", self.curr_iteration
             print "\nLooking for seed matches"
-            """
             for s in self.config.positive_seed_tuples:
                 print s.e1, '\t', s.e2
-            """
 
             # Looks for sentences macthing the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
 
             if len(matched_tuples) == 0:
-                print "\nNo seed matches found"
+                print "\n\nNo seed matches found"
                 sys.exit(0)
 
             else:
-                print "\nNumber of seed matches found"
-                """
+                print "\n\nNumber of seed matches found"
                 sorted_counts = sorted(count_matches.items(), key=operator.itemgetter(1), reverse=True)
                 for t in sorted_counts:
                     print t[0][0], '\t', t[0][1], t[1]
-                """
                 print "\n", len(matched_tuples), "tuples matched"
 
                 # Cluster the matched instances: generate patterns
@@ -186,7 +168,7 @@ class BREDS(object):
                         chunks = [list() for _ in range(self.num_cpus)]
                         n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
 
-                        print "#CPUS", self.num_cpus, '\t', "Tuples per CPU", n_tuples_per_child
+                        print "\n#CPUS", self.num_cpus, '\t', "Tuples per CPU", n_tuples_per_child
                         chunk_n = 0
                         chunck_begin = 0
                         chunck_end = n_tuples_per_child
@@ -207,7 +189,7 @@ class BREDS(object):
                                                                                                         pipes[i][1]))
                                      for i in range(self.num_cpus)]
 
-                        print "Running", len(processes), " processes"
+                        print "\nRunning", len(processes), " processes"
                         for proc in processes:
                             proc.start()
 
@@ -232,7 +214,8 @@ class BREDS(object):
 
                         print len(new_patterns), " new created patterns"
                         # TODO: Patterns novos têm que ser comparados pairwise e merged cosoante as similaridades
-                        
+                        for p in new_patterns:
+                            print p.id, len(p.tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
@@ -350,24 +333,13 @@ class BREDS(object):
 
                 # update all patterns confidence
                 for p in self.patterns:
-                    p.confidence_old = p.confidence
                     p.update_confidence(self.config)
-
-                # normalize patterns confidence
-                # find the maximum value of confidence and divide all by the maximum
-                max_confidence = 0
-                for p in self.patterns:
-                    if p.confidence > max_confidence:
-                        max_confidence = p.confidence
-
-                if max_confidence > 0:
-                    for p in self.patterns:
-                        p.confidence = float(p.confidence) / float(max_confidence)
 
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
                         print p.id, p.confidence
+                        print "======== TUPLES ========"
                         for t in p.tuples:
                             print "BEF", t.bef_words
                             print "BET", t.bet_words
@@ -380,6 +352,36 @@ class BREDS(object):
                         print "Pattern Confidence", p.confidence
                         print "\n"
 
+                if len(self.patterns) > 1:
+                    # normalize patterns confidence
+                    # find the maximum value of confidence and divide all by the maximum
+                    max_confidence = 0
+                    for p in self.patterns:
+                        if p.confidence > max_confidence:
+                            max_confidence = p.confidence
+                    if max_confidence > 0:
+                        for p in self.patterns:
+                            p.confidence = float(p.confidence) / float(max_confidence)
+
+                    """
+                    if PRINT_PATTERNS is True:
+                        print "\nPatterns:"
+                        for p in self.patterns:
+                            print p.id, p.confidence
+                            print "======== TUPLES ========"
+                            for t in p.tuples:
+                                print "BEF", t.bef_words
+                                print "BET", t.bet_words
+                                print "AFT", t.aft_words
+                                print "========"
+                            print "Positive", p.positive
+                            print "Negative", p.negative
+                            print "Unknown", p.unknown
+                            print "Tuples", len(p.tuples)
+                            print "Pattern Confidence", p.confidence
+                            print "\n"
+                    """
+
                 # update tuple confidence based on patterns confidence
                 print "\n\nCalculating tuples confidence"
                 for t in self.candidate_tuples.keys():
@@ -388,12 +390,6 @@ class BREDS(object):
                     for p in self.candidate_tuples.get(t):
                         confidence *= 1 - (p[0].confidence * p[1])
                     t.confidence = 1 - confidence
-
-                    # use past confidence values to calculate new confidence
-                    # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
-                    # which will lead to more conservative patterns and have a damping effect.
-                    if self.curr_iteration > 0:
-                        t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
@@ -409,6 +405,7 @@ class BREDS(object):
                 # seeds = { T | conf(T) > instance_confidance }
                 print "Adding tuples to seed with confidence >=" + str(self.config.instance_confidance)
                 for t in self.candidate_tuples.keys():
+                    print t.e1, t.e2, '\t', t.bet_words, '\t', t.confidence
                     if t.confidence >= self.config.instance_confidance:
                         seed = Seed(t.e1, t.e2)
                         self.config.positive_seed_tuples.add(seed)
@@ -442,16 +439,55 @@ class BREDS(object):
         candidate_tuples = list()
         while True:
             try:
+                # measure the similarity of a tuple towards every extraction pattern
                 t = instances.get_nowait()
                 if instances.qsize() % 500 == 0:
                     print multiprocessing.current_process(), "Instances to process", instances.qsize()
 
                 for p in patterns:
-                    # measure similarity towards an extraction pattern
                     sim_best = 0
                     pattern_best = None
-                    accept, score = self.similarity_all(t, p)
-                    if accept is True:
+
+                    good = 0
+                    bad = 0
+                    max_similarity = 0
+
+                    for p_t in list(p.tuples):
+                        (bef, bet, aft) = (0, 0, 0)
+
+                        if t.bef_vector is not None and p_t.bef_vector is not None:
+                            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p_t.bef_vector))
+                        if t.bet_vector is not None and p_t.bet_vector is not None:
+                            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p_t.bet_vector))
+                        if t.aft_vector is not None and p_t.aft_vector is not None:
+                            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p_t.aft_vector))
+
+                        score = self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
+
+                        """
+                        if score > self.config.threshold_similarity:
+                            print "Tuple"
+                            print t.e1, t.e2
+                            print "BEF", t.bef_words
+                            print "BET", t.bet_words
+                            print "AFT", t.aft_words
+                            print
+                            print "PATTERN"
+                            print "BEF", p_t.bef_words
+                            print "BET", p_t.bet_words
+                            print "AFT", p_t.aft_words
+                            print score
+                            print
+                        """
+
+                        if score > max_similarity:
+                            max_similarity = score
+                        if score >= self.config.threshold_similarity:
+                            good += 1
+                        else:
+                            bad += 1
+
+                    if good >= bad:
                         p.update_selectivity(t, self.config)
                         if score > sim_best:
                             sim_best = score
@@ -460,39 +496,17 @@ class BREDS(object):
                     # if its above a threshold associated the pattern with it
                     if sim_best >= self.config.threshold_similarity:
                         candidate_tuples.append((t, pattern_best, sim_best))
+                        #print multiprocessing.current_process(), t.e1, t.e2, '\t', t.bet_words, sim_best
 
             except Queue.Empty:
                 print multiprocessing.current_process(), "Queue is Empty"
                 for p in patterns:
                     updated_patterns.append(p)
-                #print multiprocessing.current_process(), "updated_patterns", len(updated_patterns)
-                #print multiprocessing.current_process(), "candidate_tuples", len(candidate_tuples)
+                print multiprocessing.current_process(), "updated_patterns", len(updated_patterns)
+                print multiprocessing.current_process(), "candidate_tuples", len(candidate_tuples)
                 pid = multiprocessing.current_process().pid
                 child_conn.send((pid, updated_patterns, candidate_tuples))
                 break
-
-    def similarity_all(self, t, extraction_pattern):
-        """
-        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
-        and the vector of a ReVerb pattern extracted from a sentence, returns the max
-        """
-        good = 0
-        bad = 0
-        max_similarity = 0
-
-        for p in list(extraction_pattern.tuples):
-            score = self.similarity_3_contexts(t, p)
-            if score > max_similarity:
-                max_similarity = score
-            if score >= self.config.threshold_similarity:
-                good += 1
-            else:
-                bad += 1
-
-        if good >= bad:
-            return True, max_similarity
-        else:
-            return False, 0.0
 
     def cluster_tuples(self, matched_tuples):
         """
@@ -522,7 +536,7 @@ class BREDS(object):
                 # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
                 try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
+                    accept, score = similarity_all(t, extraction_pattern, self.config)
                     if accept is True and score > max_similarity:
                         max_similarity = score
                         max_similarity_cluster_index = i
@@ -550,7 +564,11 @@ class BREDS(object):
         """
         matched_tuples = list()
         count_matches = dict()
+        count = 0
         for t in self.processed_tuples:
+            if count % 1000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
             for s in self.config.positive_seed_tuples:
                 if t.e1 == s.e1 and t.e2 == s.e2:
                     matched_tuples.append(t)
@@ -558,40 +576,67 @@ class BREDS(object):
                         count_matches[(t.e1, t.e2)] += 1
                     except KeyError:
                         count_matches[(t.e1, t.e2)] = 1
+            count += 1
+
         return count_matches, matched_tuples
 
     def cluster_tuples_parallel(self, patterns, matched_tuples, child_conn):
         updated_patterns = list(patterns)
-        # Go through all tuples and compute the similarity towards each pattern
         count = 0
         for t in matched_tuples:
-            count += 1
             if count % 1000 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
+
             max_similarity = 0
             max_similarity_cluster_index = 0
 
             # Go through all patterns(clusters of tuples) and find the one with the highest similarity score
-            for i in range(0, len(updated_patterns), 1):
-                extraction_pattern = updated_patterns[i]
-                # Compute the similarity between a tuple and each tuple inside a pattern(clusters of tuples)
+            for i in range(0, len(self.patterns), 1):
+                extraction_pattern = self.patterns[i]
+                # compute the similarity between the instance vector and each vector from a pattern
                 # if majority is above threshold
-                try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
-                    if accept is True and score > max_similarity:
+                good = 0
+                bad = 0
+                max_similarity = 0
+
+                for p_t in list(extraction_pattern.tuples):
+                    (bef, bet, aft) = (0, 0, 0)
+                    if t.bef_vector is not None and p_t.bef_vector is not None:
+                        bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p_t.bef_vector))
+                    if t.bet_vector is not None and p_t.bet_vector is not None:
+                        bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p_t.bet_vector))
+                    if t.aft_vector is not None and p_t.aft_vector is not None:
+                        aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p_t.aft_vector))
+                    score = self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
+
+                    print "Tuple"
+                    print t.e1, t.e2
+                    print "BEF", t.bef_words
+                    print "BET", t.bet_words
+                    print "AFT", t.aft_words
+                    print
+                    print "PATTERN"
+                    print "BEF", p_t.bef_words
+                    print "BET", p_t.bet_words
+                    print "AFT", p_t.aft_words
+                    print score
+                    print
+
+                    if score > max_similarity:
                         max_similarity = score
-                        max_similarity_cluster_index = i
-                except Exception, e:
-                    print "Error! Tuple and Extraction pattern are empty!"
-                    print e
-                    print t.sentence
-                    print t.e1, '\t', t.e2
-                    print extraction_pattern
-                    sys.exit(0)
+                    if score >= self.config.threshold_similarity:
+                        good += 1
+                    else:
+                        bad += 1
+
+                if good > bad and score > max_similarity:
+                    max_similarity = score
+                    max_similarity_cluster_index = i
 
             # if max_similarity < min_degree_match create a new cluster
             if max_similarity < self.config.threshold_similarity:
+                print multiprocessing.current_process().pid, max_similarity, t.bet_words
                 c = Pattern(t)
                 updated_patterns.append(c)
 
@@ -599,9 +644,50 @@ class BREDS(object):
             else:
                 updated_patterns[max_similarity_cluster_index].add_tuple(t)
 
+            count += 1
+
         pid = multiprocessing.current_process().pid
         #print pid, len(updated_patterns)
         child_conn.send((pid, updated_patterns))
+
+
+def similarity_3_contexts(p, t, config):
+        (bef, bet, aft) = (0, 0, 0)
+
+        if t.bef_vector is not None and p.bef_vector is not None:
+            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
+
+        if t.bet_vector is not None and p.bet_vector is not None:
+            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
+
+        if t.aft_vector is not None and p.aft_vector is not None:
+            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
+
+        return config.alpha*bef + config.beta*bet + config.gamma*aft
+
+
+def similarity_all(t, extraction_pattern, config):
+        """
+        Cosine similarity between all patterns part of a Cluster/Extraction Pattern
+        and the vector of a ReVerb pattern extracted from a sentence, returns the max
+        """
+        good = 0
+        bad = 0
+        max_similarity = 0
+
+        for p in list(extraction_pattern.tuples):
+            score = similarity_3_contexts(t, p, config)
+            if score > max_similarity:
+                max_similarity = score
+            if score >= config.threshold_similarity:
+                good += 1
+            else:
+                bad += 1
+
+        if good >= bad:
+            return True, max_similarity
+        else:
+            return False, 0.0
 
 
 def main():
