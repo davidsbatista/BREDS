@@ -8,7 +8,6 @@ __email__ = "dsbatista@inesc-id.pt"
 import fileinput
 import StringIO
 
-from Sentence import Sentence
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
