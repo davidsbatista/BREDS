@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import jellyfish
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -994,7 +995,7 @@ def main():
     #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
     print "\nCalculating set C: database facts in the corpus but not extracted by the system"
     c, g_minus_d = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type,
-                              rel_words_unigrams, rel_words_bigrams)
+                               rel_words_unigrams, rel_words_bigrams)
     assert len(c) > 0
 
     uniq_c = set()

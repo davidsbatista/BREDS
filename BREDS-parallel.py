@@ -483,8 +483,6 @@ class BREDS(object):
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
 
 
-
-
 def main():
     if len(sys.argv) != 8:
         print "\nBREDS.py paramters.cfg sentences_file seeds_file_positive seeds_file_negative similarity_threshold" \
