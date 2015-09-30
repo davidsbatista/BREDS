@@ -232,20 +232,9 @@ class BREDS(object):
                         else:
                             self.candidate_tuples[t].append((pattern_best, sim_best))
 
-                    # update extraction pattern confidence
-                    if self.curr_iteration > 0:
-                        extraction_pattern.update_confidence(self.config)
-
-                # normalize patterns confidence
-                # find the maximum value of confidence and divide all by the maximum
-                max_confidence = 0
+                # update all patterns confidence
                 for p in self.patterns:
-                    if p.confidence > max_confidence:
-                        max_confidence = p.confidence
-
-                if max_confidence > 0:
-                    for p in self.patterns:
-                        p.confidence = float(p.confidence) / float(max_confidence)
+                    p.update_confidence(self.config)
 
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
@@ -314,10 +303,7 @@ class BREDS(object):
         if len(self.patterns) == 0:
             c1 = Pattern(matched_tuples[0])
             self.patterns.append(c1)
-            #print "Pattern Words", self.patterns[0].patterns_words
 
-        # Compute the similarity between an instance with each pattern
-        # go through all tuples
         count = 0
         for t in matched_tuples:
             count += 1
@@ -327,39 +313,22 @@ class BREDS(object):
             max_similarity = 0
             max_similarity_cluster_index = 0
 
-            # go through all patterns(clusters of tuples) and find the one with the
-            # highest similarity score
+            # go through all patterns(clusters of tuples) and find the one with the highest similarity score
             for i in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[i]
-                # compute the similarity between the instance vector and each vector from a pattern
-                # if majority is above threshold
-                try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
-                    if accept is True and score > max_similarity:
-                        max_similarity = score
-                        max_similarity_cluster_index = i
-                except Exception, e:
-                    print "Error! Tuple and Extraction pattern are empty!"
-                    print e
-                    print "tuple"
-                    print t.sentence
-                    print t.e1, '\t', t.e2
-                    print extraction_pattern
-                    sys.exit(0)
+                accept, score = self.similarity_all(t, extraction_pattern)
+                if accept is True and score > max_similarity:
+                    max_similarity = score
+                    max_similarity_cluster_index = i
 
             # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:
                 c = Pattern(t)
                 self.patterns.append(c)
-                #print "New Cluster", c.patterns_words
-                #print "\n"
 
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
-                #print "\n"
-                #print "good match", t.patterns_words, self.patterns[max_similarity_cluster_index], max_similarity
                 self.patterns[max_similarity_cluster_index].add_tuple(t)
-                #print "Cluster", self.patterns[max_similarity_cluster_index].patterns_words
 
 
 def main():
@@ -380,7 +349,6 @@ def main():
         else:
             breads.generate_tuples(sentences_file)
             breads.init_bootstrapp(tuples=None)
-
 
 if __name__ == "__main__":
     main()
