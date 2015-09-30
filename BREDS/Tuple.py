@@ -9,7 +9,6 @@ from numpy import zeros
 
 class Tuple(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-        # select everything except stopwords, ADJ and ADV
         filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
 
         def __init__(self, _e1, _e2, _sentence, _before, _between, _after, config):
@@ -19,6 +18,7 @@ class Tuple(object):
             self.confidence = 0
             self.bef_tags = _before
             self.bet_tags = _between
+            self.bet_filtered = None
             self.aft_tags = _after
             self.bef_words = " ".join([x[0] for x in self.bef_tags])
             self.bet_words = " ".join([x[0] for x in self.bet_tags])
@@ -47,47 +47,28 @@ class Tuple(object):
             else:
                 return 0
 
-        def construct_pattern_vector(self, pattern_tags, config):
-            # remove stopwords and adjectives
-            pattern = [t[0] for t in pattern_tags if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos]
-            return self.pattern2vector_sum(pattern, config)
-
-        def construct_words_vectors(self, tagged_words, context, config):
-            # remove stopwords and adjective
-            words = [t[0] for t in tagged_words if t[0].lower() not in config.stopwords and t[1] not in config.filter_pos]
-            if len(words) >= 1:
-                vector = self.pattern2vector_sum(words, config)
-                if context == 'before':
-                    self.bef_vector = vector
-                elif context == 'between':
-                    self.bet_vector = vector
-                elif context == 'after':
-                    self.aft_vector = vector
-
         def construct_vectors(self, config):
+            # Check if BET context contains a ReVerb pattern
             reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(self.bet_tags)
-
             if len(reverb_pattern) > 0:
+                # test for passive voice presence
                 self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
-                self.bet_vector = self.construct_pattern_vector(reverb_pattern, config)
+                bet_words = reverb_pattern
             else:
                 self.passive_voice = False
-                self.construct_words_vectors(reverb_pattern, "between", config)
+                bet_words = self.bet_tags
 
-            # extract words before the first entity, and words after the second entity
-            if len(self.bef_tags) > 0:
-                self.construct_words_vectors(self.bef_tags, "before", config)
-            if len(self.aft_tags) > 0:
-                self.construct_words_vectors(self.aft_tags, "after", config)
+            self.bet_filtered = [t[0] for t in bet_words if t[0].lower() not in config.stopwords and t[1]
+                                 not in self.filter_pos]
 
-            """
-            print self.sentence
-            print "BEF", self.bef_words
-            print "BET", self.bet_words
-            print "AFT", self.aft_words
-            print "passive", self.passive_voice
-            print
-            """
+            # compute the vector over the filtered BET context
+            self.bet_vector = self.pattern2vector_sum(self.bet_filtered, config)
+
+            # compute the vector for words before the first entity, and words after the second entity
+            bef_no_tags = [t[0] for t in self.bef_tags]
+            aft_no_tags = [t[0] for t in self.aft_tags]
+            self.bef_vector = self.pattern2vector_sum(bef_no_tags, config)
+            self.aft_vector = self.pattern2vector_sum(aft_no_tags, config)
 
         @staticmethod
         def pattern2vector_sum(tokens, config):
