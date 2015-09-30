@@ -8,6 +8,7 @@ import cPickle
 import sys
 import codecs
 import operator
+import math
 import multiprocessing
 import Queue
 
@@ -76,7 +77,6 @@ class BREDS(object):
             data = pipes[i][0].recv()
             child_pid = data[0]
             child_instances = data[1]
-            print child_pid, "instances", len(child_instances)
             for x in child_instances:
                 self.processed_tuples.append(x)
 
@@ -109,7 +109,6 @@ class BREDS(object):
 
             except Queue.Empty:
                 print multiprocessing.current_process(), "Queue is Empty"
-                print multiprocessing.current_process(), "instances", len(instances)
                 pid = multiprocessing.current_process().pid
                 child_conn.send((pid, instances))
                 break
@@ -167,6 +166,64 @@ class BREDS(object):
                         count_matches[(t.e1, t.e2)] = 1
         return count_matches, matched_tuples
 
+    def cluster_tuples(self, matched_tuples):
+        """
+        Single-Pass Clustering
+        """
+        # Initialize: if no patterns exist, first tuple goes to first cluster
+        if len(self.patterns) == 0:
+            c1 = Pattern(matched_tuples[0])
+            self.patterns.append(c1)
+
+        count = 0
+        for t in matched_tuples:
+            count += 1
+            if count % 1000 == 0:
+                sys.stdout.write(".")
+                sys.stdout.flush()
+            max_similarity = 0
+            max_similarity_cluster_index = 0
+
+            # go through all patterns(clusters of tuples) and find the one with the highest similarity score
+            for i in range(0, len(self.patterns), 1):
+                extraction_pattern = self.patterns[i]
+                accept, score = self.similarity_all(t, extraction_pattern)
+                if accept is True and score > max_similarity:
+                    max_similarity = score
+                    max_similarity_cluster_index = i
+
+            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
+            if max_similarity < self.config.threshold_similarity:
+                c = Pattern(t)
+                self.patterns.append(c)
+
+            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
+            else:
+                self.patterns[max_similarity_cluster_index].add_tuple(t)
+
+    def write_relationships_to_disk(self):
+        print "\nWriting extracted relationships to disk"
+        f_output = open("relationships.txt", "w")
+        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
+        try:
+            for t in tmp:
+                f_output.write(
+                    "instance: " + t.e1.encode("utf8") + '\t' + t.e2.encode("utf8") + '\tscore:' + str(t.confidence) +
+                    '\n')
+                f_output.write("sentence: " + t.sentence.encode("utf8") + '\n')
+                f_output.write("pattern_bef: " + t.bef_words.encode("utf8") + '\n')
+                f_output.write("pattern_bet: " + t.bet_words.encode("utf8") + '\n')
+                f_output.write("pattern_aft: " + t.aft_words.encode("utf8") + '\n')
+                if t.passive_voice is False:
+                    f_output.write("passive voice: False\n")
+                elif t.passive_voice is True:
+                    f_output.write("passive voice: True\n")
+                f_output.write("\n")
+            f_output.close()
+        except Exception, e:
+            print e
+            sys.exit(1)
+
     def init_bootstrap(self, tuples):
         """
         starts a bootstrap iteration
@@ -200,9 +257,74 @@ class BREDS(object):
                     print t[0][0], '\t', t[0][1], t[1]
                 print "\n", len(matched_tuples), "tuples matched"
 
-                # Cluster the matched instances: generate patterns/update patterns
+                # Cluster the matched instances: generate patterns
                 print "\nClustering matched instances to generate patterns"
-                self.cluster_tuples(matched_tuples)
+                if len(self.patterns) == 0:
+                    self.cluster_tuples(matched_tuples)
+
+                else:
+                    # Paralelize clustering
+                    # Each tuple must be compared with each extraction pattern
+                    # Divide the tuples into smaller lists, accordingly to the number of cpus
+                    # Pass to each CPU a sublist of tuples and patterns, comparision is done by each CPU
+                    # at the end each CPU passes to father process updated patterns through a Pipe
+                    # At the end merge patterns based on pattern_id
+                    if len(matched_tuples) > self.num_cpus:
+
+                        # make a copy of the extraction patterns to be passed to each
+                        patterns = [list(self.patterns) for _ in range(self.num_cpus)]
+
+                        chunks = [list() for _ in range(self.num_cpus)]
+                        n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
+
+                        print "\n#CPUS", self.num_cpus, '\t', "Tuples per CPU", n_tuples_per_child
+                        chunk_n = 0
+                        chunck_begin = 0
+                        chunck_end = n_tuples_per_child
+                        while chunk_n < self.num_cpus:
+                            chunks[chunk_n] = matched_tuples[chunck_begin:chunck_end]
+                            chunck_begin = chunck_end
+                            chunck_end += n_tuples_per_child
+                            chunk_n += 1
+
+                        count = 0
+                        for c in chunks:
+                            print "CPU_"+str(count), len(c), "Patterns", len(patterns[count])
+                            count += 1
+
+                        pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
+                        processes = [multiprocessing.Process(target=self.cluster_tuples_parallel, args=(patterns[i],
+                                                                                                        chunks[i],
+                                                                                                        pipes[i][1]))
+                                     for i in range(self.num_cpus)]
+
+                        print "\nRunning", len(processes), " processes"
+                        for proc in processes:
+                            proc.start()
+
+                        # Receive and agregate all patterns by 'pattern_id'
+                        # update self.patterns.tuples with the new tuples
+                        # There can exist new patterns (clusters) created
+                        new_patterns = list()
+                        for i in range(len(pipes)):
+                            data = pipes[i][0].recv()
+                            child_pid = data[0]
+                            patterns = data[1]
+                            print child_pid, "patterns", len(patterns)
+                            for p_updated in patterns:
+                                for p_original in self.patterns:
+                                    if p_original.id == p_updated.id:
+                                        print child_pid, "match!"
+                                        p_original.tuples.update(p_updated.tuples)
+                                new_patterns.append(p_updated)
+
+                        for proc in processes:
+                            proc.join()
+
+                        print len(new_patterns), " new created patterns"
+                        # TODO: Patterns novos têm que ser comparados pairwise e merged cosoante as similaridades
+                        for p in new_patterns:
+                            print p.id, len(p.tuples)
 
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
@@ -210,18 +332,15 @@ class BREDS(object):
                 print "\n", len(self.patterns), "patterns generated"
 
                 if PRINT_PATTERNS is True:
-                    count = 1
                     print "\nPatterns:"
                     for p in self.patterns:
                         print p.id
-                        print count
                         for t in p.tuples:
                             print "BEF", t.bef_words
                             print "BET", t.bet_words
                             print "AFT", t.aft_words
                             print "========"
                             print "\n"
-                        count += 1
 
                 if self.curr_iteration == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
@@ -316,21 +435,10 @@ class BREDS(object):
                 for p in self.patterns:
                     p.update_confidence(self.config)
 
-                # normalize patterns confidence
-                # find the maximum value of confidence and divide all by the maximum
-                max_confidence = 0
-                for p in self.patterns:
-                    if p.confidence > max_confidence:
-                        max_confidence = p.confidence
-
-                if max_confidence > 0:
-                    for p in self.patterns:
-                        p.confidence = float(p.confidence) / float(max_confidence)
-
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
-                        print p.id, p.confidence
+                        print p.id
                         for t in p.tuples:
                             print "BEF", t.bef_words
                             print "BET", t.bet_words
@@ -352,7 +460,7 @@ class BREDS(object):
                         confidence *= 1 - (p[0].confidence * p[1])
                     t.confidence = 1 - confidence
 
-                    # use past confidence values to calculate new confidence
+                    # use past confidence values to calculate new tuple confidence
                     # if parameter Wupdt < 0.5 the system trusts new examples less on each iteration
                     # which will lead to more conservative patterns and have a damping effect.
                     if self.curr_iteration > 0:
@@ -379,26 +487,7 @@ class BREDS(object):
                 # increment the number of iterations
                 self.curr_iteration += 1
 
-        print "\nWriting extracted relationships to disk"
-        f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
-        try:
-            for t in tmp:
-                f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence) +
-                               '\n')
-                f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-                f_output.write("pattern_bef: " + t.bef_words.encode("utf8")+'\n')
-                f_output.write("pattern_bet: " + t.bet_words.encode("utf8")+'\n')
-                f_output.write("pattern_aft: " + t.aft_words.encode("utf8")+'\n')
-                if t.passive_voice is False:
-                    f_output.write("passive voice: False\n")
-                elif t.passive_voice is True:
-                    f_output.write("passive voice: True\n")
-                f_output.write("\n")
-            f_output.close()
-        except Exception, e:
-            print e
-            sys.exit(1)
+        self.write_relationships_to_disk()
 
     def find_instances(self, patterns, instances, child_conn):
         updated_patterns = list()
@@ -432,55 +521,40 @@ class BREDS(object):
                 child_conn.send((pid, updated_patterns, candidate_tuples))
                 break
 
-    def cluster_tuples(self, matched_tuples):
-        """
-        Single-Pass Clustering
-        """
-        # Initialize: if no patterns exist, first tuple goes to first cluster
-        if len(self.patterns) == 0:
-            c1 = Pattern(matched_tuples[0])
-            self.patterns.append(c1)
-            #print "Pattern Words", self.patterns[0].patterns_words
-
-        # Compute the similarity between an instance with each pattern
-        # go through all tuples
+    def cluster_tuples_parallel(self, patterns, matched_tuples, child_conn):
+        updated_patterns = list(patterns)
         count = 0
         for t in matched_tuples:
-            count += 1
             if count % 1000 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
+
+            # Go through all patterns(clusters of tuples) and find the one with the highest similarity score
             max_similarity = 0
             max_similarity_cluster_index = 0
+            for i in range(0, len(updated_patterns)):
+                extraction_pattern = updated_patterns[i]
+                accept, score = self.similarity_all(t, extraction_pattern)
+                if accept is True and score > max_similarity:
+                    max_similarity = score
+                    max_similarity_cluster_index = i
 
-            # go through all patterns(clusters of tuples) and find the one with the
-            # highest similarity score
-            for i in range(0, len(self.patterns), 1):
-                extraction_pattern = self.patterns[i]
-                # compute the similarity between the instance vector and each vector from a pattern
-                # if majority is above threshold
-                try:
-                    accept, score = self.similarity_all(t, extraction_pattern)
-                    if accept is True and score > max_similarity:
-                        max_similarity = score
-                        max_similarity_cluster_index = i
-                except Exception, e:
-                    print "Error! Tuple and Extraction pattern are empty!"
-                    print e
-                    print "tuple"
-                    print t.sentence
-                    print t.e1, '\t', t.e2
-                    print extraction_pattern
-                    sys.exit(0)
-
-            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
+            # if max_similarity < min_degree_match create a new cluster
             if max_similarity < self.config.threshold_similarity:
                 c = Pattern(t)
-                self.patterns.append(c)
+                updated_patterns.append(c)
 
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
-                self.patterns[max_similarity_cluster_index].add_tuple(t)
+                updated_patterns[max_similarity_cluster_index].add_tuple(t)
+
+            count += 1
+
+        new_patterns = [p for p in updated_patterns if len(p.tuples) >= 2]
+
+        pid = multiprocessing.current_process().pid
+        print pid, len(new_patterns)
+        child_conn.send((pid, updated_patterns))
 
 
 def main():
