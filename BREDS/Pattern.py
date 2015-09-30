@@ -5,7 +5,6 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 import uuid
-from math import log
 
 
 class Pattern(object):
@@ -33,9 +32,9 @@ class Pattern(object):
 
     def update_confidence(self, config):
         if self.positive > 0:
-            self.confidence = log(float(self.positive), 2) * (float(self.positive) / float(self.positive +
-                                                                                           self.unknown * config.wUnk +
-                                                                                           self.negative * config.wNeg))
+            self.confidence = (float(self.positive) / float(self.positive +
+                                                            self.unknown * config.wUnk +
+                                                            self.negative * config.wNeg))
         elif self.positive == 0:
             self.confidence = 0
 
