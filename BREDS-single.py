@@ -129,6 +129,29 @@ class BREDS(object):
 
         return count_matches, matched_tuples
 
+    def write_relationships_to_disk(self):
+        print "\nWriting extracted relationships to disk"
+        f_output = open("relationships.txt", "w")
+        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
+        try:
+            for t in tmp:
+                f_output.write(
+                    "instance: " + t.e1.encode("utf8") + '\t' + t.e2.encode("utf8") + '\tscore:' + str(t.confidence) +
+                    '\n')
+                f_output.write("sentence: " + t.sentence.encode("utf8") + '\n')
+                f_output.write("pattern_bef: " + t.bef_words.encode("utf8") + '\n')
+                f_output.write("pattern_bet: " + t.bet_words.encode("utf8") + '\n')
+                f_output.write("pattern_aft: " + t.aft_words.encode("utf8") + '\n')
+                if t.passive_voice is False:
+                    f_output.write("passive voice: False\n")
+                elif t.passive_voice is True:
+                    f_output.write("passive voice: True\n")
+                f_output.write("\n")
+            f_output.close()
+        except Exception, e:
+            print e
+            sys.exit(1)
+
     def init_bootstrapp(self, tuples):
         """
         starts a bootstrap iteration
@@ -167,7 +190,7 @@ class BREDS(object):
                 print "\nClustering matched instances to generate patterns"
                 self.cluster_tuples(matched_tuples)
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
-                new_patterns = [p for p in self.patterns if len(p.tuples) >= 2]
+                new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
                 self.patterns = new_patterns
 
                 print "\n", len(self.patterns), "patterns generated"
@@ -279,21 +302,7 @@ class BREDS(object):
                 # increment the number of iterations
                 self.curr_iteration += 1
 
-        print "\nWriting extracted relationships to disk"
-        f_output = open("relationships.txt", "w")
-        tmp = sorted(self.candidate_tuples.keys(), reverse=True)
-        for t in tmp:
-            f_output.write("instance: "+t.e1.encode("utf8")+'\t'+t.e2.encode("utf8")+'\tscore:'+str(t.confidence)+'\n')
-            f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-            f_output.write("pattern_bef: " + t.bef_words.encode("utf8")+'\n')
-            f_output.write("pattern_bet: " + t.bet_words.encode("utf8")+'\n')
-            f_output.write("pattern_aft: " + t.aft_words.encode("utf8")+'\n')
-            if t.passive_voice is False:
-                f_output.write("passive voice: False\n")
-            elif t.passive_voice is True:
-                f_output.write("passive voice: True\n")
-            f_output.write("\n")
-        f_output.close()
+        self.write_relationships_to_disk()
 
     def cluster_tuples(self, matched_tuples):
         """
