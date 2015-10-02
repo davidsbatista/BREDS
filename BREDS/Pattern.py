@@ -15,6 +15,7 @@ class Pattern(object):
         self.negative = 0
         self.unknown = 0
         self.confidence = 0
+        self.bet_uniques = set()
         self.tuples = set()
         if tuple is not None:
             self.tuples.add(t)
@@ -40,6 +41,11 @@ class Pattern(object):
 
     def add_tuple(self, t):
         self.tuples.add(t)
+
+    #TODO: if only BET pattern is being used merge similar tuples
+    def merge_bet(self):
+        for t in self.tuples:
+            self.bet_uniques.add(t.bet_words)
 
     def update_selectivity(self, t, config):
         for s in config.positive_seed_tuples:
