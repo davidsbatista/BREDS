@@ -25,7 +25,7 @@ from BREDS.Seed import Seed
 
 # usefull stuff for debugging
 PRINT_TUPLES = False
-PRINT_PATTERNS = True
+PRINT_PATTERNS = False
 
 
 class BREDS(object):
@@ -75,7 +75,6 @@ class BREDS(object):
 
         for i in range(len(pipes)):
             data = pipes[i][0].recv()
-            child_pid = data[0]
             child_instances = data[1]
             for x in child_instances:
                 self.processed_tuples.append(x)
@@ -261,6 +260,9 @@ class BREDS(object):
                 print "\nClustering matched instances to generate patterns"
                 if len(self.patterns) == 0:
                     self.cluster_tuples(matched_tuples)
+                    # Eliminate patterns supported by less than 'min_pattern_support' tuples
+                    new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
+                    self.patterns = new_patterns
 
                 else:
                     # Paralelize clustering
@@ -269,89 +271,95 @@ class BREDS(object):
                     # Pass to each CPU a sublist of tuples and patterns, comparision is done by each CPU
                     # at the end each CPU passes to father process updated patterns through a Pipe
                     # At the end merge patterns based on pattern_id
-                    if len(matched_tuples) > self.num_cpus:
 
-                        # make a copy of the extraction patterns to be passed to each
-                        patterns = [list(self.patterns) for _ in range(self.num_cpus)]
+                    # make a copy of the extraction patterns to be passed to each
+                    patterns = [list(self.patterns) for _ in range(self.num_cpus)]
 
-                        chunks = [list() for _ in range(self.num_cpus)]
-                        n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
+                    chunks = [list() for _ in range(self.num_cpus)]
+                    n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
 
-                        print "\n#CPUS", self.num_cpus, '\t', "Tuples per CPU", n_tuples_per_child
-                        chunk_n = 0
-                        chunck_begin = 0
-                        chunck_end = n_tuples_per_child
-                        while chunk_n < self.num_cpus:
-                            chunks[chunk_n] = matched_tuples[chunck_begin:chunck_end]
-                            chunck_begin = chunck_end
-                            chunck_end += n_tuples_per_child
-                            chunk_n += 1
+                    print "\n#CPUS", self.num_cpus, '\t', "Tuples per CPU", n_tuples_per_child
+                    chunk_n = 0
+                    chunck_begin = 0
+                    chunck_end = n_tuples_per_child
+                    while chunk_n < self.num_cpus:
+                        chunks[chunk_n] = matched_tuples[chunck_begin:chunck_end]
+                        chunck_begin = chunck_end
+                        chunck_end += n_tuples_per_child
+                        chunk_n += 1
 
-                        count = 0
-                        for c in chunks:
-                            print "CPU_"+str(count), len(c), "Patterns", len(patterns[count])
-                            count += 1
+                    count = 0
+                    for c in chunks:
+                        print "CPU_"+str(count), len(c), "Patterns", len(patterns[count])
+                        count += 1
 
-                        pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
-                        processes = [multiprocessing.Process(target=self.cluster_tuples_parallel, args=(patterns[i],
-                                                                                                        chunks[i],
-                                                                                                        pipes[i][1]))
-                                     for i in range(self.num_cpus)]
+                    pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
+                    processes = [multiprocessing.Process(target=self.cluster_tuples_parallel, args=(patterns[i],
+                                                                                                    chunks[i],
+                                                                                                    pipes[i][1]))
+                                 for i in range(self.num_cpus)]
 
-                        print "\nRunning", len(processes), " processes"
-                        for proc in processes:
-                            proc.start()
+                    print "\nRunning", len(processes), " processes"
+                    for proc in processes:
+                        proc.start()
 
-                        # Receive and agregate all patterns by 'pattern_id'
-                        # update self.patterns.tuples with the new tuples
-                        # There can exist new patterns (clusters) created
-                        new_patterns = list()
-                        for i in range(len(pipes)):
-                            data = pipes[i][0].recv()
-                            patterns = data[1]
-                            for p_updated in patterns:
-                                for p_original in self.patterns:
-                                    if p_original.id == p_updated.id:
-                                        p_original.tuples.update(p_updated.tuples)
-                                new_patterns.append(p_updated)
+                    # Receive and agregate all patterns by 'pattern_id'
+                    # update self.patterns.tuples with the new tuples
+                    # There can exist new patterns (clusters) created
+                    child_patterns = list()
+                    for i in range(len(pipes)):
+                        data = pipes[i][0].recv()
+                        patterns = data[1]
+                        for p_updated in patterns:
+                            for p_original in self.patterns:
+                                if p_original.id == p_updated.id:
+                                    p_original.tuples.update(p_updated.tuples)
+                            child_patterns.append(p_updated)
 
-                        for proc in processes:
-                            proc.join()
+                    for proc in processes:
+                        proc.join()
 
-                        print len(new_patterns), "new created patterns"
+                    print len(child_patterns), "new created patterns"
 
-                        # merge/aggregate similar patterns generated by the child processes
-                        # start comparing smaller ones with smaller ones and merging
-                        new_patterns.sort(key=lambda y: len(y.tuples), reverse=False)
+                    # merge/aggregate similar patterns generated by the child processes
+                    # start comparing smaller ones with smaller ones and merging
+                    child_patterns.sort(key=lambda y: len(y.tuples), reverse=False)
 
-                        for p1 in new_patterns:
-                            print len(new_patterns)
-                            print p1.id, len(p1.tuples)
-                            max_similarity = 0
-                            max_similarity_cluster = None
-                            for p2 in new_patterns:
-                                if p1 == p2:
-                                    continue
-                                score = self.similarity_cluster(p1, p2)
-                                if score > max_similarity:
-                                    max_similarity = score
-                                    max_similarity_cluster = p2
-                            # if max_similarity > min_degree_match merge clusters
-                            if max_similarity >= self.config.threshold_similarity:
-                                print "merging two patterns"
-                                new_p = self.merge_patterns(p1, max_similarity_cluster)
-                                new_patterns.append(new_p)
-                                new_patterns.remove(p1)
-                                new_patterns.remove(max_similarity_cluster)
-                                for tpl in p1.tuples:
-                                    print tpl.bet_words
-                                print
-                                for tpl in max_similarity_cluster.tuples:
-                                    print tpl.bet_words
+                    count = 0
+                    #TODO: re-escrever isto como se fosse o single-pass clustering
+                    new_list = list()
+                    for p1 in child_patterns:
+                        print "\nNew Patterns", len(child_patterns), "Processed", count
+                        print "Pattern:", p1.id, "Tuples:", len(p1.tuples)
+                        max_similarity = 0
+                        max_similarity_cluster = None
+                        for p2 in child_patterns:
+                            if p1 == p2:
+                                continue
 
-                # Eliminate patterns supported by less than 'min_pattern_support' tuples
-                new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
-                self.patterns = new_patterns
+                            score = self.similarity_cluster(p1, p2)
+                            if score > max_similarity:
+                                max_similarity = score
+                                max_similarity_cluster = p2
+
+                        print "max score", max_similarity
+                        if max_similarity >= self.config.threshold_similarity:
+                            print "merging two patterns"
+                            new_p = self.merge_patterns(p1, max_similarity_cluster)
+                            new_list.append(new_p)
+                            for tpl in p1.tuples:
+                                print tpl.bet_words
+                            print
+                            for tpl in max_similarity_cluster.tuples:
+                                print tpl.bet_words
+                        else:
+                            new_list.append(p1)
+
+                        count += 1
+
+                    for p in new_list:
+                        self.patterns.append(p)
+
                 print "\n", len(self.patterns), "patterns generated"
 
                 if PRINT_PATTERNS is True:
@@ -402,11 +410,9 @@ class BREDS(object):
                 for proc in processes:
                     proc.start()
 
-                # structure to store each process altered patterns
-                patterns_updated = [list() for _ in range(self.num_cpus)]
-
-                # structure to store each process collected tuple instances
-                collected_tuples = [list() for _ in range(self.num_cpus)]
+                # structures to store each process altered patterns and collected tuples
+                patterns_updated = list()
+                collected_tuples = list()
 
                 for i in range(len(pipes)):
                     data = pipes[i][0].recv()
@@ -414,20 +420,19 @@ class BREDS(object):
                     patterns = data[1]
                     tuples = data[2]
                     print child_pid, "patterns", len(patterns), "tuples", len(tuples)
-                    patterns_updated[i] = patterns
-                    collected_tuples[i] = tuples
+                    patterns_updated.extend(patterns)
+                    collected_tuples.extend(tuples)
 
                 for proc in processes:
                     proc.join()
 
                 # Extraction patterns aggregation happens here:
-                for i in range(len(patterns_updated)):
-                    for p_updated in patterns_updated[i]:
-                        for p_original in self.patterns:
-                            if p_original.id == p_updated.id:
-                                p_original.positive += p_updated.positive
-                                p_original.negative += p_updated.negative
-                                p_original.unknown += p_updated.unknown
+                for p_updated in patterns_updated:
+                    for p_original in self.patterns:
+                        if p_original.id == p_updated.id:
+                            p_original.positive += p_updated.positive
+                            p_original.negative += p_updated.negative
+                            p_original.unknown += p_updated.unknown
 
                 # Index the patterns in an hashtable for later use
                 for p in self.patterns:
@@ -435,24 +440,23 @@ class BREDS(object):
 
                 # Candidate tuples aggregation happens here:
                 print "Collecting generated candidate tuples"
-                for i in range(len(collected_tuples)):
-                    for e in collected_tuples[i]:
-                        t = e[0]
-                        pattern_best = e[1]
-                        sim_best = e[2]
+                for e in collected_tuples:
+                    t = e[0]
+                    pattern_best = e[1]
+                    sim_best = e[2]
 
-                        # if this tuple was already extracted, check if this extraction pattern is already associated
-                        # with it, if not, associate this pattern with it and similarity score
-                        if t in self.candidate_tuples:
-                            t_patterns = self.candidate_tuples[t]
-                            if t_patterns is not None:
-                                if pattern_best not in [x[0] for x in t_patterns]:
-                                    self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
+                    # if this tuple was already extracted, check if this extraction pattern is already associated
+                    # with it, if not, associate this pattern with it and similarity score
+                    if t in self.candidate_tuples:
+                        t_patterns = self.candidate_tuples[t]
+                        if t_patterns is not None:
+                            if pattern_best not in [x[0] for x in t_patterns]:
+                                self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
 
-                        # If this tuple was not extracted before, associate this pattern with the instance
-                        # and the similarity score
-                        else:
-                            self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
+                    # If this tuple was not extracted before, associate this pattern with the instance
+                    # and the similarity score
+                    else:
+                        self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
 
                 # update all patterns confidence
                 for p in self.patterns:
@@ -515,9 +519,10 @@ class BREDS(object):
     def similarity_cluster(self, p1, p2):
         count = 0
         score = 0
+        #TODO: apenas comparar tuplos diferentes
         for t1 in p1.tuples:
             for t2 in p2.tuples:
-                score = self.similarity_3_contexts(t1, t2)
+                score += self.similarity_3_contexts(t1, t2)
                 count += 1
         return float(score) / float(count)
 
@@ -537,7 +542,9 @@ class BREDS(object):
             try:
                 t = instances.get_nowait()
                 if instances.qsize() % 500 == 0:
-                    print multiprocessing.current_process(), "Instances to process", instances.qsize()
+                    sys.stdout.write(str(multiprocessing.current_process()) +
+                                     " Instances to process: "+str(instances.qsize())+'\n')
+                    sys.stdout.flush()
 
                 # measure similarity towards every extraction pattern
                 sim_best = 0
