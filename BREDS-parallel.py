@@ -325,8 +325,12 @@ class BREDS(object):
                     # start comparing smaller ones with smaller ones and merging
                     child_patterns.sort(key=lambda y: len(y.tuples), reverse=False)
 
-                    count = 0
                     #TODO: re-escrever isto como se fosse o single-pass clustering
+                    # new_list = child_patterns[0]
+                    # para cada p in child_pattern comparar sequencialmente a partir do 0 em new_list
+                    # fazer merge ou acrescentar a new_list
+
+                    count = 0
                     new_list = list()
                     for p1 in child_patterns:
                         print "\nNew Patterns", len(child_patterns), "Processed", count
