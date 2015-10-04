@@ -70,6 +70,8 @@ class Pattern(object):
                 if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
                     self.positive += 1
                 else:
+                    print "Tuple:", t.e1, '\t', t.e2
+                    print "Seed :", s.e1, '\t', s.e2
                     self.negative += 1
             else:
                 for n in config.negative_seed_tuples:
