@@ -112,21 +112,6 @@ class BREDS(object):
                 child_conn.send((pid, instances))
                 break
 
-    def similarity_3_contexts_fast(self, p, t):
-        (bef, bet, aft) = (0, 0, 0)
-
-        # transform tuple into numpy array
-        if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(asarray(p.bef_vector)))
-
-        if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(asarray(p.bet_vector)))
-
-        if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(asarray(p.aft_vector)))
-
-        return self.config.alpha*bef + self.config.beta*bet + self.config.gamma*aft
-
     def similarity_3_contexts(self, t, p):
         (bef, bet, aft) = (0, 0, 0)
 
@@ -335,11 +320,29 @@ class BREDS(object):
                                 if p_original.id == p_updated.id:
                                     p_original.tuples.update(p_updated.tuples)
                                     pattern_exists = True
+                                    break
+
                             if pattern_exists is False:
                                 child_patterns.append(p_updated)
 
                     for proc in processes:
                         proc.join()
+
+                    print "\n SELF Patterns:"
+                    for p in self.patterns:
+                        p.merge_all_tuples_bet()
+                        print '\n'+str(p.id)
+                        if self.config.alpha == 0 and self.config.gamma == 0:
+                            for bet_words in p.bet_uniques_words:
+                                print "BET", bet_words
+
+                    print "\n Child Patterns:"
+                    for p in child_patterns:
+                        p.merge_all_tuples_bet()
+                        print '\n'+str(p.id)
+                        if self.config.alpha == 0 and self.config.gamma == 0:
+                            for bet_words in p.bet_uniques_words:
+                                print "BET", bet_words
 
                     print len(child_patterns), "new created patterns"
 
@@ -370,7 +373,8 @@ class BREDS(object):
 
                     # add merged patterns to main patterns structure
                     for p in new_list:
-                        self.patterns.append(p)
+                        if p not in self.patterns:
+                            self.patterns.append(p)
 
                 if self.curr_iteration == 0 and len(self.patterns) == 0:
                     print "No patterns generated"
@@ -380,23 +384,24 @@ class BREDS(object):
 
                 # merge equal tuples inside patterns to make less comparisions in collecting instances
                 for p in self.patterns:
-                    # if only BET context is being used, merge only based on BET contexts
+                    # if only the BET context is being used, merge only based on BET contexts
                     if self.config.alpha == 0 and self.config.gamma == 0:
                         p.merge_all_tuples_bet()
-                    else:
-                        p.merge_all_tuples()
 
-                """
                 if PRINT_PATTERNS is True:
                     print "\nPatterns:"
                     for p in self.patterns:
-                        print p.id
-                        for t in p.tuples:
-                            print "BEF", t.bef_words
-                            print "BET", t.bet_words
-                            print "AFT", t.aft_words
-                            print "========"
-                """
+                        print '\n'+str(p.id)
+                        if self.config.alpha == 0 and self.config.gamma == 0:
+                            for bet_words in p.bet_uniques_words:
+                                print "BET", bet_words
+                        else:
+                            for t in p.tuples:
+                                print "BEF", t.bef_words
+                                print "BET", t.bet_words
+                                print "AFT", t.aft_words
+                                print "========"
+
                 # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
 
                 # This was already collect and its stored in: self.processed_tuples
@@ -406,9 +411,9 @@ class BREDS(object):
                 #
                 # Each candidate tuple will then have a number of patterns that extracted it
                 # each with an associated degree of match.
-                print "Number of tuples to be analyzed:", len(self.processed_tuples)
+                print "\nNumber of tuples to be analyzed:", len(self.processed_tuples)
 
-                print "\nCollecting instances based on extraction patterns"
+                print "\nCollecting instances based on", len(self.patterns), "extraction patterns"
                 # create copies of generated extraction patterns to be passed to each process
                 patterns = [list(self.patterns) for _ in range(self.num_cpus)]
 
@@ -545,8 +550,8 @@ class BREDS(object):
         if self.config.alpha == 0 and self.config.gamma == 0:
             p1.merge_all_tuples_bet()
             p2.merge_all_tuples_bet()
-            for v_bet1 in p1.bet_uniques:
-                for v_bet2 in p2.bet_uniques:
+            for v_bet1 in p1.bet_uniques_vectors:
+                for v_bet2 in p2.bet_uniques_vectors:
                     if v_bet1 is not None and v_bet2 is not None:
                         score += dot(matutils.unitvec(asarray(v_bet1)), matutils.unitvec(asarray(v_bet2)))
                         count += 1
@@ -570,19 +575,29 @@ class BREDS(object):
                     sys.stdout.flush()
 
                 # measure similarity towards every extraction pattern
-                sim_best = 0
+                max_similarity = 0
                 pattern_best = None
                 for p in patterns:
-                    accept, score = self.similarity_all(t, p)
-                    if accept is True:
+                    good = 0
+                    bad = 0
+                    if self.config.alpha == 0 and self.config.gamma == 0:
+                        for p_bet_v in list(p.bet_uniques_vectors):
+                            if t.bet_vector is not None and p_bet_v is not None:
+                                score = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(asarray(p_bet_v)))
+                                if score >= self.config.threshold_similarity:
+                                    good += 1
+                                else:
+                                    bad += 1
+
+                    if good > bad:
                         p.update_selectivity(t, self.config)
-                        if score > sim_best:
-                            sim_best = score
+                        if score > max_similarity:
+                            max_similarity = score
                             pattern_best = p
 
                 # if its above a threshold associated the pattern with it
-                if sim_best >= self.config.threshold_similarity:
-                    candidate_tuples.append((t, pattern_best, sim_best))
+                if max_similarity >= self.config.threshold_similarity:
+                    candidate_tuples.append((t, pattern_best, max_similarity))
 
             except Queue.Empty:
                 print multiprocessing.current_process(), "Queue is Empty"
@@ -622,6 +637,7 @@ class BREDS(object):
         # Eliminate clusters with two or less patterns
         new_patterns = [p for p in updated_patterns if len(p.tuples) > 5]
         pid = multiprocessing.current_process().pid
+        print multiprocessing.current_process(), "Patterns: ", len(new_patterns)
         child_conn.send((pid, new_patterns))
 
 

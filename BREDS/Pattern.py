@@ -15,9 +15,9 @@ class Pattern(object):
         self.negative = 0
         self.unknown = 0
         self.confidence = 0
-        self.bet_uniques = set()
         self.tuples = set()
-        self.tuples_vectors_uniques = set()
+        self.bet_uniques_vectors = set()
+        self.bet_uniques_words = set()
         if tuple is not None:
             self.tuples.add(t)
 
@@ -43,26 +43,14 @@ class Pattern(object):
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    # put all tuples with the same BEF, BET, and AFT vectors into a set,
-    # so that comparision is made more quickier eficicient
-    def merge_all_tuples(self):
-        # transform numpy array into a tuple so it can be hashed and added into a set
-        # represent a tuple as a python tuple(bef_vector,bet_vector,aft_vector)
-        self.tuples_vectors_uniques = set()
-        vec_bef = None
-        vec_bet = None
-        vec_aft = None
-        for t in self.tuples:
-            vec_bef = tuple(t.bef_vector)
-            vec_bet = tuple(t.bet_vector)
-            vec_aft = tuple(t.aft_vector)
-        tuple_vect = tuple((vec_bef, vec_bet, vec_aft))
-        self.tuples_vectors_uniques.add(tuple_vect)
-
+    # put all tuples with BET vectors into a set so that comparision is made more quickier eficicient
     def merge_all_tuples_bet(self):
+        self.bet_uniques_vectors = set()
+        self.bet_uniques_words = set()
         for t in self.tuples:
             # transform numpy array into a tuple so it can be hashed and added into a set
-            self.bet_uniques.add(tuple(t.bet_vector))
+            self.bet_uniques_vectors.add(tuple(t.bet_vector))
+            self.bet_uniques_words.add(t.bet_words)
 
     def update_selectivity(self, t, config):
         for s in config.positive_seed_tuples:
