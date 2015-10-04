@@ -43,7 +43,7 @@ class Pattern(object):
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    # put all tuples with BET vectors into a set so that comparision is made more quickier eficicient
+    # put all tuples with BET vectors into a set so that comparision with repeated vectors is eliminated
     def merge_all_tuples_bet(self):
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
@@ -53,18 +53,30 @@ class Pattern(object):
             self.bet_uniques_words.add(t.bet_words)
 
     def update_selectivity(self, t, config):
+        matched_both = False
+        matched_e1 = False
         for s in config.positive_seed_tuples:
             if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
+                matched_e1 = True
                 if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
                     self.positive += 1
-                else:
-                    print "Tuple:", t.e1, '\t', t.e2
-                    print "Seed :", s.e1, '\t', s.e2
-                    self.negative += 1
-            else:
-                for n in config.negative_seed_tuples:
-                    if n.e1 == t.e1 or n.e1.strip() == t.e1.strip():
-                        if n.e2 == t.e2.strip() or n.e2.strip() == t.e2.strip():
-                            self.negative += 1
-                    else:
-                        self.unknown += 1
+                    matched_both = True
+                    break
+
+        if matched_e1 is True and matched_both is False:
+            #print t.e1, '\t', t.e2, "->", t.bet_words
+            self.negative += 1
+
+        if matched_both is False:
+            for n in config.negative_seed_tuples:
+                if n.e1 == t.e1 or n.e1.strip() == t.e1.strip():
+                    if n.e2 == t.e2.strip() or n.e2.strip() == t.e2.strip():
+                        self.negative += 1
+                        matched_both = True
+                        break
+
+        # unknown
+        """
+        if matched_both is False:
+            self.unknown += 1
+        """
