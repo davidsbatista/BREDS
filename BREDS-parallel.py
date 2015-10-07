@@ -481,8 +481,6 @@ class BREDS(object):
                         """
                         print "Positive", p.positive
                         print "Negative", p.negative
-                        print "Unknown", p.unknown
-                        print "Tuples", len(p.tuples)
                         print "Pattern Confidence", p.confidence
                         print "\n"
 
