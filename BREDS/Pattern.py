@@ -75,8 +75,5 @@ class Pattern(object):
                         matched_both = True
                         break
 
-        # unknown
-        """
         if matched_both is False:
             self.unknown += 1
-        """
