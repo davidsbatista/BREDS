@@ -35,7 +35,7 @@ headquarters_unigrams = ['headquarters', 'headquartered', 'offices', 'office', '
                          'plant', 'compund']
 headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in',
                         'office in', 'branch in', 'store in', 'firm in', 'factory in', 'plant in', 'head office',
-                        'head offices', 'in central', 'in downton', 'outskirts of', 'suburs of']
+                        'head offices', 'in central', 'in downtown', 'outskirts of', 'suburs of']
 
 #TODO: melhorar esta lista, incluir mais profissões?
 employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo', 'CEO', 'employer']
