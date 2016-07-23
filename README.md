@@ -80,10 +80,9 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 
 To run a quick demo-example, which extracts locations of companies from the `sentences.txt` file issue the following command:
 
-    ./BREDS-parallel.py parameters.cfg set_b_matched.txt seeds/affiliation.txt seeds/affiliation_negative.txt 0.5 0.5 4
+    ./BREDS-single.py parameters.cfg sample.txt has-installations.txt has-installations_negative.txt 0.5 0.5
 
 The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
-
 
     instance: DynCorp       Reston  score:0.998397435897
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
@@ -98,3 +97,8 @@ The output should be a `relationships.txt`, with a list of relationships extract
     pattern_bet: , a company based in
     pattern_aft: that looks
     passive voice: False
+
+
+Note
+====
+You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
