@@ -113,7 +113,7 @@ http://www.nltk.org/
 https://radimrehurek.com/gensim/
 
 **Word2Vec Model**
-You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
+You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
 
 Notes
 =====
