@@ -11,7 +11,7 @@ David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for
 
 Usage:
 
-    BREDS-parallel.py parameters sentences positive_seeds negative_simties similarity confidance #cpus
+    BREDS.py parameters sentences positive_seeds negative_simties similarity confidence
 
 **parameters**
 
@@ -82,7 +82,7 @@ Quick Demo
 
 To run a quick demo-example, extracting the locations or headquarters of companies from `sentences.txt` issue the following command:
 
-    ./BREDS-single.py parameters.cfg sentences.txt has-installations.txt has-installations_negative.txt 0.6 0.8
+    BREDS-single.py parameters.cfg sentences.txt has-installations.txt has-installations_negative.txt 0.6 0.8
 
 The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
 
@@ -114,3 +114,7 @@ https://radimrehurek.com/gensim/
 
 **Word2Vec Model**
 You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
+
+Notes
+=====
+`BREDS-parallel.py` is a different version of the algorihtm that exploits multiple cores architectures, launching several processees to finding matching instances and generation extraction patterns.
