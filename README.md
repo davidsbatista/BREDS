@@ -99,6 +99,5 @@ The output should be a `relationships.txt`, with a list of relationships extract
     passive voice: False
 
 
-Note
-====
+**Quick Demo**
 You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
