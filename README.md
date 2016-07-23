@@ -77,6 +77,8 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
     0.8
 
 
+Quick Demo
+=============
 
 To run a quick demo-example, which extracts locations of companies from the `sentences.txt` file issue the following command:
 
@@ -98,6 +100,6 @@ The output should be a `relationships.txt`, with a list of relationships extract
     pattern_aft: that looks
     passive voice: False
 
+**Word2Vec Model**
 
-**Quick Demo**
 You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
