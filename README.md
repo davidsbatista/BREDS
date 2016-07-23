@@ -7,7 +7,7 @@ Usage:
 
 **parameters**:
 
-A sample configuration is provided in ''parameters.cfg''. The file contains values for differentes parameters:
+A sample configuration is provided in `parameters.cfg`. The file contains values for differentes parameters:
 
     max_tokens_away=6           # maximum number of tokens between the two entities
     min_tokens_away=1           # maximum number of tokens between the two entities
