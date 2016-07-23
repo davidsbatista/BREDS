@@ -7,9 +7,6 @@ This is the sofware implementation for the algorithm proposed to bootstrap relat
 David S Batista, Bruno Martins, and Mário J Silva. , `Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics <http://davidsbatista.github.io/publications/breds-emnlp_15.pdf>`_ .  In In Empirical Methods in Natural Language Processing. ACL, 2015. (Honorable Mention for Best Short Paper)
 
 
-
-
-
 Usage:
 
     BREDS-parallel.py parameters sentences positive_seeds negative_simties similarity confidance #cpus
