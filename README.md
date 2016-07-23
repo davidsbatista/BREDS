@@ -102,18 +102,21 @@ The output should be a `relationships.txt`, with a list of relationships extract
 Dependencies
 ============
 
-**Numpy**
+**Numpy**:
+
 http://www.numpy.org/
 
-**NLTK**
+**NLTK**:
+
 http://www.nltk.org/
 
-**Gensim**
+**Gensim**:
 https://radimrehurek.com/gensim/
 
-**Word2Vec Model**
+**Word2Vec Model**:
+
 You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
 
 Notes
 =====
-`BREDS-parallel.py` is a different version of the algorihtm that exploits multiple cores architectures, launching several processees to finding matching instances and generation extraction patterns.
+`BREDS-parallel.py` is a different version of the algorihtm that exploits multiple cores architectures. It launches several processees to finding instances matching the seeds and also when generating extraction patterns.
