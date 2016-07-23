@@ -1,7 +1,8 @@
 Bootstrapping Relationship Extractors with Distributional Semantics
 ===================================================================
 
-This is the sofware implementation of the algorithm to bootstrap relatioships proposed in:
+This is the sofware implementation for the algorithm proposed to bootstrap relatioships proposed in:
+
 
 David S Batista, Bruno Martins, and Mário J Silva. , `Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics <http://davidsbatista.github.io/publications/breds-emnlp_15.pdf>`_ .  In In Empirical Methods in Natural Language Processing. ACL, 2015. (Honorable Mention for Best Short Paper)
 
