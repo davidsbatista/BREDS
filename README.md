@@ -3,7 +3,7 @@ Bootstrapping Relationship Extractors with Distributional Semantics
 
 Usage:
 
-    BREDS.py parameters sentences positive_seeds negative_simties similarity confidance
+    BREDS-parallel.py parameters sentences positive_seeds negative_simties similarity confidance #cpus
 
 **parameters**:
 
@@ -67,3 +67,7 @@ The threshold similarity real value [0,1] for clustering/extracting instances, e
 The confidence threshold real value [0,1] for an instance to be used as seed, e.g.:
 
     0.8
+
+Example:
+
+    ./BREDS-parallel.py parameters.cfg set_b_matched.txt seeds/affiliation.txt seeds/affiliation_negative.txt 0.6 0.8 4
