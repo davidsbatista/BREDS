@@ -1,17 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import fileinput
 import StringIO
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
-from nltk.tokenize.punkt import PunktWordTokenizer
+
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
 
 
 class Reverb(object):
@@ -47,7 +45,7 @@ class Reverb(object):
         """
 
         # split text into tokens
-        text_tokens = PunktWordTokenizer().tokenize(text)
+        text_tokens = word_tokenize(text)
 
         # tag the sentence, using the default NTLK English tagger
         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
@@ -84,7 +82,8 @@ class Reverb(object):
                     i += 1
 
                 # W = (noun | adj | adv | pron | det)
-                while i <= limit and tags[i][1] in ['NOUN', 'ADJ', 'ADV', 'PRON', 'DET']:
+                while i <= limit and tags[i][1] in ['NOUN', 'ADJ', 'ADV',
+                                                    'PRON', 'DET']:
                     tmp.write(tags[i][0]+' ')
                     t = (tags[i][0], tags[i][1])
                     tmp_tags.append(t)
@@ -110,9 +109,10 @@ class Reverb(object):
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
         """
 
-        # The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
-        # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
-        # (e.g., has an atomic weight of).
+        # The pattern limits the relation to be a verb (e.g., invented),
+        # a verb followed immediately by a preposition (e.g., located in),
+        # or a verb followed by nouns, adjectives, or adverbs ending in a
+        # preposition (e.g., has an atomic weight of).
 
         # V | V P | V W*P
         # V = verb particle? adv?
@@ -125,7 +125,8 @@ class Reverb(object):
         limit = len(tagged_text)-1
         tags = tagged_text
 
-        verb = ['VB', 'VBD', 'VBD|VBN', 'VBG', 'VBG|NN', 'VBN', 'VBP', 'VBP|TO', 'VBZ', 'VP']
+        verb = ['VB', 'VBD', 'VBD|VBN', 'VBG', 'VBG|NN', 'VBN', 'VBP',
+                'VBP|TO', 'VBZ', 'VP']
         adverb = ['RB', 'RBR', 'RBS', 'RB|RP', 'RB|VBG', 'WRB']
         particule = ['POS', 'PRT', 'TO', 'RP']
         noun = ['NN', 'NNP', 'NNPS', 'NNS', 'NN|NNS', 'NN|SYM', 'NN|VBG', 'NP']
@@ -176,11 +177,15 @@ class Reverb(object):
                 patterns_tags.append(tmp_tags)
             i += 1
 
-        # Finally, if the pattern matches multiple adjacent sequences, we merge them into a single relation phrase
-        # (e.g.,wants to extend). This refinement enables the model to readily handle relation phrases containing
-        # multiple verbs.
+        # Finally, if the pattern matches multiple adjacent sequences, we merge
+        # them into a single relation phrase (e.g.,wants to extend).
+        #
+        # This refinement enables the model to readily handle relation phrases
+        # containing multiple verbs.
 
-        merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
+        merged_patterns_tags = [
+            item for sublist in patterns_tags for item in sublist
+            ]
         return merged_patterns_tags
 
     @staticmethod
@@ -190,9 +195,10 @@ class Reverb(object):
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
         """
 
-        # The pattern limits the relation to be a verb (e.g., invented), a verb followed immediately by
-        # a preposition (e.g., located in), or a verb followed by nouns, adjectives, or adverbs ending in a preposition
-        # (e.g., has an atomic weight of).
+        # The pattern limits the relation to be a verb (e.g., invented),
+        # a verb followed immediately by a preposition (e.g., located in),
+        # or a verb followed by nouns, adjectives, or adverbs ending in a
+        # preposition (e.g., has an atomic weight of).
 
         # V | V P | V W*P
         # V = verb particle? adv?
@@ -211,7 +217,8 @@ class Reverb(object):
         limit = len(tags_ptb)-1
         tags = tags_ptb
 
-        verb = ['VB', 'VBD', 'VBD|VBN', 'VBG', 'VBG|NN', 'VBN', 'VBP', 'VBP|TO', 'VBZ', 'VP']
+        verb = ['VB', 'VBD', 'VBD|VBN', 'VBG', 'VBG|NN', 'VBN', 'VBP',
+                'VBP|TO', 'VBZ', 'VP']
         adverb = ['RB', 'RBR', 'RBS', 'RB|RP', 'RB|VBG', 'WRB']
         particule = ['POS', 'PRT', 'TO', 'RP']
         noun = ['NN', 'NNP', 'NNPS', 'NNS', 'NN|NNS', 'NN|SYM', 'NN|VBG', 'NP']
@@ -260,36 +267,45 @@ class Reverb(object):
                 patterns_tags.append(tmp_tags)
             i += 1
 
-        # Finally, if the pattern matches multiple adjacent sequences, we merge them into a single relation phrase
-        # (e.g.,wants to extend). This refinement enables the model to readily handle relation phrases containing
-        # multiple verbs.
+        # Finally, if the pattern matches multiple adjacent sequences, we merge
+        # them into a single relation phrase (e.g.,wants to extend).
+        # This refinement enables the model to readily handle relation
+        # phrases containing multiple verbs.
 
-        merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
+        merged_patterns_tags = [
+            item for sublist in patterns_tags for item in sublist
+            ]
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
         passive_voice = False
-        #TODO: há casos mais complexos, adjectivos ou adverbios pelo meio, por exemplo:
+
+        # TODO: there more complex exceptions, adjectives or adverbs in between
         # (to be) + (adj|adv) + past_verb + by
         # to be + past verb + by
+
         if len(pattern) >= 3:
             if pattern[0][1].startswith('V'):
                 verb = self.lmtzr.lemmatize(pattern[0][0], 'v')
                 if verb in self.aux_verbs:
-                    if (pattern[1][1] == 'VBN' or pattern[1][1] == 'VBD') and pattern[-1][0] == 'by':
+                    if (pattern[1][1] == 'VBN' or pattern[1][1] == 'VBD') \
+                            and pattern[-1][0] == 'by':
                         passive_voice = True
 
                     # past verb + by
-                    elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+                    elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') \
+                            and pattern[-1][0] == 'by':
                         passive_voice = True
 
                 # past verb + by
-                elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+                elif (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') \
+                        and pattern[-1][0] == 'by':
                         passive_voice = True
 
         # past verb + by
         elif len(pattern) >= 2:
-            if (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') and pattern[-1][0] == 'by':
+            if (pattern[-2][1] == 'VBN' or pattern[-2][1] == 'VBD') \
+                    and pattern[-1][0] == 'by':
                 passive_voice = True
 
         return passive_voice

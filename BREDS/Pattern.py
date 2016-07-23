@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import uuid
+
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
-
-import uuid
 
 
 class Pattern(object):
@@ -34,21 +34,26 @@ class Pattern(object):
 
     def update_confidence(self, config):
         if self.positive > 0:
-            self.confidence = (float(self.positive) / float(self.positive +
-                                                            self.unknown * config.wUnk +
-                                                            self.negative * config.wNeg))
+            self.confidence = (
+                float(self.positive) / float(self.positive +
+                                             self.unknown * config.wUnk +
+                                             self.negative * config.wNeg
+                                             )
+            )
         elif self.positive == 0:
             self.confidence = 0
 
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    # put all tuples with BET vectors into a set so that comparision with repeated vectors is eliminated
+    # put all tuples with BET vectors into a set so that comparison
+    # with repeated vectors is eliminated
     def merge_all_tuples_bet(self):
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
         for t in self.tuples:
-            # transform numpy array into a tuple so it can be hashed and added into a set
+            # transform numpy array into a tuple
+            # so it can be hashed and added into a set
             self.bet_uniques_vectors.add(tuple(t.bet_vector))
             self.bet_uniques_words.add(t.bet_words)
 
@@ -64,7 +69,6 @@ class Pattern(object):
                     break
 
         if matched_e1 is True and matched_both is False:
-            #print t.e1, '\t', t.e2, "->", t.bet_words
             self.negative += 1
 
         if matched_both is False:

@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import fileinput
 import re
 
@@ -13,10 +10,14 @@ from gensim.models import Word2Vec
 from BREDS.Seed import Seed
 from BREDS.ReVerb import Reverb
 
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
+
 
 class Config(object):
 
-    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidance):
+    def __init__(self, config_file, positive_seeds, negative_seeds,
+                 similarity, confidence):
 
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         # select everything except stopwords, ADJ and ADV
@@ -33,15 +34,17 @@ class Config(object):
         self.stopwords = stopwords.words('english')
         self.lmtzr = WordNetLemmatizer()
         self.threshold_similarity = similarity
-        self.instance_confidance = confidance
+        self.instance_confidence = confidence
         self.reverb = Reverb()
         self.word2vec = None
         self.vec_dim = None
 
-        # simple tags, e.g.: <PER>Bill Gates</PER>
+        # simple tags, e.g.:
+        # <PER>Bill Gates</PER>
         self.regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
 
-        #linked tags e.g.: <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
+        # linked tags e.g.:
+        # <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
         self.regex_linked = re.compile('<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>', re.U)
 
         for line in fileinput.input(config_file):
@@ -121,7 +124,7 @@ class Config(object):
 
         print "\nParameters and Thresholds"
         print "threshold_similarity :", self.threshold_similarity
-        print "instance confidence  :", self.instance_confidance
+        print "instance confidence  :", self.instance_confidence
         print "min_pattern_support  :", self.min_pattern_support
         print "iterations           :", self.number_iterations
         print "iteration wUpdt      :", self.wUpdt
@@ -129,7 +132,9 @@ class Config(object):
 
     def read_word2vec(self):
         print "Loading word2vec model ...\n"
-        self.word2vec = Word2Vec.load_word2vec_format(self.word2vecmodelpath, binary=True)
+        self.word2vec = Word2Vec.load_word2vec_format(
+            self.word2vecmodelpath, binary=True
+        )
         self.vec_dim = self.word2vec.layer1_size
         print self.vec_dim, "dimensions"
 
