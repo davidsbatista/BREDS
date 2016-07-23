@@ -100,6 +100,17 @@ The output should be a `relationships.txt`, with a list of relationships extract
     pattern_aft: that looks
     passive voice: False
 
-**Word2Vec Model**
+Dependencies
+============
 
-You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
+**Numpy**
+http://www.numpy.org/
+
+**NLTK**
+http://www.nltk.org/
+
+**Gensim**
+https://radimrehurek.com/gensim/
+
+**Word2Vec Model**
+You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](http://TODO)
