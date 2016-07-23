@@ -5,14 +5,14 @@ This is the sofware implementation for the algorithm proposed in:
 
 David S Batista, Bruno Martins, and Mário J Silva. , [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics](http://davidsbatista.github.io/publications/breds-emnlp_15.pdf). In Empirical Methods in Natural Language Processing. ACL, 2015. (Honorable Mention for Best Short Paper)
 
-
+David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5)](http://davidsbatista.github.io/publications/dsbatista-phd-thesis-2016.pdf), Instituto Superior Técnico, University of Lisbon, 2016
 
 
 Usage:
 
     BREDS-parallel.py parameters sentences positive_seeds negative_simties similarity confidance #cpus
 
-**parameters**:
+**parameters**
 
 A sample configuration is provided in `parameters.cfg`. The file contains values for differentes parameters:
 
@@ -35,9 +35,9 @@ A sample configuration is provided in `parameters.cfg`. The file contains values
 
 
 
-**sentences**:
+**sentences**
 
-A text file containing sentences, one per line, with tags identifing the named entities, e.g.:
+A sample configuration is provided in `sentences.txt`, a text file containing sentences, one per line, with tags identifing the named type of named-entities, e.g.:
  
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
     <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
@@ -77,8 +77,23 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 
 
 
+To run a quick demo-example, which extracts locations of companies from the `sentences.txt` file issue the following command:
+
+    ./BREDS-parallel.py parameters.cfg set_b_matched.txt seeds/affiliation.txt seeds/affiliation_negative.txt 0.5 0.5 4
+
+The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
 
 
-Example:
+    instance: DynCorp       Reston  score:0.998397435897
+    sentence: Why ? Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
+    pattern_bef: ? Because
+    pattern_bet: , headquartered in
+    pattern_aft: , Va.
+    passive voice: False
 
-    ./BREDS-parallel.py parameters.cfg set_b_matched.txt seeds/affiliation.txt seeds/affiliation_negative.txt 0.6 0.8 4
+    instance: Handspring    Silicon Valley  score:0.998397435897
+    sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
+    pattern_bef: firms like
+    pattern_bet: , a company based in
+    pattern_aft: that looks
+    passive voice: False
