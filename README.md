@@ -80,9 +80,9 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Quick Demo
 =============
 
-To run a quick demo-example, which extracts locations of companies from the `sentences.txt` file issue the following command:
+To run a quick demo-example, extracting the locations or headquarters of companies from `sentences.txt` issue the following command:
 
-    ./BREDS-single.py parameters.cfg sample.txt has-installations.txt has-installations_negative.txt 0.5 0.5
+    ./BREDS-single.py parameters.cfg sentences.txt has-installations.txt has-installations_negative.txt 0.6 0.8
 
 The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
 
