@@ -7,8 +7,19 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 - David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5)](http://davidsbatista.github.io/publications/dsbatista-phd-thesis-2016.pdf), Instituto Superior Técnico, University of Lisbon, 2016
 
+Dependencies
+============
+
+You need to have the following libraries installed:
+
+**Numpy**: http://www.numpy.org/
+
+**NLTK**: http://www.nltk.org/
+
+**Gensim**: https://radimrehurek.com/gensim/
 
 Usage:
+=====
 
     BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
 
@@ -79,9 +90,9 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, [the one used in my experiments is available](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing). It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN.
+You need to specify a word2vec model in the `parameters.cfg` file, [the model used in my experiments is available for download](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing). It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN.
 
-A [sample file with sentences where the named-entities are already tagged](http://), which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection.
+A [sample file containing sentences where the named-entities are already tagged can also be downloaded](https://drive.google.com/open?id=0B0CbnDgKi0PyM1FEQXJRTlZtSTg), which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection.
 
 To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
 
@@ -95,25 +106,16 @@ Running the whole bootstrapp process, depending on your hardware, sentences inpu
 
 The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
 
-    instance: DynCorp       Reston  score:0.998397435897
+    instance: DynCorp       Reston  score:0.998
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
     pattern_bef: Because
     pattern_bet: , headquartered in
     pattern_aft: , Va.
     passive voice: False
 
-    instance: Handspring    Silicon Valley  score:0.998397435897
+    instance: Handspring    Silicon Valley  score:0.893
     sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
     pattern_bef: firms like
     pattern_bet: , a company based in
     pattern_aft: that looks
     passive voice: False
-
-Dependencies
-============
-
-**Numpy**: http://www.numpy.org/
-
-**NLTK**: http://www.nltk.org/
-
-**Gensim**: https://radimrehurek.com/gensim/
