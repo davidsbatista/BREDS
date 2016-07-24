@@ -79,11 +79,19 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Quick Demo
 =============
 
-To run a quick demo-example, extracting the locations or headquarters of companies from `sentences.txt` issue the following command:
+You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
+
+A sample file with sentences where the named-entities are already tagged can be download [here](TODO), which include  around 3 375 880 sentences (750MB) taken from the English Gigaword collections.
+
+Then run the following command to  extract the locations or headquarters of companies from `sentences.txt` based on the seeds given:
 
     BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
-The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
+In the first steop BREDS pre-processes the collection, generating word vector representations of relationships. Depending on your hardware this process can take long time (i.e., a few hours). You can also use a multi-core version of BREDS, specifiyng at the end how many cores you want to use:
+
+    BREDS-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8 #cpus
+
+This process takes some time depending on the size of the input and the number of iterations. The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
 
     instance: DynCorp       Reston  score:0.998397435897
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
@@ -107,9 +115,3 @@ Dependencies
 **NLTK**: http://www.nltk.org/
 
 **Gensim**: https://radimrehurek.com/gensim/
-
-**Word2Vec Model**: You also need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
-
-Notes
-=====
-`BREDS-parallel.py` is a version of the algorihtm that exploits multiple cores architectures. It launches several processees to finding instances matching the seeds and also when generating extraction patterns.
