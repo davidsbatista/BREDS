@@ -112,4 +112,4 @@ Dependencies
 
 Notes
 =====
-`BREDS-parallel.py` is a different version of the algorihtm that exploits multiple cores architectures. It launches several processees to finding instances matching the seeds and also when generating extraction patterns.
+`BREDS-parallel.py` is a version of the algorihtm that exploits multiple cores architectures. It launches several processees to finding instances matching the seeds and also when generating extraction patterns.
