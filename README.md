@@ -79,9 +79,9 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, [the one used in my experiments is available](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing). It was generated from the English Gigaword Collection.
+You need to specify a word2vec model in the `parameters.cfg` file, [the one used in my experiments is available](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing). It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN.
 
-A [sample file with sentences where the named-entities are already tagged](http://), which include around X XXX XXX sentences (XXX MB) taken from the English Gigaword collection.
+A [sample file with sentences where the named-entities are already tagged](http://), which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection.
 
 To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
 
