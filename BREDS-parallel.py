@@ -25,7 +25,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 # useful stuff for debugging
 PRINT_TUPLES = False
-PRINT_PATTERNS = True
+PRINT_PATTERNS = False
 
 
 class BREDS(object):
@@ -271,7 +271,7 @@ class BREDS(object):
             for s in self.config.positive_seed_tuples:
                 print s.e1, '\t', s.e2
 
-            # Looks for sentences macthing the seed instances
+            # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
 
             if len(matched_tuples) == 0:
@@ -346,8 +346,7 @@ class BREDS(object):
 
                     count = 0
                     for c in chunks:
-                        print "CPU_"+str(count), len(c), \
-                            "Patterns", len(patterns[count])
+                        print "CPU_"+str(count), "  ", len(c), "patterns"
                         count += 1
 
                     pipes = [
@@ -389,21 +388,21 @@ class BREDS(object):
                     for proc in processes:
                         proc.join()
 
-                    print "\n SELF Patterns:"
+                    print "\nSELF Patterns:"
                     for p in self.patterns:
                         p.merge_all_tuples_bet()
                         print '\n'+str(p.id)
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in p.bet_uniques_words:
-                                print "BET", bet_words
+                                print "BET", bet_words.encode("utf8")
 
-                    print "\n Child Patterns:"
+                    print "\nChild Patterns:"
                     for p in child_patterns:
                         p.merge_all_tuples_bet()
                         print '\n'+str(p.id)
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in p.bet_uniques_words:
-                                print "BET", bet_words
+                                print "BET", bet_words.encode("utf8")
 
                     print len(child_patterns), "new created patterns"
 
@@ -448,7 +447,7 @@ class BREDS(object):
                 print "\n", len(self.patterns), "patterns generated"
 
                 # merge equal tuples inside patterns to make
-                # less comparisions in collecting instances
+                # less comparisons in collecting instances
                 for p in self.patterns:
                     # if only the BET context is being used,
                     # merge only based on BET contexts
@@ -657,9 +656,10 @@ class BREDS(object):
             try:
                 t = instances.get_nowait()
                 if instances.qsize() % 500 == 0:
-                    sys.stdout.write(str(multiprocessing.current_process()) +
-                                     " Instances to process: " +
-                                     str(instances.qsize())+'\n')
+                    sys.stdout.write(
+                        str(multiprocessing.current_process()) +
+                        " Instances to process: " +
+                        str(instances.qsize())+'\n')
                     sys.stdout.flush()
 
                 # measure similarity towards every extraction pattern
