@@ -87,7 +87,7 @@ To extract the locations or headquarters of companies from `sentences.txt` based
 
     BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
-In the first steop BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can re-run the experiment with the new seeds without having to repeat the process of analysing every sentence. 
+In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can re-run the experiment with the different seed examples without having to repeat the process of generating word vectors representations for each sentence. 
 
 Depending on your hardware this process can take long time (i.e., a few hours). You can also use a multi-core version of BREDS, specifiyng at the end how many cores you want to use:
 
