@@ -7,6 +7,14 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 - David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5)](http://davidsbatista.github.io/publications/dsbatista-phd-thesis-2016.pdf), Instituto Superior Técnico, University of Lisbon, 2016
 
+Dependencies
+============
+
+**Numpy**: http://www.numpy.org/
+
+**NLTK**: http://www.nltk.org/
+
+**Gensim**: https://radimrehurek.com/gensim/
 
 Usage:
 
@@ -108,12 +116,3 @@ The output should be in a `relationships.txt` file. The file contains a list of 
     pattern_bet: , a company based in
     pattern_aft: that looks
     passive voice: False
-
-Dependencies
-============
-
-**Numpy**: http://www.numpy.org/
-
-**NLTK**: http://www.nltk.org/
-
-**Gensim**: https://radimrehurek.com/gensim/
