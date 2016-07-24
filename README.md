@@ -10,7 +10,7 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 Usage:
 
-    BREDS.py parameters sentences positive_seeds negative_simties similarity confidence
+    BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
 
 **parameters**
 
