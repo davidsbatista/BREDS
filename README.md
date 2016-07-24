@@ -17,6 +17,7 @@ Dependencies
 **Gensim**: https://radimrehurek.com/gensim/
 
 Usage:
+=====
 
     BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
 
