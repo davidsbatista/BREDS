@@ -1,4 +1,5 @@
 e1:ORG
 e2:LOC
 
-#United Nations;New York
+Daiwa Bank Holdings Inc.;Osaka
+Adelphia;Coudersport

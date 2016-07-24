@@ -1,7 +1,8 @@
 e1:ORG
 e2:LOC
 
-#Siemens;Munich
-UEFA;Nyon
-Arco;Los Angeles
-#Nokia;Espoo
+Citibank;Athens
+Nokia;Espoo
+Motorola;Schaumburg
+Pfizer;New York
+Microsoft;Redmond
