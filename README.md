@@ -76,8 +76,8 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
     0.8
 
 
-Quick Demo
-=============
+Demo
+====
 
 You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
 
@@ -87,7 +87,9 @@ Then run the following command to  extract the locations or headquarters of comp
 
     BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
-In the first steop BREDS pre-processes the collection, generating word vector representations of relationships. Depending on your hardware this process can take long time (i.e., a few hours). You can also use a multi-core version of BREDS, specifiyng at the end how many cores you want to use:
+In the first steop BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can re-run the experiment with the new seeds without having to repeat the process of analysing every sentence. 
+
+Depending on your hardware this process can take long time (i.e., a few hours). You can also use a multi-core version of BREDS, specifiyng at the end how many cores you want to use:
 
     BREDS-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8 #cpus
 
