@@ -29,13 +29,13 @@ PRINT_PATTERNS = False
 class BREDS(object):
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity,
-                 confidance):
+                 confidence):
         self.curr_iteration = 0
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds,
-                             similarity, confidance)
+                             similarity, confidence)
 
     def generate_tuples(self, sentences_file):
         """

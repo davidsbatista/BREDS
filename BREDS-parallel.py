@@ -617,9 +617,9 @@ class BREDS(object):
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | conf(T) > instance_confidence }
                 print "Adding tuples to seed with confidence >=" + \
-                      str(self.config.instance_confidance)
+                      str(self.config.instance_confidence)
                 for t in self.candidate_tuples.keys():
-                    if t.confidence >= self.config.instance_confidance:
+                    if t.confidence >= self.config.instance_confidence:
                         seed = Seed(t.e1, t.e2)
                         self.config.positive_seed_tuples.add(seed)
 
@@ -738,7 +738,7 @@ class BREDS(object):
 def main():
     if len(sys.argv) != 8:
         print "\nBREDS.py paramters.cfg sentences_file positive_seeds " \
-              "negative_seeds similarity_threshold confidance_threshold " \
+              "negative_seeds similarity_threshold confidence_threshold " \
               "#cpus_to_use\n"
         sys.exit(0)
     else:
