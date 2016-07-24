@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import cPickle
 import os
 import codecs
@@ -16,6 +13,9 @@ from os import listdir
 from os.path import isfile, join
 from Sentence import Sentence
 
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
+
 MAX_TOKENS_AWAY = 6
 MIN_TOKENS_AWAY = 1
 CONTEXT_WINDOW = 2
@@ -25,8 +25,10 @@ manager = multiprocessing.Manager()
 
 def load_relationships(directory):
     entities = dict()
-    onlyfiles = [data_file for data_file in listdir(directory) if isfile(join(directory, data_file))]
-    for data_file in onlyfiles:
+    only_files = [data_file for data_file in
+                  listdir(directory) if isfile(join(directory, data_file))]
+
+    for data_file in only_files:
         print "Processing", directory+data_file
         count = 0
 
@@ -37,12 +39,14 @@ def load_relationships(directory):
                     continue
                 try:
                     e1, r, e2, t = line.split()
-                    e1 = e1.replace('http://dbpedia.org/resource/', '').replace('<', '').replace('>', '').strip()
-                    r = e2.replace('http://dbpedia.org/resource/', '').replace('<', '').replace('>', '')
-                    e2 = r.replace('http://dbpedia.org/ontology/', '').replace('<', '').replace('>', '').strip()
+                    e1 = e1.replace('http://dbpedia.org/resource/', '').\
+                        replace('<', '').replace('>', '').strip()
+                    r = e2.replace('http://dbpedia.org/resource/', '').\
+                        replace('<', '').replace('>', '')
+                    e2 = r.replace('http://dbpedia.org/ontology/', '').\
+                        replace('<', '').replace('>', '').strip()
                     entities[e1] = 'dummy'
                     entities[e2] = 'dummy'
-                    # TODO: limpar "_" e ","
                     count += 1
                     if count % 100000 == 0:
                         print count, "processed"
@@ -59,7 +63,6 @@ def load_relationships(directory):
                     continue
                 try:
                     e1, r, e2 = line.split('\t')
-                    # TODO: freebase limpar "Inc."
                     entities[e1.strip()] = 'dummy'
                     entities[e2.strip()] = 'dummy'
                     count += 1
@@ -78,10 +81,10 @@ def load_relationships(directory):
                     continue
                 try:
                     e1, r, e2 = line.split('\t')
-                    # TODO: freebase limpar "Inc.", "_", ",", "("
                     e1 = e1.replace('<', '').replace('>', '').strip()
                     r = r.replace('<', '').replace('>', '')
-                    e2 = e2.split(" ")[0].replace('<', '').replace('>', '').strip()
+                    e2 = e2.split(" ")[0].replace('<', '').\
+                        replace('>', '').strip()
                     entities[e1] = 'dummy'
                     entities[e2] = 'dummy'
                     count += 1
@@ -117,9 +120,11 @@ def get_sentences(sentences, entities, child_conn):
             sentence = sentences.get_nowait()
             discard = False
             count += 1
-            s = Sentence(sentence.strip(), MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+            s = Sentence(sentence.strip(), MAX_TOKENS_AWAY, MIN_TOKENS_AWAY,
+                         CONTEXT_WINDOW)
             for r in s.relationships:
-                if r.between == " , " or r.between == " ( " or r.between == " ) ":
+                if r.between == " , " or r.between == " ( " \
+                        or r.between == " ) ":
                     discard = True
                     break
                 elif r.e1 not in entities or r.e2 not in entities:
@@ -136,7 +141,8 @@ def get_sentences(sentences, entities, child_conn):
                 discarded.append(sentence)
 
             if count % 50000 == 0:
-                print multiprocessing.current_process(), "queue size", sentences.qsize()
+                print multiprocessing.current_process(), "queue size", \
+                    sentences.qsize()
 
         except Queue.Empty:
             print multiprocessing.current_process(), "Queue is Empty"
@@ -169,14 +175,17 @@ def main():
         print sentences.qsize(), " sentences loaded"
 
     print "Selecting sentences with entities in the KB"
-    # launch different processes, each reads a sentence from AFP/APW news corpora
-    # transform sentence into relationships, if both entities in relationship occur in DB sentence is selected
+
+    # launch different processes, each reads a sentence and extracts
+    # relationships, if both entities in the relationship occur in the KB
     num_cpus = multiprocessing.cpu_count()
     entities_shr_dict = manager.dict(entities)
     print len(entities_shr_dict), " entities loaded"
 
     pipes = [multiprocessing.Pipe(False) for _ in range(num_cpus)]
-    processes = [multiprocessing.Process(target=get_sentences, args=(sentences, entities_shr_dict, pipes[i][1]))
+    processes = [multiprocessing.Process(
+        target=get_sentences,
+        args=(sentences, entities_shr_dict, pipes[i][1]))
                  for i in range(num_cpus)]
 
     print "Running", len(processes), " processes"

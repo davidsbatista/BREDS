@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import functools
 import os
 import sys
@@ -18,7 +15,11 @@ from whoosh.query import *
 from nltk.corpus import stopwords
 from Sentence import Sentence
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
+
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'",
+              ":", ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 

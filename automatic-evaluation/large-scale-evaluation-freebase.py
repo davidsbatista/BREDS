@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 import jellyfish
-
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import fileinput
 import functools
 import multiprocessing
@@ -23,25 +20,32 @@ from nltk import word_tokenize, bigrams
 from nltk.corpus import stopwords
 from collections import defaultdict
 
-# relational words to be used in calculating the set C and D aplpying the  with the proximity PMI
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
 
-founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded', 'cofounded', 'founded', 'founders']
+# relational words used in calculating the set C and D with the proximity PMI
+
+founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded',
+                    'cofounded', 'founded', 'founders']
 founded_bigrams = ['started by']
 
 acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
 acquired_bigrams = []
 
-headquarters_unigrams = ['headquarters', 'headquartered', 'offices', 'office', 'building', 'buildings', 'factory',
-                         'plant', 'compund']
-headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices', 'offices in', 'building in',
-                        'office in', 'branch in', 'store in', 'firm in', 'factory in', 'plant in', 'head office',
-                        'head offices', 'in central', 'in downtown', 'outskirts of', 'suburs of']
+headquarters_unigrams = ['headquarters', 'headquartered', 'offices', 'office',
+                         'building', 'buildings', 'factory', 'plant', 'compound']
+headquarters_bigrams = ['based in', 'located in', 'main office', ' main offices',
+                        'offices in', 'building in','office in', 'branch in',
+                        'store in', 'firm in', 'factory in', 'plant in',
+                        'head office', 'head offices', 'in central',
+                        'in downtown', 'outskirts of', 'suburs of']
 
-#TODO: melhorar esta lista, incluir mais profissões?
-employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo', 'CEO', 'employer']
+employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo',
+                       'CEO', 'employer']
 employment_bigrams = []
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":",
+              ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 
@@ -62,7 +66,8 @@ all_in_database = manager.dict()
 
 
 class ExtractedFact(object):
-    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence, _passive_voice):
+    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence,
+                 _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
         self.score = _score
@@ -81,14 +86,19 @@ class ExtractedFact(object):
                 return 0
 
     def __hash__(self):
-        sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words) ^ \
-            hash(self.score) ^ hash(self.sentence)
+        sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ \
+              hash(self.bet_words) ^ hash(self.aft_words) ^ \
+              hash(self.score) ^ hash(self.sentence)
         return sig
 
     def __eq__(self, other):
-        if self.ent1 == other.ent1 and self.ent2 == other.ent2 and self.score == other.score and self.bef_words == \
-                other.bef_words and self.bet_words == other.bet_words and self.aft_words == other.aft_words \
-                and self.sentence == other.sentence:
+        if self.ent1 == other.ent1 and \
+           self.ent2 == other.ent2 and \
+           self.score == other.score and \
+           self.bef_words == other.bef_words and \
+           self.bet_words == other.bet_words and \
+           self.aft_words == other.aft_words and \
+           self.sentence == other.sentence:
             return True
         else:
             return False
@@ -124,9 +134,11 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
     while True:
         try:
             if count % 25000 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize(), "Total added: ", added
+                print multiprocessing.current_process(), \
+                    "In Queue", queue.qsize(), "Total added: ", added
             line = queue.get_nowait()
-            s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+            s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY,
+                         MIN_TOKENS_AWAY, CONTEXT_WINDOW)
             for r in s.relationships:
                 tokens = word_tokenize(r.between)
                 if all(x in not_valid for x in word_tokenize(r.between)):
@@ -176,13 +188,18 @@ def process_output(data, threshold, rel_type):
                 bef = ''
             if 'aft' not in locals():
                 aft = ''
-            if passive_voice is True and rel_type in ['acquired', 'headquarters']:
-                r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
+            if passive_voice is True and rel_type in ['acquired',
+                                                      'headquarters']:
+                r = ExtractedFact(e2, e1, float(score), bef, bet, aft,
+                                  sentence, passive_voice)
             else:
-                r = ExtractedFact(e1, e2, float(score), bef, bet, aft, sentence, passive_voice)
+                r = ExtractedFact(e1, e2, float(score), bef, bet, aft,
+                                  sentence, passive_voice)
 
-            if ("'s parent" in bet or 'subsidiary of' in bet or bet == 'subsidiary') and rel_type == 'acquired':
-                r = ExtractedFact(e2, e1, float(score), bef, bet, aft, sentence, passive_voice)
+            if ("'s parent" in bet or 'subsidiary of' in bet or
+                bet == 'subsidiary') and rel_type == 'acquired':
+                r = ExtractedFact(e2, e1, float(score), bef, bet, aft,
+                                  sentence, passive_voice)
             system_output.append(r)
 
     fileinput.close()
@@ -212,8 +229,10 @@ def process_freebase(data, rel_type):
     # regex used to clean entities
     numbered = re.compile(r'#[0-9]+$')
 
-    # for the 'founder' relationships don't load those from freebase, as it lists countries as founders and not persons
-    founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union', 'United Nations']
+    # for the 'founder' relationships don't load those from freebase, as it
+    # lists countries (i.e., LOC entities) as founders and not persons
+    founder_to_ignore = ['UNESCO', 'World Trade Organization', 'European Union',
+                         'United Nations']
 
     for line in fileinput.input(data):
         if line.startswith('#'):
@@ -225,7 +244,7 @@ def process_freebase(data, rel_type):
             print line.split('\t')
             sys.exit()
 
-        # ignore some entities, which are Freebase identifiers or which are ambigious
+        # ignore some entities, which are Freebase identifiers or are ambigious
         if e1.startswith('/') or e2.startswith('/'):
             continue
         if e1.startswith('m/') or e2.startswith('m/'):
@@ -308,7 +327,8 @@ def extract_bigrams(text):
 # Estimations of sets and intersections #
 # ########################################
 @timecall
-def calculate_a(not_in_database, e1_type, e2_type, index, rel_words_unigrams, rel_words_bigrams):
+def calculate_a(not_in_database, e1_type, e2_type, index, rel_words_unigrams,
+                rel_words_bigrams):
     m = multiprocessing.Manager()
     queue = m.Queue()
     num_cpus = multiprocessing.cpu_count()
@@ -318,9 +338,11 @@ def calculate_a(not_in_database, e1_type, e2_type, index, rel_words_unigrams, re
     for r in not_in_database:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=proximity_pmi_a, args=(e1_type, e2_type, queue, index, results[i],
-                                                                       not_found[i], rel_words_unigrams,
-                                                                       rel_words_bigrams)) for i in range(num_cpus)]
+    processes = [multiprocessing.Process(
+        target=proximity_pmi_a,
+        args=(e1_type, e2_type, queue, index, results[i], not_found[i],
+              rel_words_unigrams, rel_words_bigrams)) for i in range(num_cpus)]
+
     for proc in processes:
         proc.start()
     for proc in processes:
@@ -350,9 +372,10 @@ def calculate_b(output, database_1, database_2, database_3, e1_type, e2_type):
     for r in output:
         queue.put(r)
 
-    processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i], database_1,
-                                                                                database_2, database_3, queue,
-                                                                                e1_type, e2_type))
+    processes = [multiprocessing.Process(
+        target=string_matching_parallel,
+        args=(results[i], no_matches[i], database_1, database_2, database_3,
+              queue, e1_type, e2_type))
                  for i in range(num_cpus)]
 
     for proc in processes:
@@ -373,12 +396,14 @@ def calculate_b(output, database_1, database_2, database_3, e1_type, e2_type):
 
 
 @timecall
-def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type, rel_words_unigrams,
-                rel_words_bigrams):
+def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
+                rel_type, rel_words_unigrams, rel_words_bigrams):
 
-    # contains the database facts described in the corpus but not extracted by the system
+    # contains the database facts described in the corpus
+    # but not extracted by the system
     #
-    # G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
+    # G' = superset of G, cartesian product of all possible entities and
+    # relations (i.e., G' = E x R x E)
     # for now, all relationships from a sentence
     print "Building G', a superset of G"
     m = multiprocessing.Manager()
@@ -392,7 +417,8 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     # if it exists load into g_dash_set
     if os.path.isfile("superset_" + e1_type + "_" + e2_type + ".pkl"):
         f = open("superset_" + e1_type + "_" + e2_type + ".pkl")
-        print "\nLoading superset G'", "superset_" + e1_type + "_" + e2_type + ".pkl"
+        print "\nLoading superset G'", "superset_" + e1_type + "_" + \
+                                       e2_type + ".pkl"
         g_dash_set = cPickle.load(f)
         f.close()
 
@@ -410,10 +436,13 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 count += 1
         print "\nQueue size:", queue.qsize()
 
-        processes = [multiprocessing.Process(target=process_corpus, args=(queue, g_dash, e1_type, e2_type))
+        processes = [multiprocessing.Process(
+            target=process_corpus,
+            args=(queue, g_dash, e1_type, e2_type))
                      for _ in range(num_cpus)]
 
-        print "Extracting all possible " + e1_type + "," + e2_type + " relationships from the corpus"
+        print "Extracting all possible " + e1_type + "," + e2_type + \
+              " relationships from the corpus"
         print "Running", len(processes), "threads"
 
         for proc in processes:
@@ -432,7 +461,8 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
     # Estimate G \in D, look for facts in G' that a match a fact in the database
     # check if already exists for this particular relationship
-    if os.path.isfile(rel_type + "_g_intersection_d.pkl") and os.path.isfile(rel_type + "_g_minus_d.pkl"):
+    if os.path.isfile(rel_type + "_g_intersection_d.pkl") and \
+            os.path.isfile(rel_type + "_g_minus_d.pkl"):
         f = open(rel_type + "_g_intersection_d.pkl", "r")
         print "\nLoading G intersected with D", rel_type + "_g_intersection_d.pkl"
         g_intersect_d = cPickle.load(f)
@@ -460,10 +490,10 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for r in g_dash_set:
             queue.put(r)
 
-        processes = [multiprocessing.Process(target=string_matching_parallel, args=(results[i], no_matches[i],
-                                                                                    database_1, database_2,
-                                                                                    database_3, queue, e1_type,
-                                                                                    e2_type))
+        processes = [multiprocessing.Process(
+            target=string_matching_parallel,
+            args=(results[i], no_matches[i],
+                  database_1, database_2, database_3, queue, e1_type, e2_type))
                      for i in range(num_cpus)]
 
         for proc in processes:
@@ -478,7 +508,8 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for l in no_matches:
             g_minus_d.update(l)
 
-        print "Extra filtering: from the intersection of G' with D, select only those based on keywords"
+        print "Extra filtering: from the intersection of G' with D, " \
+              "select only those based on keywords"
         print len(g_intersect_d)
         filtered = set()
         for r in g_intersect_d:
@@ -499,14 +530,16 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 filtered.add(r)
                 continue
         g_intersect_d = filtered
-        print len(g_intersect_d), "relationships in the corpus which are in the KB"
+        print len(g_intersect_d), "relationships in the corpus " \
+                                  "which are in the KB"
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
             f = open(rel_type + "_g_intersection_d.pkl", "wb")
             cPickle.dump(g_intersect_d, f)
             f.close()
 
-        print "Extra filtering: from the G' not in D, select only those based on keywords"
+        print "Extra filtering: from the G' not in D, select only " \
+              "those based on keywords"
         filtered = set()
         for r in g_minus_d:
             unigrams_bet = word_tokenize(r.between)
@@ -540,19 +573,24 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
 
 
 @timecall
-def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams):
-    # contains facts described in the corpus that are not in the system output nor in the database
+def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type,
+                rel_words_unigrams, rel_words_bigrams):
+
+    # contains facts described in the corpus that are not
+    # in the system output nor in the database
     #
     # by applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
     #
     # |G' \ D|
-    # determine facts not in the database, with high PMI, that is, facts that are true and are not in the database
+    # determine facts not in the database, with high PMI, that is,
+    # facts that are true and are not in the database
 
     # check if it was already calculated and stored in disk
     if os.path.isfile(rel_type + "_high_pmi_not_in_database.pkl"):
         f = open(rel_type + "_high_pmi_not_in_database.pkl")
-        print "\nLoading high PMI facts not in the database", rel_type + "_high_pmi_not_in_database.pkl"
+        print "\nLoading high PMI facts not in the database", \
+            rel_type + "_high_pmi_not_in_database.pkl"
         g_minus_d = cPickle.load(f)
         f.close()
 
@@ -566,10 +604,12 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigr
             queue.put(r)
 
         # calculate PMI for r not in database
-        processes = [multiprocessing.Process(target=proximity_pmi_rel_word, args=(e1_type, e2_type, queue, index,
-                                                                                  results[i], rel_words_unigrams,
-                                                                                  rel_words_bigrams))
+        processes = [multiprocessing.Process(
+            target=proximity_pmi_rel_word,
+            args=(e1_type, e2_type, queue, index,
+                  results[i], rel_words_unigrams, rel_words_bigrams))
                      for i in range(num_cpus)]
+
         for proc in processes:
             proc.start()
 
@@ -585,7 +625,8 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigr
         # dump high PMI facts not in the database
         if len(g_minus_d) > 0:
             f = open(rel_type + "_high_pmi_not_in_database.pkl", "wb")
-            print "Dumping high PMI facts not in the database to", rel_type + "_high_pmi_not_in_database.pkl"
+            print "Dumping high PMI facts not in the database to", \
+                rel_type + "_high_pmi_not_in_database.pkl"
             cPickle.dump(g_minus_d, f)
             f.close()
 
@@ -593,9 +634,10 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigr
 
 
 ########################################################################
-# Paralelized functions: each function will run as a different process #
+# Parallelized functions: each function will run as a different process #
 ########################################################################
-def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_unigrams, rel_words_bigrams):
+def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results,
+                           rel_words_unigrams, rel_words_bigrams):
     idx = open_dir(index)
     count = 0
     distance = MAX_TOKENS_AWAY
@@ -605,7 +647,8 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
             try:
                 r = queue.get_nowait()
                 if count % 50 == 0:
-                    print "\n", multiprocessing.current_process(), "In Queue", queue.qsize(), \
+                    print "\n", multiprocessing.current_process(), \
+                        "In Queue", queue.qsize(), \
                         "Total Matched: ", len(results)
                 if (r.ent1, r.ent2) not in all_in_database:
                     # if its not in the database calculate the PMI
@@ -615,43 +658,42 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                     t3 = query.Term('sentence', entity2)
 
                     # Entities proximity query without relational words
-                    q1 = spans.SpanNear2([t1, t3], slop=distance, ordered=True, mindist=1)
+                    q1 = spans.SpanNear2(
+                        [t1, t3], slop=distance,
+                        ordered=True, mindist=1)
                     hits = searcher.search(q1, limit=q_limit)
 
                     # Entities proximity considering relational words
-                    # From the results above count how many contain a relational word
-                    #print entity1, '\t', entity2, len(hits), "\n"
+                    # From the results above count how many contain a
+                    # valid relational word
+
                     hits_with_r = 0
                     hits_without_r = 0
                     for s in hits:
                         sentence = s.get("sentence")
-                        s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+                        s = Sentence(sentence, e1_type, e2_type,
+                                     MAX_TOKENS_AWAY, MIN_TOKENS_AWAY,
+                                     CONTEXT_WINDOW)
+
                         for s_r in s.relationships:
-                            if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
+                            if r.ent1.decode("utf8") == s_r.ent1 and \
+                                            r.ent2.decode("utf8") == s_r.ent2:
+
                                 unigrams_rel_words = word_tokenize(s_r.between)
                                 bigrams_rel_words = extract_bigrams(s_r.between)
-                                if all(x in not_valid for x in unigrams_rel_words):
+
+                                if all(x in not_valid
+                                       for x in unigrams_rel_words):
                                     hits_without_r += 1
                                     continue
-                                elif any(x in rel_words_unigrams for x in unigrams_rel_words):
-                                    """
-                                    print "UNIGRAMS HIT"
-                                    print s_r.sentence
-                                    print s_r.ent1
-                                    print s_r.ent2
-                                    print s_r.between
-                                    print "\n"
-                                    """
+                                elif any(x in rel_words_unigrams for x in
+                                         unigrams_rel_words):
+
                                     hits_with_r += 1
-                                elif any(x in rel_words_bigrams for x in bigrams_rel_words):
-                                    """
-                                    print "BIGRAMS HIT"
-                                    print s_r.sentence
-                                    print s_r.ent1
-                                    print s_r.ent2
-                                    print s_r.between
-                                    print "\n"
-                                    """
+
+                                elif any(x in rel_words_bigrams
+                                         for x in bigrams_rel_words):
+
                                     hits_with_r += 1
                                 else:
                                     hits_without_r += 1
@@ -664,20 +706,14 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results, rel_words_un
                                 s_r.ent2 = s_r.ent1
                                 s_r.ent1 = tmp
                             results.append(r)
-                            """
-                            print "**ADDED**:", entity1, '\t', entity2
-                            print "hits_without_r ", float(hits_without_r)
-                            print "hits_with_r ", float(hits_with_r)
-                            print "PMI", pmi
-                            print
-                            """
+
                 count += 1
             except Queue.Empty:
                 break
 
 
-#TODO: this can be improved, lookt at failed matches to understand what is missing, e2_type not used?
-def string_matching_parallel(matches, no_matches, database_1, database_2, database_3, queue, e1_type, e2_type):
+def string_matching_parallel(matches, no_matches, database_1, database_2,
+                             database_3, queue, e1_type, e2_type):
     count = 0
     while True:
         try:
@@ -685,7 +721,8 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
             found = False
             count += 1
             if count % 500 == 0:
-                print multiprocessing.current_process(), "In Queue", queue.qsize()
+                print multiprocessing.current_process(), \
+                    "In Queue", queue.qsize()
 
             # check if its in cache, i.e., if tuple was already matched
             if (r.ent1, r.ent2) in all_in_database:
@@ -694,14 +731,15 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
 
             # check for a relationship with a direct string matching
             if found is False:
-                if len(database_1[(r.ent1.decode("utf8"), r.ent2.decode("utf8"))]) > 0:
+                if len(database_1[(r.ent1.decode("utf8"),
+                                   r.ent2.decode("utf8"))]) > 0:
                     matches.append(r)
                     all_in_database[(r.ent1, r.ent2)] = "Found"
                     found = True
 
             if found is False:
                 # database_2: arg_1 rel list(arg_2)
-                # check for a direct string matching with all possible arg2 entities
+                # check for a direct string matching with all possible arg2
                 # FOUNDER   : r.ent1:ORG   r.ent2:PER
                 # DATABASE_1: (ORG,PER)
                 # DATABASE_2: ORG   list<PER>
@@ -714,8 +752,8 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                         all_in_database[(r.ent1, r.ent2)] = "Found"
                         found = True
 
-            # if a direct string matching occur with arg_2, check for a direct string matching
-            # with all possible arg1 entities
+            # if a direct string matching occur with arg_2, check for a
+            # direct string matching with all possible arg1 entities
             if found is False:
                 arg1_list = database_3[r.ent2]
                 if arg1_list is not None:
@@ -728,7 +766,11 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                         # Jaccardi
                         set_1 = set(new_arg1.split())
                         set_2 = set(r.ent1.split())
-                        jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+
+                        jaccardi = \
+                            float(len(set_1.intersection(set_2))) / \
+                            float(len(set_1.union(set_2)))
+
                         if jaccardi >= 0.5:
                             matches.append(r)
                             all_in_database[(r.ent1, r.ent2)] = "Found"
@@ -736,13 +778,16 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
 
                         # Jaro Winkler
                         elif jaccardi <= 0.5:
-                            score = jellyfish.jaro_winkler(new_arg1.upper(), r.ent1.upper())
+                            score = jellyfish.jaro_winkler(
+                                new_arg1.upper(), r.ent1.upper()
+                            )
                             if score >= 0.9:
                                 matches.append(r)
                                 all_in_database[(r.ent1, r.ent2)] = "Found"
                                 found = True
 
-            # if a direct string matching occur with arg_1, check for a direct string matching
+            # if a direct string matching occur with arg_1,
+            # check for a direct string matching
             # with all possible arg_2 entities
             if found is False:
                 arg2_list = database_2[r.ent1]
@@ -755,7 +800,10 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
                             new_arg2 = arg2
                         set_1 = set(new_arg2.split())
                         set_2 = set(r.ent2.split())
-                        jaccardi = float(len(set_1.intersection(set_2))) / float(len(set_1.union(set_2)))
+                        jaccardi = \
+                            float(len(set_1.intersection(set_2))) / \
+                            float(len(set_1.union(set_2)))
+
                         if jaccardi >= 0.5:
                             matches.append(r)
                             all_in_database[(r.ent1, r.ent2)] = "Found"
@@ -763,7 +811,9 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
 
                         # Jaro Winkler
                         elif jaccardi <= 0.5:
-                            score = jellyfish.jaro_winkler(new_arg2.upper(), r.ent2.upper())
+                            score = jellyfish.jaro_winkler(
+                                new_arg2.upper(), r.ent2.upper()
+                            )
                             if score >= 0.9:
                                 matches.append(r)
                                 all_in_database[(r.ent1, r.ent2)] = "Found"
@@ -778,7 +828,8 @@ def string_matching_parallel(matches, no_matches, database_1, database_2, databa
             break
 
 
-def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_words_unigrams, rel_words_bigrams):
+def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found,
+                    rel_words_unigrams, rel_words_bigrams):
     idx = open_dir(index)
     count = 0
     q_limit = 500
@@ -788,7 +839,9 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                 r = queue.get_nowait()
                 count += 1
                 if count % 50 == 0:
-                    print multiprocessing.current_process(), "To Process", queue.qsize(), "Correct found:", len(results)
+                    print multiprocessing.current_process(), \
+                        "To Process", queue.qsize(), \
+                        "Correct found:", len(results)
 
                 # if its not in the database calculate the PMI
                 entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
@@ -796,50 +849,48 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                 t1 = query.Term('sentence', entity1)
                 t3 = query.Term('sentence', entity2)
 
-                # First count the proximity (MAX_TOKENS_AWAY) occurrences of entities r.e1 and r.e2
-                q1 = spans.SpanNear2([t1, t3], slop=MAX_TOKENS_AWAY, ordered=True, mindist=1)
+                # First count the proximity (MAX_TOKENS_AWAY) occurrences
+                # of entities r.e1 and r.e2
+                q1 = spans.SpanNear2([t1, t3],
+                                     slop=MAX_TOKENS_AWAY,
+                                     ordered=True,
+                                     mindist=1)
                 hits = searcher.search(q1, limit=q_limit)
 
                 # Entities proximity considering relational words
-                # From the results above count how many contain a relational word
-                #print entity1, '\t', entity2, len(hits), "\n"
+                # From the results above count how many contain a
+                # valid relational word
                 hits_with_r = 0
                 hits_without_r = 0
                 fact_bet_words_tokens = word_tokenize(r.bet_words)
                 for s in hits:
                     sentence = s.get("sentence")
-                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+                    s = Sentence(sentence, e1_type, e2_type, MAX_TOKENS_AWAY,
+                                 MIN_TOKENS_AWAY, CONTEXT_WINDOW)
                     for s_r in s.relationships:
-                        if r.ent1.decode("utf8") == s_r.ent1 and r.ent2.decode("utf8") == s_r.ent2:
+                        if r.ent1.decode("utf8") == s_r.ent1 and \
+                                        r.ent2.decode("utf8") == s_r.ent2:
                             unigrams_bef_words = word_tokenize(s_r.before)
                             unigrams_bet_words = word_tokenize(s_r.between)
                             unigrams_aft_words = word_tokenize(s_r.after)
                             bigrams_rel_words = extract_bigrams(s_r.between)
 
-                            """
-                            print "BEF", s_r.before, unigrams_bef_words
-                            print "BET", s_r.between,  unigrams_bet_words, bigrams_rel_words
-                            print "AFT", s_r.after, unigrams_aft_words
-                            """
-
                             if fact_bet_words_tokens == unigrams_bet_words:
-                                #print "****HIT**** 2"
                                 hits_with_r += 1
 
-                            elif any(x in rel_words_unigrams for x in unigrams_bef_words):
-                                #print "****HIT**** 4"
+                            elif any(x in rel_words_unigrams
+                                     for x in unigrams_bef_words):
                                 hits_with_r += 1
 
-                            elif any(x in rel_words_unigrams for x in unigrams_bet_words):
-                                #print "****HIT**** 5"
+                            elif any(x in rel_words_unigrams
+                                     for x in unigrams_bet_words):
                                 hits_with_r += 1
 
-                            elif any(x in rel_words_unigrams for x in unigrams_aft_words):
-                                #print "****HIT**** 6"
+                            elif any(x in rel_words_unigrams
+                                     for x in unigrams_aft_words):
                                 hits_with_r += 1
 
                             elif rel_words_bigrams == bigrams_rel_words:
-                                #print "****HIT**** 7"
                                 hits_with_r += 1
                             else:
                                 hits_without_r += 1
@@ -848,33 +899,10 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found, rel_word
                     pmi = float(hits_with_r) / float(hits_without_r)
                     if pmi >= PMI:
                         results.append(r)
-                        """
-                        print "**VALID**:", entity1, '\t', entity2
-                        print "hits_without_r ", float(hits_without_r)
-                        print "hits_with_r ", float(hits_with_r)
-                        print "PMI", pmi
-                        print r.sentence
-                        print r.bet_words
-                        print
-                        """
+
                     else:
                         not_found.append(r)
-                        """
-                        print "**INVALID**:"
-                        print 'ExtractedFact:', entity1, '\t', entity2
-                        print r.sentence
-                        fact_bef_words_tokens = word_tokenize(r.bef_words)
-                        fact_bet_words_tokens = word_tokenize(r.bet_words)
-                        fact_aft_words_tokens = word_tokenize(r.aft_words)
-                        print "BEF", r.bef_words, fact_bef_words_tokens
-                        print "BET", r.bet_words, fact_bet_words_tokens
-                        print "AFT", r.aft_words, fact_aft_words_tokens
-                        print "hits_without_r ", float(hits_without_r)
-                        print "hits_with_r ", float(hits_with_r)
-                        print "PMI", pmi
-                        print "Index hits", len(hits)
-                        print
-                        """
+
                 else:
                     not_found.append(r)
                 count += 1
@@ -893,10 +921,13 @@ def main():
     # G' - superset, contains true facts, and wrong facts
     # a  - contains correct facts from the system output
     #
-    # b  - intersection between the system output and the database (i.e., freebase),
+    # b  - intersection between the system output and the
+    #      database (i.e., freebase),
     #      it is assumed that every fact in this region is correct
-    # c  - contains the database facts described in the corpus but not extracted by the system
-    # d  - contains the facts described in the corpus that are not in the system output nor in the database
+    # c  - contains the database facts described in the corpus
+    #      but not extracted by the system
+    # d  - contains the facts described in the corpus that are not
+    #      in the system output nor in the database
     #
     # Precision = |a|+|b| / |S|
     # Recall    = |a|+|b| / |a| + |b| + |c| + |d|
@@ -921,12 +952,10 @@ def main():
     print "Freebase relationships loaded :", len(database_1.keys())
 
     # corpus from which the system extracted relationships
-    #corpus = "/home/dsbatista/gigaword/automatic-evaluation/corpus.txt"
-    corpus = "/home/dsbatista/gigaword/automatic-evaluation/sentences_matched_freebase_added_tags.txt"
+    corpus = "/home/dsbatista/gigaword/automatic-evaluation/" \
+             "sentences_matched_freebase_added_tags.txt"
 
     # index to be used to estimate proximity PMI
-    #index = "/home/dsbatista/gigaword/automatic-evaluation/index_2005_2010/"
-    # index = "/home/dsbatista/gigaword/automatic-evaluation/index_2000_2010/"
     index = "/home/dsbatista/gigaword/automatic-evaluation/index_full"
 
     # entities semantic type
@@ -974,15 +1003,19 @@ def main():
     print "Arg2 Type:", e2_type
 
     print "\nCalculating set B: intersection between system output and database"
-    b, not_in_database = calculate_b(system_output, database_1, database_2, database_3, e1_type, e2_type)
+    b, not_in_database = calculate_b(system_output, database_1, database_2,
+                                     database_3, e1_type, e2_type)
 
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
     print "Not found          :", len(not_in_database)
     assert len(system_output) == len(not_in_database) + len(b)
 
-    print "\nCalculating set A: correct facts from system output not in the database (proximity PMI)"
-    a, not_found = calculate_a(not_in_database, e1_type, e2_type, index, rel_words_unigrams, rel_words_bigrams)
+    print "\nCalculating set A: correct facts from system output not in " \
+          "the database (proximity PMI)"
+    a, not_found = calculate_a(not_in_database, e1_type, e2_type, index,
+                               rel_words_unigrams, rel_words_bigrams)
+
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
     print "Correct in corpus  :", len(a)
@@ -990,12 +1023,15 @@ def main():
     print "\n"
     assert len(system_output) == len(a) + len(b) + len(not_found)
 
-    # Estimate G \intersected D = |b| + |c|, looking for relationships in G' that match a relationship in D
-    # once we have G \in D and |b|, |c| can be derived by: |c| = |G \in D| - |b|
-    #  G' = superset of G, cartesian product of all possible entities and relations (i.e., G' = E x R x E)
-    print "\nCalculating set C: database facts in the corpus but not extracted by the system"
-    c, g_minus_d = calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type, rel_type,
-                               rel_words_unigrams, rel_words_bigrams)
+    # Estimate G \intersected D = |b| + |c|, looking for relationships in G'
+    # that match a relationship in D, once we have G \in D and |b|, |c| can be
+    # derived by: |c| = |G \in D| - |b| G' = superset of G, cartesian product
+    # of all possible entities and relations (i.e., G' = E x R x E)
+    print "\nCalculating set C: database facts in the corpus but not " \
+          "extracted by the system"
+    c, g_minus_d = calculate_c(corpus, database_1, database_2, database_3, b,
+                               e1_type, e2_type, rel_type, rel_words_unigrams,
+                               rel_words_bigrams)
     assert len(c) > 0
 
     uniq_c = set()
@@ -1004,8 +1040,10 @@ def main():
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
-    print "\nCalculating set D: facts described in the corpus not in the system output nor in the database"
-    d = calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type, rel_words_unigrams, rel_words_bigrams)
+    print "\nCalculating set D: facts described in the corpus not in " \
+          "the system output nor in the database"
+    d = calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type,
+                    rel_words_unigrams, rel_words_bigrams)
 
     print "System output      :", len(system_output)
     print "Found in database  :", len(b)
@@ -1026,10 +1064,12 @@ def main():
     print "|G| =", len(set(a).union(set(b).union(set(c).union(set(d)))))
     print "Relationships not found:", len(set(not_found))
 
-    # Write relationships not found in the Database nor with high PMI relatation words to disk
+    # Write relationships not found in the Database nor with high PMI
+    # relational words to disk
     f = open(rel_type + "_" + sys.argv[2][-11:][:-4] + "_negative.txt", "w")
     for r in sorted(set(not_found), reverse=True):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) +
+                '\n')
         f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
@@ -1040,7 +1080,8 @@ def main():
     # Write all correct relationships (sentence, entities and score) to file
     f = open(rel_type + "_" + sys.argv[2][-11:][:-4] + "_positive.txt", "w")
     for r in sorted(set(a).union(b), reverse=True):
-        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) + '\n')
+        f.write('instance :' + r.ent1 + '\t' + r.ent2 + '\t' + str(r.score) +
+                '\n')
         f.write('sentence :' + r.sentence + '\n')
         f.write('bef_words:' + r.bef_words + '\n')
         f.write('bet_words:' + r.bet_words + '\n')
@@ -1063,7 +1104,8 @@ def main():
         print "\n"
     else:
         precision = float(len(a) + len(b)) / float(len(output))
-        recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) + len(uniq_d))
+        recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) +
+                                                len(uniq_d))
         f1 = 2 * (precision * recall) / (precision + recall)
         print "\nPrecision   : ", precision
         print "Recall      : ", recall

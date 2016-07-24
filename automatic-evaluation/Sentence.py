@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
-
 import re
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 
+__author__ = "David S. Batista"
+__email__ = "dsbatista@inesc-id.pt"
+
 # tokens between entities which do not represent relationships
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":",
+              ".", "--"]
 stopwords = stopwords.words('english')
 not_valid = bad_tokens + stopwords
 
@@ -60,14 +61,17 @@ class Relationship:
         self.e2 = _ent2
 
     def __eq__(self, other):
-        if self.e1 == other.e1 and self.before == other.before and self.between == other.between \
-                and self.after == other.after:
+        if self.e1 == other.e1 and \
+           self.before == other.before and \
+           self.between == other.between and \
+           self.after == other.after:
             return True
         else:
             return False
 
     def __hash__(self):
-        return hash(self.e1) ^ hash(self.e2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
+        return hash(self.e1) ^ hash(self.e2) ^ hash(self.before) ^ \
+               hash(self.between) ^ hash(self.after)
 
 
 class Sentence:
@@ -75,7 +79,8 @@ class Sentence:
     def __init__(self, sentence, max_tokens, min_tokens, window_size):
         self.relationships = list()
 
-        #determine which type of regex to use according to how named-entties are tagged
+        # determine which type of regex to use according
+        # to how named-entties are tagged
         entities_regex = regex_simple
 
         # find named-entities
@@ -88,8 +93,9 @@ class Sentence:
             sentence_no_tags = re.sub(regex_clean_simple, "", sentence)
             text_tokens = word_tokenize(sentence_no_tags)
 
-            # extract information about the entity, create an Entity instance and store in a
-            # structure to hold information collected about all the entities in the sentence
+            # extract information about the entity, create an Entity
+            # instance and store in a structure to hold information collected
+            # about all the entities in the sentence
             entities_info = set()
             for x in range(0, len(entities)):
                 entity = entities[x].group()
@@ -99,8 +105,8 @@ class Sentence:
                 e = EntitySimple(e_string, e_parts, e_type, locations)
                 entities_info.add(e)
 
-            # create an hashtable on which:
-            # - the key is the starting index in the tokenized sentence of an entity
+            # create an hash table on which:
+            # - key is the starting index in the tokenised sentence of an entity
             # - the value the corresponding Entity instance
             locations = dict()
             for e in entities_info:
@@ -108,7 +114,8 @@ class Sentence:
                     locations[start] = e
 
             # look for pair of entities such that:
-            # the distance between the two entities is less than 'max_tokens' and greater than 'min_tokens'
+            # the distance between the two entities is less than 'max_tokens'
+            # and greater than 'min_tokens'
             # the arguments match the seeds semantic types
             sorted_keys = list(sorted(locations))
 
@@ -125,13 +132,17 @@ class Sentence:
 
                     before = text_tokens[:sorted_keys[i]]
                     before = before[-window_size:]
-                    between = text_tokens[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]
+                    between = text_tokens[sorted_keys[i] +
+                                          len(e1.parts):sorted_keys[i+1]]
                     after = text_tokens[sorted_keys[i+1]+len(e2.parts):]
                     after = after[:window_size]
 
-                    # ignore relationships where BET context is only stopwords or other invalid words
-                    if all(x in not_valid for x in text_tokens[sorted_keys[i]+len(e1.parts):sorted_keys[i+1]]):
+                    # ignore relationships where BET context is only stopwords
+                    # or other invalid words
+                    if all(x in not_valid for x in text_tokens[sorted_keys[i] +
+                           len(e1.parts):sorted_keys[i+1]]):
                         continue
 
-                    r = Relationship(sentence, before, between, after, e1.string, e2.string)
+                    r = Relationship(sentence, before, between, after,
+                                     e1.string, e2.string)
                     self.relationships.append(r)
