@@ -81,9 +81,9 @@ Demo
 
 You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
 
-A sample file with sentences where the named-entities are already tagged can be download [here](TODO), which include  around 3 375 880 sentences (750MB) taken from the English Gigaword collections.
+A sample file with sentences where the named-entities are already tagged can be download [here](https://drive.google.com/file/d/0B0CbnDgKi0PyOG5RdW45ZjE0dms/view?usp=sharing), which include  around 3 400 000 sentences (750MB) taken from the English Gigaword collections.
 
-To extract the locations or headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
+To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
 
     BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
