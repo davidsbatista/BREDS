@@ -10,7 +10,7 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 Usage:
 
-    BREDS.py parameters sentences positive_seeds negative_simties similarity confidence
+    BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
 
 **parameters**
 
@@ -79,21 +79,21 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, the one used in my experiments is available [here](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
+You need to specify a word2vec model in the `parameters.cfg` file, [the one used in my experiments is available](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing). It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN.
 
-A sample file with sentences where the named-entities are already tagged can be download [here](https://drive.google.com/file/d/0B0CbnDgKi0PyOG5RdW45ZjE0dms/view?usp=sharing), which include  around 3 400 000 sentences (750MB) taken from the English Gigaword collections.
+A [sample file with sentences where the named-entities are already tagged](http://), which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection.
 
 To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
 
     BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
-In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can re-run the experiment with the different seed examples without having to repeat the process of generating word vectors representations for each sentence. 
+In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`as the second argument to `BREDS.py` instead of `sentences.txt`.
 
-Depending on your hardware this process can take long time (i.e., a few hours). You can also use a multi-core version of BREDS, specifiyng at the end how many cores you want to use:
+Running the whole bootstrapp process, depending on your hardware, sentences input size and number of iterations, can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or you can also use a multi-core version of BREDS. In the multi-core version finding seed matchs and clustering them is done in parallel, levering multi-core architectures. You must specifiy at the end how many cores you want to use:
 
     BREDS-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8 #cpus
 
-This process takes some time depending on the size of the input and the number of iterations. The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
+The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
 
     instance: DynCorp       Reston  score:0.998397435897
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
