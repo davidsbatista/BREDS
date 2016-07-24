@@ -10,6 +10,8 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 Dependencies
 ============
 
+You need to have the following libraries installed:
+
 **Numpy**: http://www.numpy.org/
 
 **NLTK**: http://www.nltk.org/
