@@ -104,14 +104,14 @@ Running the whole bootstrapp process, depending on your hardware, sentences inpu
 
 The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
 
-    instance: DynCorp       Reston  score:0.998397435897
+    instance: DynCorp       Reston  score:0.998
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
     pattern_bef: Because
     pattern_bet: , headquartered in
     pattern_aft: , Va.
     passive voice: False
 
-    instance: Handspring    Silicon Valley  score:0.998397435897
+    instance: Handspring    Silicon Valley  score:0.893
     sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
     pattern_bef: firms like
     pattern_bet: , a company based in
