@@ -81,7 +81,7 @@ Quick Demo
 
 To run a quick demo-example, extracting the locations or headquarters of companies from `sentences.txt` issue the following command:
 
-    BREDS.py parameters.cfg sentences.txt has-installations.txt has-installations_negative.txt 0.6 0.8
+    BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.6 0.8
 
 The output should be a `relationships.txt`, with a list of relationships extracted, containing the confidence score, and the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship:
 
