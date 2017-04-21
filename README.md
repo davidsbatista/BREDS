@@ -17,7 +17,7 @@ Architecture: system description
 Dependencies
 ============
 
-You need to have the following libraries installed:
+You need to have Python 2.7 and the following libraries installed:
 
 **Numpy**: http://www.numpy.org/
 
@@ -25,10 +25,14 @@ You need to have the following libraries installed:
 
 **Gensim**: https://radimrehurek.com/gensim/
 
+which you can install issuing the following command:
+
+    pip install -r requirements.txt
+
 Usage:
 =====
 
-    BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
+    python BREDS.py parameters sentences positive_seeds negative_seeds similarity confidence
 
 **parameters**
 
@@ -103,13 +107,13 @@ A [sample file containing sentences where the named-entities are already tagged 
 
 To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
 
-    BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7
+    python BREDS.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7
 
 In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`as the second argument to `BREDS.py` instead of `sentences.txt`.
 
 Running the whole bootstrapp process, depending on your hardware, sentences input size and number of iterations, can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or you can also use a multi-core version of BREDS. In the multi-core version finding seed matchs and clustering them is done in parallel, levering multi-core architectures. You must specifiy at the end how many cores you want to use:
 
-    BREDS-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7 #cpus
+    python BREDS-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7 #cpus
 
 The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
 

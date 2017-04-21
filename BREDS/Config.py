@@ -7,6 +7,7 @@ import re
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
 from gensim.models import Word2Vec
+from gensim.models import KeyedVectors
 from BREDS.Seed import Seed
 from BREDS.ReVerb import Reverb
 
@@ -132,10 +133,8 @@ class Config(object):
 
     def read_word2vec(self):
         print "Loading word2vec model ...\n"
-        self.word2vec = Word2Vec.load_word2vec_format(
-            self.word2vecmodelpath, binary=True
-        )
-        self.vec_dim = self.word2vec.layer1_size
+        self.word2vec = KeyedVectors.load_word2vec_format(self.word2vecmodelpath, binary=True)
+        self.vec_dim = self.word2vec.vector_size
         print self.vec_dim, "dimensions"
 
     def read_seeds(self, seeds_file, holder):
