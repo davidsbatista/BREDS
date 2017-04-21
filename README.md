@@ -10,7 +10,7 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 Architecture: system description
 ================================
-[Poster presented at EMNLP'15](http://davidsbatista.github.io/publications/emnlp15-poster.pdf)
+[Poster presented at EMNLP'15](http://davidsbatista.net/assets/documents/publications/emnlp15-poster.pdf)
 
 
 
