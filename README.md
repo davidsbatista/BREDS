@@ -7,6 +7,9 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
 - David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5)](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf), Instituto Superior Técnico, University of Lisbon, 2016
 
+- [Presentation at PyData Berlin 2017](https://www.youtube.com/watch?v=Ra15lX-wojg)
+
+  &nbsp;&nbsp;[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/default.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 Architecture: system description
 ================================
