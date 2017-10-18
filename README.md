@@ -104,7 +104,7 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. The mode is available here: [afp_apw_xin_embeddings.bin](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
+You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. The model is available here: [afp_apw_xin_embeddings.bin](https://drive.google.com/file/d/0B0CbnDgKi0PyZHRtVS1xWlVnekE/view?usp=sharing)
 
 A sample file containing sentences where the named-entities are already tagged, which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection, is available here: [sentences.txt](https://drive.google.com/open?id=0B0CbnDgKi0PyM1FEQXJRTlZtSTg)
 
