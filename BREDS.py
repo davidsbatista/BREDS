@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import cPickle
 import sys
 import os
+import pickle
 import codecs
 import operator
 
@@ -28,14 +28,12 @@ PRINT_PATTERNS = False
 
 class BREDS(object):
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity,
-                 confidence):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence):
         self.curr_iteration = 0
         self.patterns = list()
         self.processed_tuples = list()
         self.candidate_tuples = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds,
-                             similarity, confidence)
+        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
     def generate_tuples(self, sentences_file):
         """
@@ -45,15 +43,15 @@ class BREDS(object):
         try:
             os.path.isfile("processed_tuples.pkl")
             f = open("processed_tuples.pkl", "r")
-            print "\nLoading processed tuples from disk..."
-            self.processed_tuples = cPickle.load(f)
+            print("\nLoading processed tuples from disk...")
+            self.processed_tuples = pickle.load(f)
             f.close()
-            print len(self.processed_tuples), "tuples loaded"
+            print(len(self.processed_tuples), "tuples loaded")
 
         except IOError:
             self.config.read_word2vec()
             tagger = load('taggers/maxent_treebank_pos_tagger/english.pickle')
-            print "\nGenerating relationship instances from sentences"
+            print("\nGenerating relationship instances from sentences")
             f_sentences = codecs.open(sentences_file, encoding='utf-8')
             count = 0
             for line in f_sentences:
@@ -79,10 +77,10 @@ class BREDS(object):
 
             f_sentences.close()
 
-            print "\n", len(self.processed_tuples), "tuples generated"
-            print "Writing generated tuples to disk"
+            print("\n", len(self.processed_tuples), "tuples generated")
+            print("Writing generated tuples to disk")
             f = open("processed_tuples.pkl", "wb")
-            cPickle.dump(self.processed_tuples, f)
+            pickle.dump(self.processed_tuples, f)
             f.close()
 
     def similarity_3_contexts(self, p, t):
@@ -149,7 +147,7 @@ class BREDS(object):
         return count_matches, matched_tuples
 
     def write_relationships_to_disk(self):
-        print "\nWriting extracted relationships to disk"
+        print("\nWriting extracted relationships to disk")
         f_output = open("relationships.txt", "w")
         tmp = sorted(self.candidate_tuples.keys(), reverse=True)
         try:
@@ -168,8 +166,8 @@ class BREDS(object):
                     f_output.write("passive voice: True\n")
                 f_output.write("\n")
             f_output.close()
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             sys.exit(1)
 
     def init_bootstrap(self, tuples):
@@ -178,41 +176,41 @@ class BREDS(object):
 
         if tuples is not None:
             f = open(tuples, "r")
-            print "\nLoading processed tuples from disk..."
-            self.processed_tuples = cPickle.load(f)
+            print("\nLoading processed tuples from disk...")
+            self.processed_tuples = pickle.load(f)
             f.close()
-            print len(self.processed_tuples), "tuples loaded"
+            print(len(self.processed_tuples), "tuples loaded")
 
         self.curr_iteration = 0
         while self.curr_iteration <= self.config.number_iterations:
-            print "=========================================="
-            print "\nStarting iteration", self.curr_iteration
-            print "\nLooking for seed matches of:"
+            print("==========================================")
+            print("\nStarting iteration", self.curr_iteration)
+            print("\nLooking for seed matches of:")
             for s in self.config.positive_seed_tuples:
-                print s.e1, '\t', s.e2
+                print(s.e1, '\t', s.e2)
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
 
             if len(matched_tuples) == 0:
-                print "\nNo seed matches found"
+                print("\nNo seed matches found")
                 sys.exit(0)
 
             else:
-                print "\nNumber of seed matches found"
+                print("\nNumber of seed matches found")
                 sorted_counts = sorted(
                     count_matches.items(),
                     key=operator.itemgetter(1),
                     reverse=True
                 )
                 for t in sorted_counts:
-                    print t[0][0], '\t', t[0][1], t[1]
+                    print(t[0][0], '\t', t[0][1], t[1])
 
-                print "\n", len(matched_tuples), "tuples matched"
+                print("\n", len(matched_tuples), "tuples matched")
 
                 # Cluster the matched instances, to generate
                 # patterns/update patterns
-                print "\nClustering matched instances to generate patterns"
+                print("\nClustering matched instances to generate patterns")
                 self.cluster_tuples(matched_tuples)
 
                 # Eliminate patterns supported by less than
@@ -221,23 +219,23 @@ class BREDS(object):
                                 self.config.min_pattern_support]
                 self.patterns = new_patterns
 
-                print "\n", len(self.patterns), "patterns generated"
+                print("\n", len(self.patterns), "patterns generated")
 
                 if PRINT_PATTERNS is True:
                     count = 1
-                    print "\nPatterns:"
+                    print("\nPatterns:")
                     for p in self.patterns:
-                        print count
+                        print(count)
                         for t in p.tuples:
-                            print "BEF", t.bef_words
-                            print "BET", t.bet_words
-                            print "AFT", t.aft_words
-                            print "========"
-                            print "\n"
+                            print("BEF", t.bef_words)
+                            print("BET", t.bet_words)
+                            print("AFT", t.aft_words)
+                            print("========")
+                            print("\n")
                         count += 1
 
                 if self.curr_iteration == 0 and len(self.patterns) == 0:
-                    print "No patterns generated"
+                    print("No patterns generated")
                     sys.exit(0)
 
                 # Look for sentences with occurrence of seeds
@@ -251,10 +249,9 @@ class BREDS(object):
                 #
                 # Each candidate tuple will then have a number of patterns
                 # that extracted it each with an associated degree of match.
-                print "Number of tuples to be analyzed:", \
-                    len(self.processed_tuples)
+                print("Number of tuples to be analyzed:", len(self.processed_tuples))
 
-                print "\nCollecting instances based on extraction patterns"
+                print("\nCollecting instances based on extraction patterns")
                 count = 0
 
                 for t in self.processed_tuples:
@@ -302,22 +299,22 @@ class BREDS(object):
                     p.update_confidence(self.config)
 
                 if PRINT_PATTERNS is True:
-                    print "\nPatterns:"
+                    print("\nPatterns:")
                     for p in self.patterns:
                         for t in p.tuples:
-                            print "BEF", t.bef_words
-                            print "BET", t.bet_words
-                            print "AFT", t.aft_words
-                            print "========"
-                        print "Positive", p.positive
-                        print "Negative", p.negative
-                        print "Unknown", p.unknown
-                        print "Tuples", len(p.tuples)
-                        print "Pattern Confidence", p.confidence
-                        print "\n"
+                            print("BEF", t.bef_words)
+                            print("BET", t.bet_words)
+                            print("AFT", t.aft_words)
+                            print("========")
+                        print("Positive", p.positive)
+                        print("Negative", p.negative)
+                        print("Unknown", p.unknown)
+                        print("Tuples", len(p.tuples))
+                        print("Pattern Confidence", p.confidence)
+                        print("\n")
 
                 # update tuple confidence based on patterns confidence
-                print "\n\nCalculating tuples confidence"
+                print("\n\nCalculating tuples confidence")
                 for t in self.candidate_tuples.keys():
                     confidence = 1
                     t.confidence_old = t.confidence
@@ -328,19 +325,16 @@ class BREDS(object):
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
                     extracted_tuples = self.candidate_tuples.keys()
-                    tuples_sorted = sorted(
-                        extracted_tuples,
-                        key=lambda tpl: tpl.confidence,
-                        reverse=True
-                    )
+                    tuples_sorted = sorted(extracted_tuples, key=lambda tpl: tpl.confidence,
+                        reverse=True)
                     for t in tuples_sorted:
-                        print t.sentence
-                        print t.e1, t.e2
-                        print t.confidence
-                        print "\n"
+                        print(t.sentence)
+                        print(t.e1, t.e2)
+                        print(t.confidence)
+                        print("\n")
 
-                print "Adding tuples to seed with confidence >=" + \
-                      str(self.config.instance_confidence)
+                print("Adding tuples to seed with confidence >= {}".format(
+                    str(self.config.instance_confidence)))
                 for t in self.candidate_tuples.keys():
                     if t.confidence >= self.config.instance_confidence:
                         seed = Seed(t.e1, t.e2)
@@ -390,8 +384,8 @@ class BREDS(object):
 
 def main():
     if len(sys.argv) != 7:
-        print "\nBREDS.py parameters sentences positive_seeds negative_seeds " \
-              "similarity confidence\n"
+        print("\nBREDS.py parameters sentences positive_seeds negative_seeds "
+              "similarity confidence\n")
         sys.exit(0)
     else:
         configuration = sys.argv[1]
@@ -405,7 +399,7 @@ def main():
                        float(similarity), float(confidence))
 
         if sentences_file.endswith('.pkl'):
-            print "Loading pre-processed sentences", sentences_file
+            print("Loading pre-processed sentences", sentences_file)
             breads.init_bootstrap(tuples=sentences_file)
         else:
             breads.generate_tuples(sentences_file)
