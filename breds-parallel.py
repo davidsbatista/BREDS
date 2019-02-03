@@ -232,25 +232,18 @@ class BREDS(object):
         print("\nWriting extracted relationships to disk")
         f_output = open("relationships.txt", "w")
         tmp = sorted(list(self.candidate_tuples.keys()), reverse=True)
-        try:
-            for t in tmp:
-                f_output.write(
-                    "instance: " + t.e1.encode("utf8") + '\t' +
-                    t.e2.encode("utf8") + '\tscore:' + str(t.confidence) +
-                    '\n')
-                f_output.write("sentence: "+t.sentence.encode("utf8")+'\n')
-                f_output.write("pattern_bef: "+t.bef_words.encode("utf8")+'\n')
-                f_output.write("pattern_bet: "+t.bet_words.encode("utf8")+'\n')
-                f_output.write("pattern_aft: "+t.aft_words.encode("utf8")+'\n')
-                if t.passive_voice is False:
-                    f_output.write("passive voice: False\n")
-                elif t.passive_voice is True:
-                    f_output.write("passive voice: True\n")
-                f_output.write("\n")
-            f_output.close()
-        except Exception as e:
-            print(e)
-            sys.exit(1)
+        for t in tmp:
+            f_output.write("instance: " + t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
+            f_output.write("sentence: "+t.sentence+'\n')
+            f_output.write("pattern_bef: "+t.bef_words+'\n')
+            f_output.write("pattern_bet: "+t.bet_words+'\n')
+            f_output.write("pattern_aft: "+t.aft_words+'\n')
+            if t.passive_voice is False:
+                f_output.write("passive voice: False\n")
+            elif t.passive_voice is True:
+                f_output.write("passive voice: True\n")
+            f_output.write("\n")
+        f_output.close()
 
     def init_bootstrap(self, tuples):
 
