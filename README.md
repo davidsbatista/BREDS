@@ -20,7 +20,7 @@ Architecture: system description
 Dependencies
 ============
 
-You need to have Python 2.7 and the following libraries installed:
+You need to have Python 3.6.5 and the following libraries installed:
 
 **Numpy**: http://www.numpy.org/
 
