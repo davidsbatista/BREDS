@@ -6,10 +6,9 @@ import re
 
 from nltk.corpus import stopwords
 from nltk import WordNetLemmatizer
-from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
-from BREDS.Seed import Seed
-from BREDS.ReVerb import Reverb
+from breds.seed import Seed
+from breds.reverb import Reverb
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
@@ -100,42 +99,42 @@ class Config(object):
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
         fileinput.close()
 
-        print "Configuration parameters"
-        print "========================\n"
+        print("Configuration parameters")
+        print("========================\n")
 
-        print "Relationship/Sentence Representation"
-        print "e1 type              :", self.e1_type
-        print "e2 type              :", self.e2_type
-        print "tags type            :", self.tag_type
-        print "context window       :", self.context_window_size
-        print "max tokens away      :", self.max_tokens_away
-        print "min tokens away      :", self.min_tokens_away
-        print "Word2Vec Model       :", self.word2vecmodelpath
+        print("Relationship/Sentence Representation")
+        print("e1 type              :", self.e1_type)
+        print("e2 type              :", self.e2_type)
+        print("tags type            :", self.tag_type)
+        print("context window       :", self.context_window_size)
+        print("max tokens away      :", self.max_tokens_away)
+        print("min tokens away      :", self.min_tokens_away)
+        print("Word2Vec Model       :", self.word2vecmodelpath)
 
-        print "\nContext Weighting"
-        print "alpha                :", self.alpha
-        print "beta                 :", self.beta
-        print "gamma                :", self.gamma
+        print("\nContext Weighting")
+        print("alpha                :", self.alpha)
+        print("beta                 :", self.beta)
+        print("gamma                :", self.gamma)
 
-        print "\nSeeds"
-        print "positive seeds       :", len(self.positive_seed_tuples)
-        print "negative seeds       :", len(self.negative_seed_tuples)
-        print "negative seeds wNeg  :", self.wNeg
-        print "unknown seeds wUnk   :", self.wUnk
+        print("\nSeeds")
+        print("positive seeds       :", len(self.positive_seed_tuples))
+        print("negative seeds       :", len(self.negative_seed_tuples))
+        print("negative seeds wNeg  :", self.wNeg)
+        print("unknown seeds wUnk   :", self.wUnk)
 
-        print "\nParameters and Thresholds"
-        print "threshold_similarity :", self.threshold_similarity
-        print "instance confidence  :", self.instance_confidence
-        print "min_pattern_support  :", self.min_pattern_support
-        print "iterations           :", self.number_iterations
-        print "iteration wUpdt      :", self.wUpdt
-        print "\n"
+        print("\nParameters and Thresholds")
+        print("threshold_similarity :", self.threshold_similarity)
+        print("instance confidence  :", self.instance_confidence)
+        print("min_pattern_support  :", self.min_pattern_support)
+        print("iterations           :", self.number_iterations)
+        print("iteration wUpdt      :", self.wUpdt)
+        print("\n")
 
     def read_word2vec(self):
-        print "Loading word2vec model ...\n"
+        print("Loading word2vec model ...\n")
         self.word2vec = KeyedVectors.load_word2vec_format(self.word2vecmodelpath, binary=True)
         self.vec_dim = self.word2vec.vector_size
-        print self.vec_dim, "dimensions"
+        print(self.vec_dim, "dimensions")
 
     def read_seeds(self, seeds_file, holder):
         for line in fileinput.input(seeds_file):

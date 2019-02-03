@@ -11,8 +11,7 @@ class Tuple(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
 
-        def __init__(self, _e1, _e2, _sentence, _before, _between, _after,
-                     config):
+        def __init__(self, _e1, _e2, _sentence, _before, _between, _after, config):
             self.e1 = _e1
             self.e2 = _e2
             self.sentence = _sentence

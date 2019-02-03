@@ -46,24 +46,26 @@ class Pattern(object):
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    # put all tuples with BET vectors into a set so that comparison
-    # with repeated vectors is eliminated
     def merge_all_tuples_bet(self):
+        """
+        Put all tuples with BET vectors into a set so that comparison with repeated vectors
+        is eliminated
+        """
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
         for t in self.tuples:
-            # transform numpy array into a tuple
-            # so it can be hashed and added into a set
+            # transform numpy array into a tuple so it can be hashed and added into a set
             self.bet_uniques_vectors.add(tuple(t.bet_vector))
             self.bet_uniques_words.add(t.bet_words)
 
     def update_selectivity(self, t, config):
         matched_both = False
         matched_e1 = False
+
         for s in config.positive_seed_tuples:
-            if s.e1 == t.e1 or s.e1.strip() == t.e1.strip():
+            if s.e1.strip() == t.e1.strip():
                 matched_e1 = True
-                if s.e2 == t.e2.strip() or s.e2.strip() == t.e2.strip():
+                if s.e2.strip() == t.e2.strip():
                     self.positive += 1
                     matched_both = True
                     break
@@ -73,11 +75,11 @@ class Pattern(object):
 
         if matched_both is False:
             for n in config.negative_seed_tuples:
-                if n.e1 == t.e1 or n.e1.strip() == t.e1.strip():
-                    if n.e2 == t.e2.strip() or n.e2.strip() == t.e2.strip():
+                if n.e1.strip() == t.e1.strip():
+                    if n.e2.strip() == t.e2.strip():
                         self.negative += 1
                         matched_both = True
                         break
 
-        if matched_both is False:
+        if not matched_both and not matched_e1:
             self.unknown += 1

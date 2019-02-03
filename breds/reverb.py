@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import fileinput
-import StringIO
+import io
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -64,7 +64,7 @@ class Reverb(object):
         limit = len(tags)-1
 
         while i <= limit:
-            tmp = StringIO.StringIO()
+            tmp = io.StringIO()
             tmp_tags = []
 
             # a ReVerb pattern always starts with a verb
@@ -139,7 +139,7 @@ class Reverb(object):
         # ('rejected', 'VBD'), ('a', 'DT'), ('takeover', 'NN')
 
         while i <= limit:
-            tmp = StringIO.StringIO()
+            tmp = io.StringIO()
             tmp_tags = []
 
             # a ReVerb pattern always starts with a verb
@@ -206,7 +206,7 @@ class Reverb(object):
         # P = (prep | particle | inf. marker)
 
         # split text into tokens
-        text_tokens = PunktWordTokenizer().tokenize(text)
+        text_tokens = word_tokenize(text)
 
         # tag the sentence, using the default NTLK English tagger
         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
@@ -230,7 +230,7 @@ class Reverb(object):
         # match is chosen.
 
         while i <= limit:
-            tmp = StringIO.StringIO()
+            tmp = io.StringIO()
             tmp_tags = []
 
             # a ReVerb pattern always starts with a verb
@@ -316,14 +316,14 @@ def main():
     for line in fileinput.input():
         tokens = word_tokenize(line.strip())
         tokens_tagged = pos_tag(tokens)
-        print tokens_tagged
+        print(tokens_tagged)
         pattern_tags = reverb.extract_reverb_patterns_tagged_ptb(tokens_tagged)
-        print pattern_tags
+        print(pattern_tags)
         if reverb.detect_passive_voice(pattern_tags):
-            print "Passive Voice: True"
+            print("Passive Voice: True")
         else:
-            print "Passive Voice: False"
-        print "\n"
+            print("Passive Voice: False")
+        print("\n")
     fileinput.close()
 
 if __name__ == "__main__":

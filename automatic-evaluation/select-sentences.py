@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import cPickle
+import pickle
 import os
 import codecs
 import fileinput
 import multiprocessing
 import sys
-import Queue
+import queue
 
 from os import listdir
 from os.path import isfile, join
@@ -29,7 +29,7 @@ def load_relationships(directory):
                   listdir(directory) if isfile(join(directory, data_file))]
 
     for data_file in only_files:
-        print "Processing", directory+data_file
+        print("Processing", directory+data_file)
         count = 0
 
         # DBpedia
@@ -49,10 +49,10 @@ def load_relationships(directory):
                     entities[e2] = 'dummy'
                     count += 1
                     if count % 100000 == 0:
-                        print count, "processed"
-                except Exception, e:
-                    print e
-                    print line
+                        print(count, "processed")
+                except Exception as e:
+                    print(e)
+                    print(line)
                     sys.exit(0)
             fileinput.close()
 
@@ -67,10 +67,10 @@ def load_relationships(directory):
                     entities[e2.strip()] = 'dummy'
                     count += 1
                     if count % 100000 == 0:
-                        print count, "processed"
-                except Exception, e:
-                    print e
-                    print line
+                        print(count, "processed")
+                except Exception as e:
+                    print(e)
+                    print(line)
                     sys.exit(0)
             fileinput.close()
 
@@ -89,10 +89,10 @@ def load_relationships(directory):
                     entities[e2] = 'dummy'
                     count += 1
                     if count % 100000 == 0:
-                        print count, "processed"
-                except Exception, e:
-                    print e
-                    print line
+                        print(count, "processed")
+                except Exception as e:
+                    print(e)
+                    print(line)
                     sys.exit(0)
             fileinput.close()
 
@@ -107,7 +107,7 @@ def load_sentences(data_file):
             sentences.put(line.strip())
             count += 1
             if count % 100000 == 0:
-                print count, "processed"
+                print(count, "processed")
         return sentences
 
 
@@ -141,13 +141,13 @@ def get_sentences(sentences, entities, child_conn):
                 discarded.append(sentence)
 
             if count % 50000 == 0:
-                print multiprocessing.current_process(), "queue size", \
-                    sentences.qsize()
+                print(multiprocessing.current_process(), "queue size", \
+                    sentences.qsize())
 
-        except Queue.Empty:
-            print multiprocessing.current_process(), "Queue is Empty"
-            print multiprocessing.current_process(), "selected", len(selected)
-            print multiprocessing.current_process(), "discarded", len(discarded)
+        except queue.Empty:
+            print(multiprocessing.current_process(), "Queue is Empty")
+            print(multiprocessing.current_process(), "selected", len(selected))
+            print(multiprocessing.current_process(), "discarded", len(discarded))
             pid = multiprocessing.current_process().pid
             child_conn.send((pid, selected, discarded))
             break
@@ -157,30 +157,30 @@ def main():
     # load freebase entities into a shared data structure
     if os.path.isfile("entities.pkl"):
         f = open("entities.pkl", "r")
-        print "Loading pre-processed entities"
-        entities = cPickle.load(f)
+        print("Loading pre-processed entities")
+        entities = pickle.load(f)
         f.close()
-        print len(entities), " entities loaded"
-        print "Loading sentences"
+        print(len(entities), " entities loaded")
+        print("Loading sentences")
         sentences = load_sentences(sys.argv[1])
-        print sentences.qsize(), " sentences loaded"
+        print(sentences.qsize(), " sentences loaded")
     else:
         entities = load_relationships(sys.argv[1])
-        print len(entities), " entities loaded"
+        print(len(entities), " entities loaded")
         f = open("entities.pkl", "wb")
-        cPickle.dump(entities, f)
+        pickle.dump(entities, f)
         f.close()
-        print "Loading sentences"
+        print("Loading sentences")
         sentences = load_sentences(sys.argv[2])
-        print sentences.qsize(), " sentences loaded"
+        print(sentences.qsize(), " sentences loaded")
 
-    print "Selecting sentences with entities in the KB"
+    print("Selecting sentences with entities in the KB")
 
     # launch different processes, each reads a sentence and extracts
     # relationships, if both entities in the relationship occur in the KB
     num_cpus = multiprocessing.cpu_count()
     entities_shr_dict = manager.dict(entities)
-    print len(entities_shr_dict), " entities loaded"
+    print(len(entities_shr_dict), " entities loaded")
 
     pipes = [multiprocessing.Pipe(False) for _ in range(num_cpus)]
     processes = [multiprocessing.Process(
@@ -188,7 +188,7 @@ def main():
         args=(sentences, entities_shr_dict, pipes[i][1]))
                  for i in range(num_cpus)]
 
-    print "Running", len(processes), " processes"
+    print("Running", len(processes), " processes")
     for proc in processes:
         proc.start()
 
@@ -200,32 +200,32 @@ def main():
         child_pid = data[0]
         selected = data[1]
         discarded = data[2]
-        print child_pid, "selected", len(selected), "discarded", len(discarded)
+        print(child_pid, "selected", len(selected), "discarded", len(discarded))
         selected_sentences.update(selected)
         discarded_sentences.update(discarded)
 
     for proc in processes:
         proc.join()
 
-    print "Writing sentences to disk"
+    print("Writing sentences to disk")
     f = open("sentences_matched_output.txt", "w")
     for s in selected_sentences:
         try:
             f.write(s.encode("utf8")+'\n')
-        except Exception, e:
-            print e
-            print type(s)
-            print s
+        except Exception as e:
+            print(e)
+            print(type(s))
+            print(s)
     f.close()
 
     f = open("sentences_discarded_output.txt", "w")
     for s in discarded_sentences:
         try:
             f.write(s.encode("utf8")+'\n')
-        except Exception, e:
-            print e
-            print type(s)
-            print s
+        except Exception as e:
+            print(e)
+            print(type(s))
+            print(s)
     f.close()
 
 if __name__ == "__main__":

@@ -73,7 +73,7 @@ def collect_relationships(data):
     numbered = re.compile('#[0-9]+$')
     for line in fileinput.input(data):
         if count % 50000 == 0:
-            print len(relationships)
+            print(len(relationships))
         e1, r, e2, point = line.split('\t')
         if r in rel_to_consider:
             # ignore some entities, which are Freebase
@@ -103,9 +103,9 @@ def collect_relationships(data):
         count += 1
     fileinput.close()
 
-    print "Writing collected relationships to disk"
+    print("Writing collected relationships to disk")
     f_entities = open("relationships.txt", "w")
-    for r in relationships.keys():
+    for r in list(relationships.keys()):
         for e in relationships[r]:
             f_entities.write(r[0]+'\t'+e+'\t'+r[1]+'\n')
     f_entities.close()
@@ -115,7 +115,7 @@ def collect_relationships(data):
 
 def main():
     relationships = collect_relationships(sys.argv[1])
-    print len(relationships)
+    print(len(relationships))
 
 if __name__ == "__main__":
     main()
