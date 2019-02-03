@@ -9,8 +9,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 
 class ExtractedFact(object):
-    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence,
-                 _passive_voice):
+    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
         self.score = _score.strip()

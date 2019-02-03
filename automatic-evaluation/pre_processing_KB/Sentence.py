@@ -9,8 +9,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 # tokens between entities which do not represent relationships
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":",
-              ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords = stopwords.words('english')
 not_valid = bad_tokens + stopwords
 
@@ -80,7 +79,7 @@ class Sentence:
         self.relationships = list()
 
         # determine which type of regex to use according
-        # to how named-entties are tagged
+        # to how named-entities are tagged
         entities_regex = regex_simple
 
         # find named-entities
@@ -143,6 +142,5 @@ class Sentence:
                            len(e1.parts):sorted_keys[i+1]]):
                         continue
 
-                    r = Relationship(sentence, before, between, after,
-                                     e1.string, e2.string)
+                    r = Relationship(sentence, before, between, after, e1.string, e2.string)
                     self.relationships.append(r)

@@ -76,8 +76,7 @@ def collect_relationships(data):
             print(len(relationships))
         e1, r, e2, point = line.split('\t')
         if r in rel_to_consider:
-            # ignore some entities, which are Freebase
-            # identifiers or which are ambigious
+            # ignore some entities, which are Freebase identifiers or which are ambiguous
             if e1.startswith('/') or e2.startswith('/'):
                 continue
             if e1.startswith('m/') or e2.startswith('m/'):

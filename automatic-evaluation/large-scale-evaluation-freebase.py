@@ -10,7 +10,6 @@ import time
 import sys
 import os
 import pickle
-import queue
 
 from breds.sentence import Sentence
 from whoosh.index import open_dir, os
@@ -25,8 +24,8 @@ __email__ = "dsbatista@inesc-id.pt"
 
 # relational words used in calculating the set C and D with the proximity PMI
 
-founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded',
-                    'cofounded', 'founded', 'founders']
+founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded', 'cofounded', 'founded',
+                    'founders']
 founded_bigrams = ['started by']
 
 acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
@@ -44,8 +43,7 @@ employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo',
                        'CEO', 'employer']
 employment_bigrams = []
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":",
-              ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 
@@ -134,11 +132,11 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
     while True:
         try:
             if count % 25000 == 0:
-                print(multiprocessing.current_process(), \
-                    "In Queue", queue.qsize(), "Total added: ", added)
+                print(multiprocessing.current_process(),
+                      "In Queue", queue.qsize(), "Total added: ", added)
             line = queue.get_nowait()
-            s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY,
-                         MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+            s = Sentence(line.strip(), e1_type, e2_type,
+                         MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
             for r in s.relationships:
                 tokens = word_tokenize(r.between)
                 if all(x in not_valid for x in word_tokenize(r.between)):

@@ -120,8 +120,7 @@ def get_sentences(sentences, entities, child_conn):
             sentence = sentences.get_nowait()
             discard = False
             count += 1
-            s = Sentence(sentence.strip(), MAX_TOKENS_AWAY, MIN_TOKENS_AWAY,
-                         CONTEXT_WINDOW)
+            s = Sentence(sentence.strip(), MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
             for r in s.relationships:
                 if r.between == " , " or r.between == " ( " \
                         or r.between == " ) ":

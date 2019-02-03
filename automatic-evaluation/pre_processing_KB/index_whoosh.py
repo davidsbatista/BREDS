@@ -18,8 +18,7 @@ from Sentence import Sentence
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'",
-              ":", ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 
@@ -45,6 +44,7 @@ def create_index():
     else:
         idx = open_dir("index_full")
     return idx
+
 
 @timecall
 def index_sentences(writer):

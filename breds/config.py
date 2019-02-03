@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import fileinput
 import re
 
@@ -25,7 +22,6 @@ class Config(object):
         self.regex_clean_simple = re.compile('</?[A-Z]+>', re.U)
         self.regex_clean_linked = re.compile('</[A-Z]+>|<[A-Z]+ url=[^>]+>', re.U)
         self.tags_regex = re.compile('</?[A-Z]+>', re.U)
-        self.e_types = {'ORG': 3, 'LOC': 4, 'PER': 5}
         self.positive_seed_tuples = set()
         self.negative_seed_tuples = set()
         self.vec_dim = 0

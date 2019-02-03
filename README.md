@@ -32,6 +32,11 @@ which you can install issuing the following command:
 
     pip install -r requirements.txt
 
+You also need to install NLTK's Treebank PoS-tagger
+
+    import nltk
+    nltk.download('maxent_treebank_pos_tagger')
+
 Usage:
 =====
 
