@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import cPickle
+import pickle
 import sys
 
 __author__ = "David S. Batista"
@@ -9,8 +9,7 @@ __email__ = "dsbatista@inesc-id.pt"
 
 
 class ExtractedFact(object):
-    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence,
-                 _passive_voice):
+    def __init__(self, _e1, _e2, _score, _bef, _bet, _aft, _sentence, _passive_voice):
         self.ent1 = _e1
         self.ent2 = _e2
         self.score = _score.strip()
@@ -42,13 +41,13 @@ class ExtractedFact(object):
 def main():
     rel_file = sys.argv[1]
     f = open(rel_file)
-    print "\nLoading high PMI facts not in the database", rel_file
-    relationships = cPickle.load(f)
+    print("\nLoading high PMI facts not in the database", rel_file)
+    relationships = pickle.load(f)
     for r in relationships:
-        print "sentence    :", r.sentence
-        print "relationship:", r.ent1, r.ent2
-        print "\n"
-    print len(relationships)
+        print("sentence    :", r.sentence)
+        print("relationship:", r.ent1, r.ent2)
+        print("\n")
+    print(len(relationships))
     f.close()
 
 

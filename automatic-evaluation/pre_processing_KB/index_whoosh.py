@@ -18,8 +18,7 @@ from Sentence import Sentence
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'",
-              ":", ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 
@@ -30,7 +29,7 @@ def timecall(f):
         start = time.time()
         result = f(*args, **kw)
         end = time.time()
-        print "%s %.2f seconds" % (f.__name__, end - start)
+        print("%s %.2f seconds" % (f.__name__, end - start))
         return result
     return wrapper
 
@@ -45,6 +44,7 @@ def create_index():
     else:
         idx = open_dir("index_full")
     return idx
+
 
 @timecall
 def index_sentences(writer):
@@ -72,13 +72,13 @@ def index_sentences(writer):
             if valid > invalid:
                 try:
                     writer.add_document(sentence=l.strip())
-                except UnicodeDecodeError, e:
-                    print e
-                    print l
+                except UnicodeDecodeError as e:
+                    print(e)
+                    print(l)
                     sys.exit(0)
         count += 1
         if count % 50000 == 0:
-            print count, "lines processed"
+            print(count, "lines processed")
     f.close()
     writer.commit()
 

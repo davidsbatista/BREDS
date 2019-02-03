@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from numpy import zeros
 
 __author__ = "David S. Batista"
@@ -11,8 +8,7 @@ class Tuple(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
 
-        def __init__(self, _e1, _e2, _sentence, _before, _between, _after,
-                     config):
+        def __init__(self, _e1, _e2, _sentence, _before, _between, _after, config):
             self.e1 = _e1
             self.e2 = _e2
             self.sentence = _sentence
@@ -52,22 +48,25 @@ class Tuple(object):
             else:
                 return 0
 
+        def __lt__(self, other):
+            if self.confidence < other.confidence:
+                return True
+            else:
+                return False
+
         def construct_vectors(self, config):
             # Check if BET context contains a ReVerb pattern
-            reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(
-                self.bet_tags)
+            reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(self.bet_tags)
             if len(reverb_pattern) > 0:
                 # test for passive voice presence
-                self.passive_voice = config.reverb.detect_passive_voice(
-                    reverb_pattern)
+                self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
                 bet_words = reverb_pattern
             else:
                 self.passive_voice = False
                 bet_words = self.bet_tags
 
-            self.bet_filtered = [t[0] for t in bet_words if t[0].lower()
-                                 not in config.stopwords and
-                                 t[1]not in self.filter_pos]
+            self.bet_filtered = [t[0] for t in bet_words if t[0].lower() not in config.stopwords and
+                                 t[1] not in self.filter_pos]
 
             # compute the vector over the filtered BET context
             self.bet_vector = self.pattern2vector_sum(self.bet_filtered, config)

@@ -9,10 +9,9 @@ import re
 import time
 import sys
 import os
-import cPickle
-import Queue
+import pickle
 
-from BREDS.Sentence import Sentence
+from breds.sentence import Sentence
 from whoosh.index import open_dir, os
 from whoosh.query import spans
 from whoosh import query
@@ -25,8 +24,8 @@ __email__ = "dsbatista@inesc-id.pt"
 
 # relational words used in calculating the set C and D with the proximity PMI
 
-founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded',
-                    'cofounded', 'founded', 'founders']
+founded_unigrams = ['founder', 'co-founder', 'cofounder', 'co-founded', 'cofounded', 'founded',
+                    'founders']
 founded_bigrams = ['started by']
 
 acquired_unigrams = ['owns', 'acquired', 'bought', 'acquisition']
@@ -44,8 +43,7 @@ employment_unigrams = ['chief', 'scientist', 'professor', 'biologist', 'ceo',
                        'CEO', 'employer']
 employment_bigrams = []
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":",
-              ".", "--"]
+bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords_list = stopwords.words('english')
 not_valid = bad_tokens + stopwords_list
 
@@ -115,7 +113,7 @@ def timecall(f):
         result = f(*args, **kw)
         end = time.time()
         # print "%s %.2f seconds" % (f.__name__, end - start)
-        print "Time taken: %.2f seconds" % (end - start)
+        print("Time taken: %.2f seconds" % (end - start))
         return result
 
     return wrapper
@@ -134,11 +132,11 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
     while True:
         try:
             if count % 25000 == 0:
-                print multiprocessing.current_process(), \
-                    "In Queue", queue.qsize(), "Total added: ", added
+                print(multiprocessing.current_process(),
+                      "In Queue", queue.qsize(), "Total added: ", added)
             line = queue.get_nowait()
-            s = Sentence(line.strip(), e1_type, e2_type, MAX_TOKENS_AWAY,
-                         MIN_TOKENS_AWAY, CONTEXT_WINDOW)
+            s = Sentence(line.strip(), e1_type, e2_type,
+                         MAX_TOKENS_AWAY, MIN_TOKENS_AWAY, CONTEXT_WINDOW)
             for r in s.relationships:
                 tokens = word_tokenize(r.between)
                 if all(x in not_valid for x in word_tokenize(r.between)):
@@ -149,7 +147,7 @@ def process_corpus(queue, g_dash, e1_type, e2_type):
                     g_dash.append(r)
                     added += 1
             count += 1
-        except Queue.Empty:
+        except queue.Empty:
             break
 
 
@@ -240,8 +238,8 @@ def process_freebase(data, rel_type):
         try:
             e1, r, e2 = line.split('\t')
         except Exception:
-            print line
-            print line.split('\t')
+            print(line)
+            print(line.split('\t'))
             sys.exit()
 
         # ignore some entities, which are Freebase identifiers or are ambigious
@@ -405,7 +403,7 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     # G' = superset of G, cartesian product of all possible entities and
     # relations (i.e., G' = E x R x E)
     # for now, all relationships from a sentence
-    print "Building G', a superset of G"
+    print("Building G', a superset of G")
     m = multiprocessing.Manager()
     queue = m.Queue()
     g_dash = m.list()
@@ -417,9 +415,9 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     # if it exists load into g_dash_set
     if os.path.isfile("superset_" + e1_type + "_" + e2_type + ".pkl"):
         f = open("superset_" + e1_type + "_" + e2_type + ".pkl")
-        print "\nLoading superset G'", "superset_" + e1_type + "_" + \
-                                       e2_type + ".pkl"
-        g_dash_set = cPickle.load(f)
+        print("\nLoading superset G'", "superset_" + e1_type + "_" + \
+                                       e2_type + ".pkl")
+        g_dash_set = pickle.load(f)
         f.close()
 
     # else generate G' and G minus D
@@ -427,23 +425,23 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         with open(corpus) as f:
             data = f.readlines()
             count = 0
-            print "Storing in shared Queue"
+            print("Storing in shared Queue")
             for l in data:
                 if count % 50000 == 0:
                     sys.stdout.write(".")
                     sys.stdout.flush()
                 queue.put(l)
                 count += 1
-        print "\nQueue size:", queue.qsize()
+        print("\nQueue size:", queue.qsize())
 
         processes = [multiprocessing.Process(
             target=process_corpus,
             args=(queue, g_dash, e1_type, e2_type))
                      for _ in range(num_cpus)]
 
-        print "Extracting all possible " + e1_type + "," + e2_type + \
-              " relationships from the corpus"
-        print "Running", len(processes), "threads"
+        print("Extracting all possible " + e1_type + "," + e2_type + \
+              " relationships from the corpus")
+        print("Running", len(processes), "threads")
 
         for proc in processes:
             proc.start()
@@ -451,12 +449,12 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for proc in processes:
             proc.join()
 
-        print len(g_dash), "relationships built"
+        print(len(g_dash), "relationships built")
         g_dash_set = set(g_dash)
-        print len(g_dash_set), "unique relationships"
-        print "Dumping into file", "superset_" + e1_type + "_" + e2_type + ".pkl"
+        print(len(g_dash_set), "unique relationships")
+        print("Dumping into file", "superset_" + e1_type + "_" + e2_type + ".pkl")
         f = open("superset_" + e1_type + "_" + e2_type + ".pkl", "wb")
-        cPickle.dump(g_dash_set, f)
+        pickle.dump(g_dash_set, f)
         f.close()
 
     # Estimate G \in D, look for facts in G' that a match a fact in the database
@@ -464,20 +462,20 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
     if os.path.isfile(rel_type + "_g_intersection_d.pkl") and \
             os.path.isfile(rel_type + "_g_minus_d.pkl"):
         f = open(rel_type + "_g_intersection_d.pkl", "r")
-        print "\nLoading G intersected with D", rel_type + "_g_intersection_d.pkl"
-        g_intersect_d = cPickle.load(f)
+        print("\nLoading G intersected with D", rel_type + "_g_intersection_d.pkl")
+        g_intersect_d = pickle.load(f)
         f.close()
 
         f = open(rel_type + "_g_minus_d.pkl")
-        print "\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl"
-        g_minus_d = cPickle.load(f)
+        print("\nLoading superset G' minus D", rel_type + "_g_minus_d.pkl")
+        g_minus_d = pickle.load(f)
         f.close()
 
     else:
-        print "Estimating G intersection with D"
+        print("Estimating G intersection with D")
         g_intersect_d = set()
-        print "G':", len(g_dash_set)
-        print "Database:", len(database_1.keys())
+        print("G':", len(g_dash_set))
+        print("Database:", len(list(database_1.keys())))
 
         # Facts not in the database, to use in estimating set d
         g_minus_d = set()
@@ -508,9 +506,9 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
         for l in no_matches:
             g_minus_d.update(l)
 
-        print "Extra filtering: from the intersection of G' with D, " \
-              "select only those based on keywords"
-        print len(g_intersect_d)
+        print("Extra filtering: from the intersection of G' with D, " \
+              "select only those based on keywords")
+        print(len(g_intersect_d))
         filtered = set()
         for r in g_intersect_d:
             unigrams_bet = word_tokenize(r.between)
@@ -530,16 +528,16 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 filtered.add(r)
                 continue
         g_intersect_d = filtered
-        print len(g_intersect_d), "relationships in the corpus " \
-                                  "which are in the KB"
+        print(len(g_intersect_d), "relationships in the corpus " \
+                                  "which are in the KB")
         if len(g_intersect_d) > 0:
             # dump G intersected with D to file
             f = open(rel_type + "_g_intersection_d.pkl", "wb")
-            cPickle.dump(g_intersect_d, f)
+            pickle.dump(g_intersect_d, f)
             f.close()
 
-        print "Extra filtering: from the G' not in D, select only " \
-              "those based on keywords"
+        print("Extra filtering: from the G' not in D, select only " \
+              "those based on keywords")
         filtered = set()
         for r in g_minus_d:
             unigrams_bet = word_tokenize(r.between)
@@ -559,11 +557,11 @@ def calculate_c(corpus, database_1, database_2, database_3, b, e1_type, e2_type,
                 filtered.add(r)
                 continue
         g_minus_d = filtered
-        print len(g_minus_d), "relationships in the corpus not in the KB"
+        print(len(g_minus_d), "relationships in the corpus not in the KB")
         if len(g_minus_d) > 0:
             # dump G - D to file, relationships in the corpus not in KB
             f = open(rel_type + "_g_minus_d.pkl", "wb")
-            cPickle.dump(g_minus_d, f)
+            pickle.dump(g_minus_d, f)
             f.close()
 
     # having B and G_intersect_D => |c| = |G_intersect_D| - |b|
@@ -589,9 +587,9 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type,
     # check if it was already calculated and stored in disk
     if os.path.isfile(rel_type + "_high_pmi_not_in_database.pkl"):
         f = open(rel_type + "_high_pmi_not_in_database.pkl")
-        print "\nLoading high PMI facts not in the database", \
-            rel_type + "_high_pmi_not_in_database.pkl"
-        g_minus_d = cPickle.load(f)
+        print("\nLoading high PMI facts not in the database", \
+            rel_type + "_high_pmi_not_in_database.pkl")
+        g_minus_d = pickle.load(f)
         f.close()
 
     else:
@@ -620,14 +618,14 @@ def calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type,
         for l in results:
             g_minus_d.update(l)
 
-        print "High PMI facts not in the database", len(g_minus_d)
+        print("High PMI facts not in the database", len(g_minus_d))
 
         # dump high PMI facts not in the database
         if len(g_minus_d) > 0:
             f = open(rel_type + "_high_pmi_not_in_database.pkl", "wb")
-            print "Dumping high PMI facts not in the database to", \
-                rel_type + "_high_pmi_not_in_database.pkl"
-            cPickle.dump(g_minus_d, f)
+            print("Dumping high PMI facts not in the database to", \
+                rel_type + "_high_pmi_not_in_database.pkl")
+            pickle.dump(g_minus_d, f)
             f.close()
 
     return g_minus_d.difference(a)
@@ -647,9 +645,9 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results,
             try:
                 r = queue.get_nowait()
                 if count % 50 == 0:
-                    print "\n", multiprocessing.current_process(), \
+                    print("\n", multiprocessing.current_process(), \
                         "In Queue", queue.qsize(), \
-                        "Total Matched: ", len(results)
+                        "Total Matched: ", len(results))
                 if (r.ent1, r.ent2) not in all_in_database:
                     # if its not in the database calculate the PMI
                     entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
@@ -708,7 +706,7 @@ def proximity_pmi_rel_word(e1_type, e2_type, queue, index, results,
                             results.append(r)
 
                 count += 1
-            except Queue.Empty:
+            except queue.Empty:
                 break
 
 
@@ -721,8 +719,8 @@ def string_matching_parallel(matches, no_matches, database_1, database_2,
             found = False
             count += 1
             if count % 500 == 0:
-                print multiprocessing.current_process(), \
-                    "In Queue", queue.qsize()
+                print(multiprocessing.current_process(), \
+                    "In Queue", queue.qsize())
 
             # check if its in cache, i.e., if tuple was already matched
             if (r.ent1, r.ent2) in all_in_database:
@@ -822,9 +820,9 @@ def string_matching_parallel(matches, no_matches, database_1, database_2,
             if found is False:
                 no_matches.append(r)
                 if PRINT_NOT_FOUND is True:
-                    print r.ent1, '\t', r.ent2
+                    print(r.ent1, '\t', r.ent2)
 
-        except Queue.Empty:
+        except queue.Empty:
             break
 
 
@@ -839,9 +837,9 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found,
                 r = queue.get_nowait()
                 count += 1
                 if count % 50 == 0:
-                    print multiprocessing.current_process(), \
+                    print(multiprocessing.current_process(), \
                         "To Process", queue.qsize(), \
-                        "Correct found:", len(results)
+                        "Correct found:", len(results))
 
                 # if its not in the database calculate the PMI
                 entity1 = "<" + e1_type + ">" + r.ent1 + "</" + e1_type + ">"
@@ -907,7 +905,7 @@ def proximity_pmi_a(e1_type, e2_type, queue, index, results, not_found,
                     not_found.append(r)
                 count += 1
 
-            except Queue.Empty:
+            except queue.Empty:
                 break
 
 
@@ -934,9 +932,9 @@ def main():
     # F1        = 2*P*R / P+R
 
     if len(sys.argv) == 1:
-        print "No arguments"
-        print "Use: evaluation.py threshold system_output rel_type database"
-        print "\n"
+        print("No arguments")
+        print("Use: evaluation.py threshold system_output rel_type database")
+        print("\n")
         sys.exit(0)
 
     threhsold = float(sys.argv[1])
@@ -944,12 +942,12 @@ def main():
 
     # load relationships extracted by the system
     system_output = process_output(sys.argv[2], threhsold, rel_type)
-    print "Relationships score threshold :", threhsold
-    print "System output relationships   :", len(system_output)
+    print("Relationships score threshold :", threhsold)
+    print("System output relationships   :", len(system_output))
 
     # load freebase relationships as the database
     database_1, database_2, database_3 = process_freebase(sys.argv[4], rel_type)
-    print "Freebase relationships loaded :", len(database_1.keys())
+    print("Freebase relationships loaded :", len(list(database_1.keys())))
 
     # corpus from which the system extracted relationships
     corpus = "/home/dsbatista/gigaword/automatic-evaluation/" \
@@ -976,7 +974,7 @@ def main():
 
     elif rel_type == 'headquarters':
         # load dbpedia relationships
-        print "Loading extra DBPedia relationships for", rel_type
+        print("Loading extra DBPedia relationships for", rel_type)
         load_dbpedia(sys.argv[5], database_1, database_2)
         e1_type = "ORG"
         e2_type = "LOC"
@@ -994,41 +992,41 @@ def main():
         rel_words_bigrams = employment_bigrams
 
     else:
-        print "Invalid relationship type", rel_type
-        print "Use: founder, acquired, headquarters, employer"
+        print("Invalid relationship type", rel_type)
+        print("Use: founder, acquired, headquarters, employer")
         sys.exit(0)
 
-    print "\nRelationship Type:", rel_type
-    print "Arg1 Type:", e1_type
-    print "Arg2 Type:", e2_type
+    print("\nRelationship Type:", rel_type)
+    print("Arg1 Type:", e1_type)
+    print("Arg2 Type:", e2_type)
 
-    print "\nCalculating set B: intersection between system output and database"
+    print("\nCalculating set B: intersection between system output and database")
     b, not_in_database = calculate_b(system_output, database_1, database_2,
                                      database_3, e1_type, e2_type)
 
-    print "System output      :", len(system_output)
-    print "Found in database  :", len(b)
-    print "Not found          :", len(not_in_database)
+    print("System output      :", len(system_output))
+    print("Found in database  :", len(b))
+    print("Not found          :", len(not_in_database))
     assert len(system_output) == len(not_in_database) + len(b)
 
-    print "\nCalculating set A: correct facts from system output not in " \
-          "the database (proximity PMI)"
+    print("\nCalculating set A: correct facts from system output not in " \
+          "the database (proximity PMI)")
     a, not_found = calculate_a(not_in_database, e1_type, e2_type, index,
                                rel_words_unigrams, rel_words_bigrams)
 
-    print "System output      :", len(system_output)
-    print "Found in database  :", len(b)
-    print "Correct in corpus  :", len(a)
-    print "Not found          :", len(not_found)
-    print "\n"
+    print("System output      :", len(system_output))
+    print("Found in database  :", len(b))
+    print("Correct in corpus  :", len(a))
+    print("Not found          :", len(not_found))
+    print("\n")
     assert len(system_output) == len(a) + len(b) + len(not_found)
 
     # Estimate G \intersected D = |b| + |c|, looking for relationships in G'
     # that match a relationship in D, once we have G \in D and |b|, |c| can be
     # derived by: |c| = |G \in D| - |b| G' = superset of G, cartesian product
     # of all possible entities and relations (i.e., G' = E x R x E)
-    print "\nCalculating set C: database facts in the corpus but not " \
-          "extracted by the system"
+    print("\nCalculating set C: database facts in the corpus but not " \
+          "extracted by the system")
     c, g_minus_d = calculate_c(corpus, database_1, database_2, database_3, b,
                                e1_type, e2_type, rel_type, rel_words_unigrams,
                                rel_words_bigrams)
@@ -1040,29 +1038,29 @@ def main():
 
     # By applying the PMI of the facts not in the database (i.e., G' \in D)
     # we determine |G \ D|, then we can estimate |d| = |G \ D| - |a|
-    print "\nCalculating set D: facts described in the corpus not in " \
-          "the system output nor in the database"
+    print("\nCalculating set D: facts described in the corpus not in " \
+          "the system output nor in the database")
     d = calculate_d(g_minus_d, a, e1_type, e2_type, index, rel_type,
                     rel_words_unigrams, rel_words_bigrams)
 
-    print "System output      :", len(system_output)
-    print "Found in database  :", len(b)
-    print "Correct in corpus  :", len(a)
-    print "Not found          :", len(not_found)
-    print "\n"
+    print("System output      :", len(system_output))
+    print("Found in database  :", len(b))
+    print("Correct in corpus  :", len(a))
+    print("Not found          :", len(not_found))
+    print("\n")
     assert len(d) > 0
 
     uniq_d = set()
     for r in d:
         uniq_d.add((r.ent1, r.ent2))
 
-    print "|a| =", len(a)
-    print "|b| =", len(b)
-    print "|c| =", len(c), "(", len(uniq_c), ")"
-    print "|d| =", len(d), "(", len(uniq_d), ")"
-    print "|S| =", len(system_output)
-    print "|G| =", len(set(a).union(set(b).union(set(c).union(set(d)))))
-    print "Relationships not found:", len(set(not_found))
+    print("|a| =", len(a))
+    print("|b| =", len(b))
+    print("|c| =", len(c), "(", len(uniq_c), ")")
+    print("|d| =", len(d), "(", len(uniq_d), ")")
+    print("|S| =", len(system_output))
+    print("|G| =", len(set(a).union(set(b).union(set(c).union(set(d))))))
+    print("Relationships not found:", len(set(not_found)))
 
     # Write relationships not found in the Database nor with high PMI
     # relational words to disk
@@ -1093,24 +1091,24 @@ def main():
     b = set(b)
     output = set(system_output)
     if len(output) == 0:
-        print "\nPrecision   : 0.0"
-        print "Recall      : 0.0"
-        print "F1          : 0.0"
-        print "\n"
+        print("\nPrecision   : 0.0")
+        print("Recall      : 0.0")
+        print("F1          : 0.0")
+        print("\n")
     elif float(len(a) + len(b)) == 0:
-        print "\nPrecision   : 0.0"
-        print "Recall      : 0.0"
-        print "F1          : 0.0"
-        print "\n"
+        print("\nPrecision   : 0.0")
+        print("Recall      : 0.0")
+        print("F1          : 0.0")
+        print("\n")
     else:
         precision = float(len(a) + len(b)) / float(len(output))
         recall = float(len(a) + len(b)) / float(len(a) + len(b) + len(uniq_c) +
                                                 len(uniq_d))
         f1 = 2 * (precision * recall) / (precision + recall)
-        print "\nPrecision   : ", precision
-        print "Recall      : ", recall
-        print "F1          : ", f1
-        print "\n"
+        print("\nPrecision   : ", precision)
+        print("Recall      : ", recall)
+        print("F1          : ", f1)
+        print("\n")
 
 if __name__ == "__main__":
     main()
