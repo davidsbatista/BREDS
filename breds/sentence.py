@@ -187,8 +187,8 @@ class Sentence:
 
                     # ignore relationships where BET context is only stopwords
                     # or other invalid words
-                    if all(x in not_valid for x in text_tokens[sorted_keys[i] +
-                            len(e1.parts):sorted_keys[i+1]]):
+                    if all(x in not_valid for x in
+                           text_tokens[sorted_keys[i] + len(e1.parts):sorted_keys[i + 1]]):
                         continue
 
                     if config.tag_type == "simple":
