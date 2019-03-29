@@ -15,7 +15,7 @@ class Pattern(object):
         self.tuples = set()
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
-        if tuple is not None:
+        if t is not None:
             self.tuples.add(t)
 
     def __eq__(self, other):

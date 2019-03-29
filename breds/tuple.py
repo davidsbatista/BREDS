@@ -69,7 +69,6 @@ class Tuple(object):
                              t[1] not in self.filter_pos]
 
         # compute the vector over the filtered BET context
-        print(self.bet_filtered)
         self.bet_vector = self.pattern2vector_sum(self.bet_filtered, config)
 
         # compute the vector for words before the first entity,
