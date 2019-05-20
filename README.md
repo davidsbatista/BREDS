@@ -32,10 +32,11 @@ which you can install issuing the following command:
 
     pip install -r requirements.txt
 
-You also need to install NLTK's Treebank PoS-tagger
+You also need to install NLTK's Treebank PoS-tagger and stop words list:
 
     import nltk
     nltk.download('maxent_treebank_pos_tagger')
+    nltk.download('stopwords')
 
 Usage:
 =====
