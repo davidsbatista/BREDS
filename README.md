@@ -32,11 +32,13 @@ which you can install issuing the following command:
 
     pip install -r requirements.txt
 
-You also need to install NLTK's Treebank PoS-tagger and stop words list:
+You also need to install NLTK's Treebank PoS-tagger, stop words list, punkt, and wordnet:
 
     import nltk
     nltk.download('maxent_treebank_pos_tagger')
     nltk.download('stopwords')
+    nltk.download('punkt')
+    nltk.download('wordnet')
 
 Usage:
 =====
