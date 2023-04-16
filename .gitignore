@@ -106,3 +106,5 @@ sentences.txt
 
 # IDE Specific files
 .idea/
+
+.DS_Store
