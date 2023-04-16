@@ -39,7 +39,7 @@ class Pattern(object):
     def add_tuple(self, t):
         self.tuples.add(t)
 
-    def merge_all_tuples_bet(self):
+    def merge_all_tuples_bet(self) -> None:
         """Put all tuples with BET vectors into a set so that comparison with repeated vectors is eliminated"""
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()

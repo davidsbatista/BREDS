@@ -1,4 +1,5 @@
 import re
+
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 
@@ -31,16 +32,16 @@ def find_locations(entity_string, text_tokens):
 
 
 class EntitySimple:
-    def __init__(self, _e_string, _e_parts, _e_type, _locations):
+    def __init__(self, _e_string, _e_parts, _e_type, _locations) -> None:
         self.string = _e_string
         self.parts = _e_parts
         self.type = _e_type
         self.locations = _locations
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.string) ^ hash(self.type)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.string == other.string and self.type == other.type
 
 
@@ -52,10 +53,10 @@ class EntityLinked:
         self.locations = _locations
         self.url = _url
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.url)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.url == other.url
 
 
@@ -70,7 +71,7 @@ class Relationship:
         self.e1_type = e1_type
         self.e2_type = e2_type
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if (
             self.e1 == other.e1
             and self.before == other.before
@@ -81,17 +82,18 @@ class Relationship:
         else:
             return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.e1) ^ hash(self.e2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
 
 
 class Sentence:
-    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None, config=None):
+    def __init__(  # noqa: C901
+        self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None, config=None
+    ):
         self.relationships = list()
         self.tagged_text = None
 
-        # determine which type of regex to use according to
-        # how named-entities are tagged
+        # determine which type of regex to use according to how named-entities are tagged
         entities_regex = None
         if config.tag_type == "simple":
             entities_regex = config.regex_simple
@@ -134,7 +136,7 @@ class Sentence:
                     e = EntityLinked(e_string, e_parts, e_type, locations, e_url)
                     entities_info.add(e)
 
-            # create an hash table:
+            # create a hash table:
             # - key is the starting index in the tokenized sentence of an entity
             # - value the corresponding Entity instance
             locations = dict()
@@ -142,7 +144,7 @@ class Sentence:
                 for start in e.locations:
                     locations[start] = e
 
-            # look for pair of entities such that:
+            # look for a pair of entities such that:
             # the distance between the two entities is less than 'max_tokens'
             # and greater than 'min_tokens'
             # the arguments match the seeds semantic types
@@ -174,8 +176,7 @@ class Sentence:
                     after = self.tagged_text[sorted_keys[i + 1] + len(e2.parts) :]
                     after = after[:window_size]
 
-                    # ignore relationships where BET context is only stopwords
-                    # or other invalid words
+                    # ignore relationships where BET context is only stopwords or other invalid words
                     if all(x in not_valid for x in text_tokens[sorted_keys[i] + len(e1.parts) : sorted_keys[i + 1]]):
                         continue
 

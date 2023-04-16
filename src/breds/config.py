@@ -1,11 +1,12 @@
 import fileinput
 import re
 
-from nltk.corpus import stopwords
-from nltk import WordNetLemmatizer
 from gensim.models import KeyedVectors
-from seed import Seed
+from nltk import WordNetLemmatizer
+from nltk.corpus import stopwords
+
 from reverb import Reverb
+from seed import Seed
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -29,7 +30,7 @@ class Config(object):
     - Initialize the Reverb object.
     """
 
-    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence):  # noqa: C901
+    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence) -> None:  # noqa: C901
         self.context_window_size = None
         self.min_tokens_away = None
         self.similarity = None
@@ -61,12 +62,10 @@ class Config(object):
         self.word2vec = None
         self.vec_dim = None
 
-        # simple tags, e.g.:
-        # <PER>Bill Gates</PER>
+        # simple tags, e.g.: <PER>Bill Gates</PER>
         self.regex_simple = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)
 
-        # linked tags e.g.:
-        # <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
+        # linked tags e.g.: <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
         self.regex_linked = re.compile("<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>", re.U)
 
         self.read_config(config_file)

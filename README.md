@@ -47,7 +47,7 @@ Usage:
 
 **parameters**
 
-A sample configuration is provided in `parameters.cfg`. The file contains values for differentes parameters:
+A sample configuration is provided in `parameters.cfg`. The file contains values for different parameters:
 
     max_tokens_away=6           # maximum number of tokens between the two entities
     min_tokens_away=1           # minimum number of tokens between the two entities
@@ -70,7 +70,8 @@ A sample configuration is provided in `parameters.cfg`. The file contains values
 
 **sentences**
 
-A sample configuration is provided in `sentences.txt`, a text file containing sentences, one per line, with tags identifing the named type of named-entities, e.g.:
+A sample configuration is provided in `sentences.txt`, a text file containing sentences, one per line, with tags 
+identifying the named type of named-entities, e.g.:
  
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
     <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
@@ -112,11 +113,14 @@ The confidence threshold real value [0,1] for an instance to be used as seed, e.
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. The model is available here: 
+You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
+download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. 
+The model is available here: 
 
 [afp_apw_xin_embeddings.bin](http://data.davidsbatista.net/afp_apw_xin_embeddings.bin)
 
-A sample file containing sentences where the named-entities are already tagged, which has 1 million sentences taken from the New York Times articles part of the English Gigaword Collection, is available here: 
+A sample file containing sentences where the named-entities are already tagged, which has 1 million sentences taken 
+from the New York Times articles part of the English Gigaword Collection, is available here: 
 
 [sentences.txt.bz2](http://data.davidsbatista.net/sentences.txt.bz2)
 
@@ -125,17 +129,26 @@ The golden standard used for evaluation is available here:
 [relationships_gold.zip](http://data.davidsbatista.net/relationships_gold.zip)
 
 
-To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in `seeds_positive`, run the following command: 
+To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in 
+`seeds_positive`, run the following command: 
 
     python breds.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7
 
-In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`as the second argument to `BREDS.py` instead of `sentences.txt`.
+In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of 
+relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed 
+examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`
+as the second argument to `BREDS.py` instead of `sentences.txt`.
 
-Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or you can also use a multi-core version of BREDS. In the multi-core version finding seed matchs and clustering them is done in parallel, levering multi-core architectures. You must specifiy at the end how many cores you want to use:
+Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, 
+can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or you can also use 
+a multicore version of BREDS. In the multicore version finding seed matches and clustering them is done in parallel, 
+levering multicore architectures. You must specify at the end how many cores you want to use:
 
     python breds-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7 #cpus
 
-The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, containing the confidence score, the sentence where the relationship was found, the patterns that extracted the relationship and wether the passive voice is present in the relationship, e.g.:
+The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, 
+containing the confidence score, the sentence where the relationship was found, the patterns that extracted the 
+relationship and whether the passive voice is present in the relationship, e.g.:
 
     instance: DynCorp       Reston  score:0.998
     sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .

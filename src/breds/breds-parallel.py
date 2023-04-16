@@ -1,24 +1,21 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import pickle
-import sys
 import codecs
-import operator
 import math
 import multiprocessing
+import operator
+import pickle
 import queue
-
-from numpy import dot, asarray
-from gensim import matutils
+import sys
 from collections import defaultdict
-from nltk.data import load
 
-from breds.pattern import Pattern
+from gensim import matutils
+from nltk.data import load
+from numpy import dot, asarray
+
 from breds.config import Config
-from breds.tuple import Tuple
-from breds.sentence import Sentence
+from breds.pattern import Pattern
 from breds.seed import Seed
+from breds.sentence import Sentence
+from breds.tuple import Tuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -230,7 +227,7 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def init_bootstrap(self, tuples):
+    def init_bootstrap(self, tuples):  # noqa: C901
         # starts a bootstrap iteration
 
         if tuples is not None:
@@ -587,7 +584,7 @@ class BREDS(object):
 
         return float(score) / float(count)
 
-    def find_instances(self, patterns, instances, child_conn):
+    def find_instances(self, patterns, instances, child_conn):  # noqa: C901
         updated_patterns = list()
         candidate_tuples = list()
         while True:

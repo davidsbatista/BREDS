@@ -1,18 +1,18 @@
-import sys
+import operator
 import os
 import pickle
-import operator
-
-from numpy import dot
-from gensim import matutils
+import sys
 from collections import defaultdict
-from nltk.data import load
 
-from breds.seed import Seed
-from breds.pattern import Pattern
+from gensim import matutils
+from nltk.data import load
+from numpy import dot
+
 from breds.config import Config
-from breds.tuple import Tuple
+from breds.pattern import Pattern
+from breds.seed import Seed
 from breds.sentence import Sentence
+from breds.tuple import Tuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -149,7 +149,7 @@ class BREDS(object):
             f_output.write("\n")
         f_output.close()
 
-    def init_bootstrap(self, tuples):
+    def init_bootstrap(self, tuples):  # noqa: C901
         # starts a bootstrap iteration
 
         if tuples is not None:
