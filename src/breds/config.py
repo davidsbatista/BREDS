@@ -29,7 +29,7 @@ class Config(object):
     - Initialize the Reverb object.
     """
 
-    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence):  # flake8: noqa: C901
+    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence):  # noqa: C901
         self.context_window_size = None
         self.min_tokens_away = None
         self.similarity = None
@@ -105,7 +105,7 @@ class Config(object):
         print("iteration wUpdt      :", self.wUpdt)
         print("\n")
 
-    def read_config(self, config_file):  # flake8: noqa: C901
+    def read_config(self, config_file):  # noqa: C901
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
                 continue
