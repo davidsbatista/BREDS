@@ -9,6 +9,7 @@ dev:
 	virtualenv --python $(PYTHON_VERSION) $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip3 install -r requirements_dev.txt
 	source ${VIRTUALENV}/bin/activate && pip3 install --editable .
+	python -m nltk.downloader maxent_treebank_pos_tagger
 
 
 lint:

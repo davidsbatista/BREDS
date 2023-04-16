@@ -1,5 +1,5 @@
-import fileinput
 import io
+from typing import Tuple, List, Any
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -15,7 +15,7 @@ class Reverb(object):
         self.aux_verbs = ["be"]
 
     @staticmethod
-    def extract_reverb_patterns(text):
+    def extract_reverb_patterns(text: str) -> Tuple[List[str], List[List[Tuple[Any, Any]]]]:
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -102,17 +102,17 @@ class Reverb(object):
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
+
+        The pattern limits the relation to be:
+            a verb (e.g., invented),
+            a verb followed immediately by a preposition (e.g., located in),
+            or a verb followed by nouns, adjectives, or adverbs ending in a preposition (e.g., has an atomic weight of).
+
+        V | V P | V W*P
+        V = verb particle? adv?
+        W = (noun | adj | adv | pron | det)
+        P = (prep | particle | inf. marker)
         """
-
-        # The pattern limits the relation to be a verb (e.g., invented),
-        # a verb followed immediately by a preposition (e.g., located in),
-        # or a verb followed by nouns, adjectives, or adverbs ending in a
-        # preposition (e.g., has an atomic weight of).
-
-        # V | V P | V W*P
-        # V = verb particle? adv?
-        # W = (noun | adj | adv | pron | det)
-        # P = (prep | particle | inf. marker)
 
         patterns = []
         patterns_tags = []
@@ -175,17 +175,13 @@ class Reverb(object):
                 patterns_tags.append(tmp_tags)
             i += 1
 
-        # Finally, if the pattern matches multiple adjacent sequences, we merge
-        # them into a single relation phrase (e.g.,wants to extend).
-        #
-        # This refinement enables the model to readily handle relation phrases
-        # containing multiple verbs.
-
+        # if the pattern matches multiple adjacent sequences merge them into a single relation phrase, e.g.:
+        # "wants to extend", enabling the model to readily handle relation phrases containing multiple verbs.
         merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
         return merged_patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_ptb(text):
+    def extract_reverb_patterns_ptb(text: str):
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -303,23 +299,3 @@ class Reverb(object):
                 passive_voice = True
 
         return passive_voice
-
-
-def main():
-    reverb = Reverb()
-    for line in fileinput.input():
-        tokens = word_tokenize(line.strip())
-        tokens_tagged = pos_tag(tokens)
-        print(tokens_tagged)
-        pattern_tags = reverb.extract_reverb_patterns_tagged_ptb(tokens_tagged)
-        print(pattern_tags)
-        if reverb.detect_passive_voice(pattern_tags):
-            print("Passive Voice: True")
-        else:
-            print("Passive Voice: False")
-        print("\n")
-    fileinput.close()
-
-
-if __name__ == "__main__":
-    main()

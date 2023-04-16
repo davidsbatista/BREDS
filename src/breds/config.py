@@ -24,20 +24,19 @@ class Config(object):
         # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
         # select everything except stopwords, ADJ and ADV
     - Set the regex to clean the text.
-    - Set the regex to find the simple and linked tags.
     - Set the threshold for the similarity between the patterns and the instances.
     - Set the threshold for the confidence of the patterns.
     - Initialize the Reverb object.
     """
 
     def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence) -> None:  # noqa: C901
-        self.context_window_size = None
-        self.min_tokens_away = None
+        self.context_window_size: int = 2
+        self.min_tokens_away: int = 1
+        self.max_tokens_away: int = 6
         self.similarity = None
         self.alpha = None
         self.word2vec_model_path = None
         self.beta = None
-        self.max_tokens_away = None
         self.gamma = None
         self.min_pattern_support = None
         self.number_iterations = None
@@ -61,17 +60,9 @@ class Config(object):
         self.reverb = Reverb()
         self.word2vec = None
         self.vec_dim = None
-
-        # simple tags, e.g.: <PER>Bill Gates</PER>
-        self.regex_simple = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)
-
-        # linked tags e.g.: <PER url=http://en.wikipedia.org/wiki/Mark_Zuckerberg>Zuckerberg</PER>
-        self.regex_linked = re.compile("<[A-Z]+ url=[^>]+>[^<]+</[A-Z]+>", re.U)
-
         self.read_config(config_file)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
-        fileinput.close()
 
         print("Configuration parameters")
         print("========================\n")
@@ -151,6 +142,7 @@ class Config(object):
             if line.startswith("tags_type"):
                 self.tag_type = line.split("=")[1].strip()
 
+        fileinput.close()
         assert self.alpha + self.beta + self.gamma == 1
 
     def read_word2vec(self):

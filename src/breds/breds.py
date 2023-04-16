@@ -8,11 +8,11 @@ from gensim import matutils
 from nltk.data import load
 from numpy import dot
 
-from breds.config import Config
-from breds.pattern import Pattern
-from breds.seed import Seed
-from breds.sentence import Sentence
-from breds.tuple import Tuple
+from config import Config
+from pattern import Pattern
+from seed import Seed
+from sentence import Sentence
+from tuple import Tuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -32,8 +32,7 @@ class BREDS(object):
 
     def generate_tuples(self, sentences_file):
         """
-        Generate tuples instances from a text file with sentences where named entities are
-        already tagged
+        Generate tuples instances from a text file with sentences where named entities are already tagged.
 
         :param sentences_file:
         """
@@ -150,8 +149,9 @@ class BREDS(object):
         f_output.close()
 
     def init_bootstrap(self, tuples):  # noqa: C901
-        # starts a bootstrap iteration
-
+        """
+        Initializes the bootstrap process
+        """
         if tuples is not None:
             f = open(tuples, "r")
             print("\nLoading processed tuples from disk...")
