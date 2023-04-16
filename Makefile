@@ -1,4 +1,8 @@
-.PHONY:	test lint
+.PHONY:	test lint virtualenv dist
+
+PYTHON_VERSION = python3.9
+VIRTUALENV := .venv
+
 
 lint:
 	black --check -t py39 -l 120 src
@@ -14,3 +18,17 @@ test:
 
 clean:
 	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache .pytest_cache
+
+
+virtualenv:
+	@if [ -d $(VIRTUALENV) ]; then rm -rf $(VIRTUALENV); fi
+	@mkdir -p $(VIRTUALENV)
+	virtualenv --python $(PYTHON_VERSION) $(VIRTUALENV)
+	$(VIRTUALENV)/bin/pip3 install -r requirements_dev.txt
+	source ${VIRTUALENV}/bin/activate && pip3 install --editable .
+
+
+dist:
+	-rm -r dist
+	python -m pip install --upgrade build
+	python -m build
