@@ -1,12 +1,12 @@
 from numpy import zeros
 
 __author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
+__email__ = "dsbatista@gmail.com"
 
 
 class Tuple(object):
     # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-    filter_pos = ['JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS', 'WRB']
+    filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
 
     def __init__(self, _e1, _e2, _sentence, _before, _between, _after, config):
         self.e1 = _e1
@@ -27,18 +27,21 @@ class Tuple(object):
         self.construct_vectors(config)
 
     def __str__(self):
-        return str(self.e1 + '\t' + self.e2 + '\t' + self.bef_words + '\t' +
-                   self.bet_words + '\t' + self.aft_words).encode("utf8")
+        return str(
+            self.e1 + "\t" + self.e2 + "\t" + self.bef_words + "\t" + self.bet_words + "\t" + self.aft_words
+        ).encode("utf8")
 
     def __hash__(self):
-        return hash(self.e1) ^ hash(self.e2) ^ hash(self.bef_words) ^ \
-               hash(self.bet_words) ^ hash(self.aft_words)
+        return hash(self.e1) ^ hash(self.e2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
 
     def __eq__(self, other):
-        return (self.e1 == other.e1 and self.e2 == other.e2 and
-                self.bef_words == other.bef_words and
-                self.bet_words == other.bet_words and
-                self.aft_words == other.aft_words)
+        return (
+            self.e1 == other.e1
+            and self.e2 == other.e2
+            and self.bef_words == other.bef_words
+            and self.bet_words == other.bet_words
+            and self.aft_words == other.aft_words
+        )
 
     def __cmp__(self, other):
         if other.confidence > self.confidence:
@@ -65,8 +68,9 @@ class Tuple(object):
             self.passive_voice = False
             bet_words = self.bet_tags
 
-        self.bet_filtered = [t[0] for t in bet_words if t[0].lower() not in config.stopwords and
-                             t[1] not in self.filter_pos]
+        self.bet_filtered = [
+            t[0] for t in bet_words if t[0].lower() not in config.stopwords and t[1] not in self.filter_pos
+        ]
 
         # compute the vector over the filtered BET context
         self.bet_vector = self.pattern2vector_sum(self.bet_filtered, config)

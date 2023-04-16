@@ -21,7 +21,7 @@ from breds.sentence import Sentence
 from breds.seed import Seed
 
 __author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
+__email__ = "dsbatista@gmail.com"
 
 # useful stuff for debugging
 PRINT_TUPLES = False
@@ -29,9 +29,7 @@ PRINT_PATTERNS = False
 
 
 class BREDS(object):
-
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity,
-                 confidence, num_cores):
+    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence, num_cores):
         if num_cores == 0:
             self.num_cpus = multiprocessing.cpu_count()
         else:
@@ -41,11 +39,9 @@ class BREDS(object):
         self.curr_iteration = 0
         self.patterns = list()
         self.patterns_index = dict()
-        self.config = Config(config_file, seeds_file, negative_seeds,
-                             similarity, confidence)
+        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
     def generate_tuples(self, sentences_file):
-
         # generate tuples instances from a text file with sentences
         # where named entities are already tagged
 
@@ -58,7 +54,7 @@ class BREDS(object):
         queue = manager.Queue()
 
         print("\nLoading sentences from file")
-        f_sentences = codecs.open(sentences_file, encoding='utf-8')
+        f_sentences = codecs.open(sentences_file, encoding="utf-8")
         count = 0
         for line in f_sentences:
             if line.startswith("#"):
@@ -71,9 +67,9 @@ class BREDS(object):
 
         pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
         processes = [
-            multiprocessing.Process(target=self.generate_instances,
-                                    args=(queue, pipes[i][1]))
-            for i in range(self.num_cpus)]
+            multiprocessing.Process(target=self.generate_instances, args=(queue, pipes[i][1]))
+            for i in range(self.num_cpus)
+        ]
 
         print("\nGenerating relationship instances from sentences")
         print("Running", len(processes), " processes")
@@ -97,27 +93,27 @@ class BREDS(object):
 
     def generate_instances(self, sentences, child_conn):
         # Each process has its own NLTK PoS-tagger
-        tagger = load('taggers/maxent_treebank_pos_tagger/english.pickle')
+        tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
         instances = list()
         while True:
             try:
                 s = sentences.get_nowait()
                 if sentences.qsize() % 500 == 0:
-                    print(multiprocessing.current_process(), \
-                        "Instances to process", sentences.qsize())
+                    print(multiprocessing.current_process(), "Instances to process", sentences.qsize())
 
-                sentence = Sentence(s,
-                                    self.config.e1_type,
-                                    self.config.e2_type,
-                                    self.config.max_tokens_away,
-                                    self.config.min_tokens_away,
-                                    self.config.context_window_size,
-                                    tagger,
-                                    self.config)
+                sentence = Sentence(
+                    s,
+                    self.config.e1_type,
+                    self.config.e2_type,
+                    self.config.max_tokens_away,
+                    self.config.min_tokens_away,
+                    self.config.context_window_size,
+                    tagger,
+                    self.config,
+                )
 
                 for rel in sentence.relationships:
-                    t = Tuple(rel.e1, rel.e2, rel.sentence, rel.before,
-                              rel.between, rel.after, self.config)
+                    t = Tuple(rel.e1, rel.e2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                     instances.append(t)
 
             except queue.Empty:
@@ -130,26 +126,17 @@ class BREDS(object):
         (bef, bet, aft) = (0, 0, 0)
 
         if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(
-                matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector)
-            )
+            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
 
         if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(
-                matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector)
-            )
+            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
 
         if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(
-                matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector)
-            )
+            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
 
-        return self.config.alpha*bef + \
-               self.config.beta*bet + \
-               self.config.gamma*aft
+        return self.config.alpha * bef + self.config.beta * bet + self.config.gamma * aft
 
     def similarity_all(self, t, extraction_pattern):
-
         # calculates the cosine similarity between all patterns part of a
         # cluster (i.e., extraction pattern) and the vector of a ReVerb pattern
         # extracted from a sentence;
@@ -175,7 +162,6 @@ class BREDS(object):
             return False, 0.0
 
     def match_seeds_tuples(self):
-
         # checks if an extracted tuple matches seeds tuples
 
         matched_tuples = list()
@@ -191,7 +177,6 @@ class BREDS(object):
         return count_matches, matched_tuples
 
     def cluster_tuples(self, matched_tuples):
-
         # single-Pass clustering
 
         # Initialize: if no patterns exist, first tuple goes to first cluster
@@ -233,11 +218,11 @@ class BREDS(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(list(self.candidate_tuples.keys()), reverse=True)
         for t in tmp:
-            f_output.write("instance: " + t.e1+'\t'+t.e2+'\tscore:'+str(t.confidence)+'\n')
-            f_output.write("sentence: "+t.sentence+'\n')
-            f_output.write("pattern_bef: "+t.bef_words+'\n')
-            f_output.write("pattern_bet: "+t.bet_words+'\n')
-            f_output.write("pattern_aft: "+t.aft_words+'\n')
+            f_output.write("instance: " + t.e1 + "\t" + t.e2 + "\tscore:" + str(t.confidence) + "\n")
+            f_output.write("sentence: " + t.sentence + "\n")
+            f_output.write("pattern_bef: " + t.bef_words + "\n")
+            f_output.write("pattern_bet: " + t.bet_words + "\n")
+            f_output.write("pattern_aft: " + t.aft_words + "\n")
             if t.passive_voice is False:
                 f_output.write("passive voice: False\n")
             elif t.passive_voice is True:
@@ -246,7 +231,6 @@ class BREDS(object):
         f_output.close()
 
     def init_bootstrap(self, tuples):
-
         # starts a bootstrap iteration
 
         if tuples is not None:
@@ -262,7 +246,7 @@ class BREDS(object):
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
             for s in self.config.positive_seed_tuples:
-                print(s.e1, '\t', s.e2)
+                print(s.e1, "\t", s.e2)
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
@@ -273,14 +257,10 @@ class BREDS(object):
 
             else:
                 print("\nNumber of seed matches found")
-                sorted_counts = sorted(
-                    list(count_matches.items()),
-                    key=operator.itemgetter(1),
-                    reverse=True
-                )
+                sorted_counts = sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True)
 
                 for t in sorted_counts:
-                    print(t[0][0], '\t', t[0][1], t[1])
+                    print(t[0][0], "\t", t[0][1], t[1])
                 print("\n", len(matched_tuples), "tuples matched")
 
                 # Cluster the matched instances: generate patterns
@@ -290,8 +270,7 @@ class BREDS(object):
 
                     # Eliminate patterns supported by less than
                     # 'min_pattern_support' tuples
-                    new_patterns = [p for p in self.patterns if len(p.tuples) >
-                                    self.config.min_pattern_support]
+                    new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
                     self.patterns = new_patterns
 
                 else:
@@ -312,46 +291,36 @@ class BREDS(object):
 
                     # make a copy of the extraction patterns to be
                     # passed to each CPU
-                    patterns = [
-                        list(self.patterns) for _ in range(self.num_cpus)
-                        ]
+                    patterns = [list(self.patterns) for _ in range(self.num_cpus)]
 
                     # distribute tuples per different CPUs
                     chunks = [list() for _ in range(self.num_cpus)]
-                    n_tuples_per_child = int(
-                        math.ceil(float(len(matched_tuples)) / self.num_cpus)
-                    )
+                    n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
 
-                    print("\n#CPUS", self.num_cpus, '\t', \
-                        "Tuples per CPU", n_tuples_per_child)
+                    print("\n#CPUS", self.num_cpus, "\t", "Tuples per CPU", n_tuples_per_child)
 
                     chunk_n = 0
                     chunck_begin = 0
                     chunck_end = n_tuples_per_child
 
                     while chunk_n < self.num_cpus:
-                        chunks[chunk_n] = matched_tuples[
-                                          chunck_begin:chunck_end
-                                          ]
+                        chunks[chunk_n] = matched_tuples[chunck_begin:chunck_end]
                         chunck_begin = chunck_end
                         chunck_end += n_tuples_per_child
                         chunk_n += 1
 
                     count = 0
                     for c in chunks:
-                        print("CPU_"+str(count), "  ", len(c), "patterns")
+                        print("CPU_" + str(count), "  ", len(c), "patterns")
                         count += 1
 
-                    pipes = [
-                        multiprocessing.Pipe(False)
-                        for _ in range(self.num_cpus)
-                        ]
+                    pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
                     processes = [
                         multiprocessing.Process(
-                            target=self.cluster_tuples_parallel,
-                            args=(patterns[i], chunks[i], pipes[i][1]))
+                            target=self.cluster_tuples_parallel, args=(patterns[i], chunks[i], pipes[i][1])
+                        )
                         for i in range(self.num_cpus)
-                        ]
+                    ]
 
                     print("\nRunning", len(processes), " processes")
                     for proc in processes:
@@ -384,7 +353,7 @@ class BREDS(object):
                     print("\nSELF Patterns:")
                     for p in self.patterns:
                         p.merge_all_tuples_bet()
-                        print('\n'+str(p.id))
+                        print("\n" + str(p.id))
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in p.bet_uniques_words:
                                 print("BET", bet_words.encode("utf8"))
@@ -392,7 +361,7 @@ class BREDS(object):
                     print("\nChild Patterns:")
                     for p in child_patterns:
                         p.merge_all_tuples_bet()
-                        print('\n'+str(p.id))
+                        print("\n" + str(p.id))
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in p.bet_uniques_words:
                                 print("BET", bet_words.encode("utf8"))
@@ -403,13 +372,11 @@ class BREDS(object):
                     # the child processes
 
                     # start comparing smaller ones with greater ones
-                    child_patterns.sort(key=lambda y: len(y.tuples),
-                                        reverse=False)
+                    child_patterns.sort(key=lambda y: len(y.tuples), reverse=False)
                     count = 0
                     new_list = list(self.patterns)
                     for p1 in child_patterns:
-                        print("\nNew Patterns", len(child_patterns), \
-                            "Processed", count)
+                        print("\nNew Patterns", len(child_patterns), "Processed", count)
                         print("New List", len(new_list))
                         print("Pattern:", p1.id, "Tuples:", len(p1.tuples))
                         max_similarity = 0
@@ -450,7 +417,7 @@ class BREDS(object):
                 if PRINT_PATTERNS is True:
                     print("\nPatterns:")
                     for p in self.patterns:
-                        print('\n'+str(p.id))
+                        print("\n" + str(p.id))
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in p.bet_uniques_words:
                                 print("BET", bet_words)
@@ -473,11 +440,9 @@ class BREDS(object):
                 #
                 # Each candidate tuple will then have a number of patterns
                 # that extracted it each with an associated degree of match.
-                print("\nNumber of tuples to be analyzed:", \
-                    len(self.processed_tuples))
+                print("\nNumber of tuples to be analyzed:", len(self.processed_tuples))
 
-                print("\nCollecting instances based on", \
-                    len(self.patterns), "extraction patterns")
+                print("\nCollecting instances based on", len(self.patterns), "extraction patterns")
 
                 # create copies of generated extraction patterns
                 # to be passed to each process
@@ -495,15 +460,11 @@ class BREDS(object):
                 #   - a pipe to return the collected tuples and updated
                 #     patterns to the parent process
 
-                pipes = [
-                    multiprocessing.Pipe(False) for _ in range(self.num_cpus)
-                    ]
+                pipes = [multiprocessing.Pipe(False) for _ in range(self.num_cpus)]
                 processes = [
-                    multiprocessing.Process(
-                        target=self.find_instances,
-                        args=(patterns[i], queue, pipes[i][1]))
+                    multiprocessing.Process(target=self.find_instances, args=(patterns[i], queue, pipes[i][1]))
                     for i in range(self.num_cpus)
-                    ]
+                ]
 
                 print("Running", len(processes), " processes")
                 for proc in processes:
@@ -519,8 +480,7 @@ class BREDS(object):
                     child_pid = data[0]
                     patterns = data[1]
                     tuples = data[2]
-                    print(child_pid, "patterns", len(patterns), \
-                        "tuples", len(tuples))
+                    print(child_pid, "patterns", len(patterns), "tuples", len(tuples))
                     patterns_updated.extend(patterns)
                     collected_tuples.extend(tuples)
 
@@ -566,17 +526,12 @@ class BREDS(object):
                         t_patterns = self.candidate_tuples[t]
                         if t_patterns is not None:
                             if pattern_best not in [x[0] for x in t_patterns]:
-                                self.candidate_tuples[t].append(
-                                    (self.patterns_index[pattern_best.id],
-                                     sim_best)
-                                )
+                                self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
 
                     # if this tuple was not extracted before, associate this
                     # pattern with the instance and the similarity score
                     else:
-                        self.candidate_tuples[t].append(
-                            (self.patterns_index[pattern_best.id], sim_best)
-                        )
+                        self.candidate_tuples[t].append((self.patterns_index[pattern_best.id], sim_best))
 
                 # update tuple confidence based on patterns confidence
                 print("\n\nCalculating tuples confidence")
@@ -588,18 +543,12 @@ class BREDS(object):
                     t.confidence = 1 - confidence
 
                     if self.curr_iteration > 0:
-                        t.confidence = \
-                            t.confidence * self.config.wUpdt + \
-                            t.confidence_old * (1 - self.config.wUpdt)
+                        t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
 
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
                     extracted_tuples = list(self.candidate_tuples.keys())
-                    tuples_sorted = sorted(
-                        extracted_tuples,
-                        key=lambda tl: tl.confidence,
-                        reverse=True
-                    )
+                    tuples_sorted = sorted(extracted_tuples, key=lambda tl: tl.confidence, reverse=True)
                     for t in tuples_sorted:
                         print(t.sentence)
                         print(t.e1, t.e2)
@@ -608,8 +557,7 @@ class BREDS(object):
 
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | conf(T) > instance_confidence }
-                print("Adding tuples to seed with confidence >=" + \
-                      str(self.config.instance_confidence))
+                print("Adding tuples to seed with confidence >=" + str(self.config.instance_confidence))
                 for t in list(self.candidate_tuples.keys()):
                     if t.confidence >= self.config.instance_confidence:
                         seed = Seed(t.e1, t.e2)
@@ -629,10 +577,7 @@ class BREDS(object):
             for v_bet1 in p1.bet_uniques_vectors:
                 for v_bet2 in p2.bet_uniques_vectors:
                     if v_bet1 is not None and v_bet2 is not None:
-                        score += dot(
-                            matutils.unitvec(asarray(v_bet1)),
-                            matutils.unitvec(asarray(v_bet2))
-                        )
+                        score += dot(matutils.unitvec(asarray(v_bet1)), matutils.unitvec(asarray(v_bet2)))
                         count += 1
         else:
             for t1 in p1.tuples:
@@ -650,9 +595,11 @@ class BREDS(object):
                 t = instances.get_nowait()
                 if instances.qsize() % 500 == 0:
                     sys.stdout.write(
-                        str(multiprocessing.current_process()) +
-                        " Instances to process: " +
-                        str(instances.qsize())+'\n')
+                        str(multiprocessing.current_process())
+                        + " Instances to process: "
+                        + str(instances.qsize())
+                        + "\n"
+                    )
                     sys.stdout.flush()
 
                 # measure similarity towards every extraction pattern
@@ -664,10 +611,7 @@ class BREDS(object):
                     if self.config.alpha == 0 and self.config.gamma == 0:
                         for p_bet_v in list(p.bet_uniques_vectors):
                             if t.bet_vector is not None and p_bet_v is not None:
-                                score = dot(
-                                    matutils.unitvec(t.bet_vector),
-                                    matutils.unitvec(asarray(p_bet_v))
-                                )
+                                score = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(asarray(p_bet_v)))
                                 if score >= self.config.threshold_similarity:
                                     good += 1
                                 else:
@@ -697,8 +641,7 @@ class BREDS(object):
         for t in matched_tuples:
             count += 1
             if count % 500 == 0:
-                print(multiprocessing.current_process(), count, \
-                    "tuples processed")
+                print(multiprocessing.current_process(), count, "tuples processed")
 
             # go through all patterns(clusters of tuples) and find the one with
             # the highest similarity score
@@ -730,9 +673,11 @@ class BREDS(object):
 
 def main():
     if len(sys.argv) != 8:
-        print("\nBREDS.py paramters.cfg sentences_file positive_seeds " \
-              "negative_seeds similarity_threshold confidence_threshold " \
-              "#cpus_to_use\n")
+        print(
+            "\nBREDS.py paramters.cfg sentences_file positive_seeds "
+            "negative_seeds similarity_threshold confidence_threshold "
+            "#cpus_to_use\n"
+        )
         sys.exit(0)
     else:
         configuration = sys.argv[1]
@@ -743,10 +688,9 @@ def main():
         confidence = sys.argv[6]
         num_cores = int(sys.argv[7])
 
-        breads = BREDS(configuration, seeds_file, negative_seeds,
-                       float(similarity), float(confidence), num_cores)
+        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores)
 
-        if sentences_file.endswith('.pkl'):
+        if sentences_file.endswith(".pkl"):
             breads.init_bootstrap(tuples=sentences_file)
         else:
             breads.generate_tuples(sentences_file)

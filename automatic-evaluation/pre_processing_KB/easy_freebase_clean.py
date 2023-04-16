@@ -19,21 +19,25 @@ def collect_relationships(data):
 
     rel_to_consider = [
         # PER-ORG
-        'Governance of', 'Leader of',
-        'Organization founded', 'Employment history',
-
+        "Governance of",
+        "Leader of",
+        "Organization founded",
+        "Employment history",
         # PER/ORG-ORG
-        'Organization acquired',
-        'Venture Investment',
-
+        "Organization acquired",
+        "Venture Investment",
         # ORG-LOC
-        'Place founded',
-
+        "Place founded",
         # LOC-LOC
-        'location/mailing_address/citytown', 'Neighborhood of', 'Capital of',
-
+        "location/mailing_address/citytown",
+        "Neighborhood of",
+        "Capital of",
         # PER-PER
-        'Spouse (or domestic partner)', 'Married To', 'Sibling', 'Peer']
+        "Spouse (or domestic partner)",
+        "Married To",
+        "Sibling",
+        "Peer",
+    ]
 
     """
     PER-PER
@@ -70,28 +74,28 @@ def collect_relationships(data):
     relationships = defaultdict(list)
 
     count = 0
-    numbered = re.compile('#[0-9]+$')
+    numbered = re.compile("#[0-9]+$")
     for line in fileinput.input(data):
         if count % 50000 == 0:
             print(len(relationships))
-        e1, r, e2, point = line.split('\t')
+        e1, r, e2, point = line.split("\t")
         if r in rel_to_consider:
             # ignore some entities, which are Freebase identifiers or which are ambiguous
-            if e1.startswith('/') or e2.startswith('/'):
+            if e1.startswith("/") or e2.startswith("/"):
                 continue
-            if e1.startswith('m/') or e2.startswith('m/'):
+            if e1.startswith("m/") or e2.startswith("m/"):
                 continue
             if re.search(numbered, e1) or re.search(numbered, e2):
                 continue
 
             # lots of irrelevant stuff in contained_by
-            if re.match(r'^[0-9]+$', e1) or re.match(r'^[0-9]+$', e2):
+            if re.match(r"^[0-9]+$", e1) or re.match(r"^[0-9]+$", e2):
                 continue
-            if e1.startswith('DVD Region') or e2.startswith('DVD Region'):
+            if e1.startswith("DVD Region") or e2.startswith("DVD Region"):
                 continue
-            if e1.startswith('US Census'):
+            if e1.startswith("US Census"):
                 continue
-            if e1.startswith('Area code') or e2.startswith('Area code'):
+            if e1.startswith("Area code") or e2.startswith("Area code"):
                 continue
             else:
                 if "(" in e1:
@@ -106,7 +110,7 @@ def collect_relationships(data):
     f_entities = open("relationships.txt", "w")
     for r in list(relationships.keys()):
         for e in relationships[r]:
-            f_entities.write(r[0]+'\t'+e+'\t'+r[1]+'\n')
+            f_entities.write(r[0] + "\t" + e + "\t" + r[1] + "\n")
     f_entities.close()
 
     return relationships
@@ -115,6 +119,7 @@ def collect_relationships(data):
 def main():
     relationships = collect_relationships(sys.argv[1])
     print(len(relationships))
+
 
 if __name__ == "__main__":
     main()

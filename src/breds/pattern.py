@@ -1,11 +1,10 @@
 import uuid
 
 __author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
+__email__ = "dsbatista@gmail.com"
 
 
 class Pattern(object):
-
     def __init__(self, t=None):
         self.id = uuid.uuid4()
         self.positive = 0
@@ -31,11 +30,8 @@ class Pattern(object):
 
     def update_confidence(self, config):
         if self.positive > 0:
-            self.confidence = (
-                float(self.positive) / float(self.positive +
-                                             self.unknown * config.wUnk +
-                                             self.negative * config.wNeg
-                                             )
+            self.confidence = float(self.positive) / float(
+                self.positive + self.unknown * config.wUnk + self.negative * config.wNeg
             )
         elif self.positive == 0:
             self.confidence = 0
@@ -44,14 +40,11 @@ class Pattern(object):
         self.tuples.add(t)
 
     def merge_all_tuples_bet(self):
-        """
-        Put all tuples with BET vectors into a set so that comparison with repeated vectors
-        is eliminated
-        """
+        """Put all tuples with BET vectors into a set so that comparison with repeated vectors is eliminated"""
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
         for t in self.tuples:
-            # transform numpy array into a tuple so it can be hashed and added into a set
+            # transform numpy array into a tuple, so it can be hashed and added into a set
             self.bet_uniques_vectors.add(tuple(t.bet_vector))
             self.bet_uniques_words.add(t.bet_words)
 

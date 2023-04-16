@@ -9,17 +9,17 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
 # tokens between entities which do not represent relationships
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
-stopwords = stopwords.words('english')
+bad_tokens = [",", "(", ")", ";", "''", "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+stopwords = stopwords.words("english")
 not_valid = bad_tokens + stopwords
 
-regex_clean_simple = re.compile('</?[A-Z]+>', re.U)
-regex_simple = re.compile('<[A-Z]+>[^<]+</[A-Z]+>', re.U)
+regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
+regex_simple = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)
 
 
 def tokenize_entity(entity):
     parts = word_tokenize(entity)
-    if parts[-1] == '.':
+    if parts[-1] == ".":
         replace = parts[-2] + parts[-1]
         del parts[-1]
         del parts[-1]
@@ -31,7 +31,7 @@ def find_locations(entity_string, text_tokens):
     locations = []
     e_parts = tokenize_entity(entity_string)
     for i in range(len(text_tokens)):
-        if text_tokens[i:i + len(e_parts)] == e_parts:
+        if text_tokens[i : i + len(e_parts)] == e_parts:
             locations.append(i)
     return e_parts, locations
 
@@ -60,21 +60,21 @@ class Relationship:
         self.e2 = _ent2
 
     def __eq__(self, other):
-        if self.e1 == other.e1 and \
-           self.before == other.before and \
-           self.between == other.between and \
-           self.after == other.after:
+        if (
+            self.e1 == other.e1
+            and self.before == other.before
+            and self.between == other.between
+            and self.after == other.after
+        ):
             return True
         else:
             return False
 
     def __hash__(self):
-        return hash(self.e1) ^ hash(self.e2) ^ hash(self.before) ^ \
-               hash(self.between) ^ hash(self.after)
+        return hash(self.e1) ^ hash(self.e2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
 
 
 class Sentence:
-
     def __init__(self, sentence, max_tokens, min_tokens, window_size):
         self.relationships = list()
 
@@ -98,8 +98,8 @@ class Sentence:
             entities_info = set()
             for x in range(0, len(entities)):
                 entity = entities[x].group()
-                e_string = re.findall('<[A-Z]+>([^<]+)</[A-Z]+>', entity)[0]
-                e_type = re.findall('<([A-Z]+)', entity)[0]
+                e_string = re.findall("<[A-Z]+>([^<]+)</[A-Z]+>", entity)[0]
+                e_type = re.findall("<([A-Z]+)", entity)[0]
                 e_parts, locations = find_locations(e_string, text_tokens)
                 e = EntitySimple(e_string, e_parts, e_type, locations)
                 entities_info.add(e)
@@ -118,28 +118,25 @@ class Sentence:
             # the arguments match the seeds semantic types
             sorted_keys = list(sorted(locations))
 
-            for i in range(len(sorted_keys)-1):
-                distance = sorted_keys[i+1] - sorted_keys[i]
+            for i in range(len(sorted_keys) - 1):
+                distance = sorted_keys[i + 1] - sorted_keys[i]
                 e1 = locations[sorted_keys[i]]
-                e2 = locations[sorted_keys[i+1]]
+                e2 = locations[sorted_keys[i + 1]]
 
                 if max_tokens >= distance >= min_tokens:
-
                     # ignore relationships between the same entity
                     if e1.string == e2.string:
                         continue
 
-                    before = text_tokens[:sorted_keys[i]]
+                    before = text_tokens[: sorted_keys[i]]
                     before = before[-window_size:]
-                    between = text_tokens[sorted_keys[i] +
-                                          len(e1.parts):sorted_keys[i+1]]
-                    after = text_tokens[sorted_keys[i+1]+len(e2.parts):]
+                    between = text_tokens[sorted_keys[i] + len(e1.parts) : sorted_keys[i + 1]]
+                    after = text_tokens[sorted_keys[i + 1] + len(e2.parts) :]
                     after = after[:window_size]
 
                     # ignore relationships where BET context is only stopwords
                     # or other invalid words
-                    if all(x in not_valid for x in text_tokens[sorted_keys[i] +
-                           len(e1.parts):sorted_keys[i+1]]):
+                    if all(x in not_valid for x in text_tokens[sorted_keys[i] + len(e1.parts) : sorted_keys[i + 1]]):
                         continue
 
                     r = Relationship(sentence, before, between, after, e1.string, e2.string)
