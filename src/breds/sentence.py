@@ -87,9 +87,7 @@ class Relationship:
 
 
 class Sentence:
-    def __init__(  # noqa: C901
-        self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None
-    ):
+    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None):  # noqa: C901
         self.relationships = []
         self.tagged_text = None
         self.entities_regex = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)  # <PER>Bill Gates</PER>
