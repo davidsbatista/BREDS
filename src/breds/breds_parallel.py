@@ -26,6 +26,12 @@ PRINT_PATTERNS = False
 
 
 class BREDS(object):
+    """
+    BREDS is a system for extracting relationships between named entities from text.
+
+    This is the parallel version of BREDS, which uses multiple processes to speed up the clustering process.
+    """
+
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence, num_cores):
         if num_cores == 0:
             self.num_cpus = multiprocessing.cpu_count()
@@ -110,7 +116,7 @@ class BREDS(object):
                 )
 
                 for rel in sentence.relationships:
-                    t = Tuple(rel.e1, rel.e2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                    t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                     instances.append(t)
 
             except queue.Empty:
@@ -165,12 +171,12 @@ class BREDS(object):
         count_matches = dict()
         for t in self.processed_tuples:
             for s in self.config.positive_seed_tuples:
-                if t.e1 == s.e1 and t.e2 == s.e2:
+                if t.ent1 == s.ent1 and t.ent2 == s.ent2:
                     matched_tuples.append(t)
                     try:
-                        count_matches[(t.e1, t.e2)] += 1
+                        count_matches[(t.ent1, t.ent2)] += 1
                     except KeyError:
-                        count_matches[(t.e1, t.e2)] = 1
+                        count_matches[(t.ent1, t.ent2)] = 1
         return count_matches, matched_tuples
 
     def cluster_tuples(self, matched_tuples):
@@ -243,7 +249,7 @@ class BREDS(object):
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
             for s in self.config.positive_seed_tuples:
-                print(s.e1, "\t", s.e2)
+                print(s.ent1, "\t", s.ent2)
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
@@ -540,7 +546,7 @@ class BREDS(object):
                     t.confidence = 1 - confidence
 
                     if self.curr_iteration > 0:
-                        t.confidence = t.confidence * self.config.wUpdt + t.confidence_old * (1 - self.config.wUpdt)
+                        t.confidence = t.confidence * self.config.w_updt + t.confidence_old * (1 - self.config.w_updt)
 
                 # sort tuples by confidence and print
                 if PRINT_TUPLES is True:
@@ -548,7 +554,7 @@ class BREDS(object):
                     tuples_sorted = sorted(extracted_tuples, key=lambda tl: tl.confidence, reverse=True)
                     for t in tuples_sorted:
                         print(t.sentence)
-                        print(t.e1, t.e2)
+                        print(t.ent1, t.ent2)
                         print(t.confidence)
                         print("\n")
 
@@ -557,7 +563,7 @@ class BREDS(object):
                 print("Adding tuples to seed with confidence >=" + str(self.config.instance_confidence))
                 for t in list(self.candidate_tuples.keys()):
                     if t.confidence >= self.config.instance_confidence:
-                        seed = Seed(t.e1, t.e2)
+                        seed = Seed(t.ent1, t.ent2)
                         self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations

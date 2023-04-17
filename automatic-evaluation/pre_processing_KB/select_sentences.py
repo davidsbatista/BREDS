@@ -120,7 +120,7 @@ def get_sentences(sentences, entities, child_conn):
                 if r.between == " , " or r.between == " ( " or r.between == " ) ":
                     discard = True
                     break
-                elif r.e1 not in entities or r.e2 not in entities:
+                elif r.ent1 not in entities or r.ent2 not in entities:
                     discard = True
                     break
 

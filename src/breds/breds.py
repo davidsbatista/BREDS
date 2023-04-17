@@ -23,6 +23,10 @@ PRINT_PATTERNS = False
 
 
 class BREDS(object):
+    """
+    BREDS is a system that extracts relationships between named entities from text.
+    """
+
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence):
         self.curr_iteration = 0
         self.patterns = list()
@@ -65,11 +69,10 @@ class BREDS(object):
                         self.config.min_tokens_away,
                         self.config.context_window_size,
                         tagger,
-                        self.config,
                     )
 
                     for rel in sentence.relationships:
-                        t = Tuple(rel.e1, rel.e2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                         self.processed_tuples.append(t)
                 print("\n", len(self.processed_tuples), "tuples generated")
 
@@ -122,12 +125,12 @@ class BREDS(object):
         count_matches = dict()
         for t in self.processed_tuples:
             for s in self.config.positive_seed_tuples:
-                if t.e1 == s.e1 and t.e2 == s.e2:
+                if t.ent1 == s.ent1 and t.ent2 == s.ent2:
                     matched_tuples.append(t)
                     try:
-                        count_matches[(t.e1, t.e2)] += 1
+                        count_matches[(t.ent1, t.ent2)] += 1
                     except KeyError:
-                        count_matches[(t.e1, t.e2)] = 1
+                        count_matches[(t.ent1, t.ent2)] = 1
 
         return count_matches, matched_tuples
 
@@ -136,7 +139,7 @@ class BREDS(object):
         f_output = open("relationships.txt", "w")
         tmp = sorted(list(self.candidate_tuples.keys()), reverse=True)
         for t in tmp:
-            f_output.write("instance: " + t.e1 + "\t" + t.e2 + "\tscore:" + str(t.confidence) + "\n")
+            f_output.write("instance: " + t.ent1 + "\t" + t.ent2 + "\tscore:" + str(t.confidence) + "\n")
             f_output.write("sentence: " + t.sentence + "\n")
             f_output.write("pattern_bef: " + t.bef_words + "\n")
             f_output.write("pattern_bet: " + t.bet_words + "\n")
@@ -165,7 +168,7 @@ class BREDS(object):
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
             for s in self.config.positive_seed_tuples:
-                print(s.e1, "\t", s.e2)
+                print(s.ent1, "\t", s.ent2)
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
@@ -292,14 +295,14 @@ class BREDS(object):
                     tuples_sorted = sorted(extracted_tuples, key=lambda tpl: tpl.confidence, reverse=True)
                     for t in tuples_sorted:
                         print(t.sentence)
-                        print(t.e1, t.e2)
+                        print(t.ent1, t.ent2)
                         print(t.confidence)
                         print("\n")
 
                 print("Adding tuples to seed with confidence >= {}".format(str(self.config.instance_confidence)))
                 for t in list(self.candidate_tuples.keys()):
                     if t.confidence >= self.config.instance_confidence:
-                        seed = Seed(t.e1, t.e2)
+                        seed = Seed(t.ent1, t.ent2)
                         self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations

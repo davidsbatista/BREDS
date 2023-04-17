@@ -12,7 +12,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 
-class Config(object):
+class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-statements, too-many-arguments
     """
     Initializes a configuration object with the parameters from the config file:
 
@@ -40,10 +40,10 @@ class Config(object):
         self.gamma = None
         self.min_pattern_support = None
         self.number_iterations = None
-        self.wNeg = None
+        self.w_neg = None
         self.tag_type = None
-        self.wUnk = None
-        self.wUpdt = None
+        self.w_unk = None
+        self.w_updt = None
         self.filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
         self.regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
         self.regex_clean_linked = re.compile("</[A-Z]+>|<[A-Z]+ url=[^>]+>", re.U)
@@ -70,7 +70,6 @@ class Config(object):
         print("Relationship/Sentence Representation")
         print("e1 type              :", self.e1_type)
         print("e2 type              :", self.e2_type)
-        print("tags type            :", self.tag_type)
         print("context window       :", self.context_window_size)
         print("max tokens away      :", self.max_tokens_away)
         print("min tokens away      :", self.min_tokens_away)
@@ -84,30 +83,35 @@ class Config(object):
         print("\nSeeds")
         print("positive seeds       :", len(self.positive_seed_tuples))
         print("negative seeds       :", len(self.negative_seed_tuples))
-        print("negative seeds wNeg  :", self.wNeg)
-        print("unknown seeds wUnk   :", self.wUnk)
+        print("negative seeds wNeg  :", self.w_neg)
+        print("unknown seeds wUnk   :", self.w_unk)
 
         print("\nParameters and Thresholds")
         print("threshold_similarity :", self.threshold_similarity)
         print("instance confidence  :", self.instance_confidence)
         print("min_pattern_support  :", self.min_pattern_support)
         print("iterations           :", self.number_iterations)
-        print("iteration wUpdt      :", self.wUpdt)
+        print("iteration wUpdt      :", self.w_updt)
         print("\n")
 
     def read_config(self, config_file):  # noqa: C901
+        # pylint: disable=too-many-branches
+        """
+        Reads the configuration file and sets the parameters.
+        """
+
         for line in fileinput.input(config_file):
             if line.startswith("#") or len(line) == 1:
                 continue
 
             if line.startswith("wUpdt"):
-                self.wUpdt = float(line.split("=")[1])
+                self.w_updt = float(line.split("=")[1])
 
             if line.startswith("wUnk"):
-                self.wUnk = float(line.split("=")[1])
+                self.w_unk = float(line.split("=")[1])
 
             if line.startswith("wNeg"):
-                self.wNeg = float(line.split("=")[1])
+                self.w_neg = float(line.split("=")[1])
 
             if line.startswith("number_iterations"):
                 self.number_iterations = int(line.split("=")[1])
@@ -146,12 +150,20 @@ class Config(object):
         assert self.alpha + self.beta + self.gamma == 1
 
     def read_word2vec(self):
+        """
+        Reads the word2vec model.
+        """
+
         print("Loading word2vec model ...\n")
         self.word2vec = KeyedVectors.load_word2vec_format(self.word2vec_model_path, binary=True)
         self.vec_dim = self.word2vec.vector_size
         print(self.vec_dim, "dimensions")
 
     def read_seeds(self, seeds_file, holder):
+        """
+        Reads the seeds file and adds the seeds to the holder.
+        """
+
         for line in fileinput.input(seeds_file):
             if line.startswith("#") or len(line) == 1:
                 continue
@@ -160,7 +172,7 @@ class Config(object):
             elif line.startswith("e2"):
                 self.e2_type = line.split(":")[1].strip()
             else:
-                e1 = line.split(";")[0].strip()
-                e2 = line.split(";")[1].strip()
-                seed = Seed(e1, e2)
+                ent1 = line.split(";")[0].strip()
+                ent2 = line.split(";")[1].strip()
+                seed = Seed(ent1, ent2)
                 holder.add(seed)

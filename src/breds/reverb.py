@@ -9,7 +9,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 
-class Reverb(object):
+class Reverb:
     def __init__(self):
         self.lmtzr = WordNetLemmatizer()
         self.aux_verbs = ["be"]
@@ -47,8 +47,7 @@ class Reverb(object):
         # POS_TAGGER = 'taggers/maxent_treebank_pos_tagger/english.pickle'
         tags_ptb = pos_tag(text_tokens)
 
-        # convert the tags to reduced tagset (Petrov et al. 2012)
-        # http://arxiv.org/pdf/1104.2086.pdf
+        # convert the tags to reduced tag set (Petrov et al. 2012) http://arxiv.org/pdf/1104.2086.pdf
         tags = []
         for t in tags_ptb:
             tag = map_tag("en-ptb", "universal", t[1])

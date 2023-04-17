@@ -61,7 +61,7 @@ class Relationship:
 
     def __eq__(self, other):
         if (
-            self.e1 == other.e1
+            self.e1 == other.ent1
             and self.before == other.before
             and self.between == other.between
             and self.after == other.after

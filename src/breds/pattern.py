@@ -4,9 +4,13 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 
-class Pattern(object):
-    def __init__(self, t=None):
-        self.id = uuid.uuid4()
+class Pattern:  # pylint: disable=too-many-instance-attributes
+    """
+    A pattern is a set of tuples that is used to extract relationships between named-entities.
+    """
+
+    def __init__(self, tpl=None):
+        self.uuid = uuid.uuid4()
         self.positive = 0
         self.negative = 0
         self.unknown = 0
@@ -14,8 +18,8 @@ class Pattern(object):
         self.tuples = set()
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
-        if t is not None:
-            self.tuples.add(t)
+        if tpl is not None:
+            self.tuples.add(tpl)
 
     def __eq__(self, other):
         return self.tuples == other.tuples
@@ -23,39 +27,41 @@ class Pattern(object):
     def __cmp__(self, other):
         if other.confidence > self.confidence:
             return -1
-        elif other.confidence < self.confidence:
+        if other.confidence < self.confidence:
             return 1
-        else:
-            return 0
+        return 0
 
     def update_confidence(self, config):
+        """Update the confidence of the pattern"""
         if self.positive > 0:
             self.confidence = float(self.positive) / float(
-                self.positive + self.unknown * config.wUnk + self.negative * config.wNeg
+                self.positive + self.unknown * config.w_unk + self.negative * config.w_neg
             )
         elif self.positive == 0:
             self.confidence = 0
 
-    def add_tuple(self, t):
-        self.tuples.add(t)
+    def add_tuple(self, tpl):
+        """Add another tuple to be used to generate the pattern"""
+        self.tuples.add(tpl)
 
     def merge_all_tuples_bet(self) -> None:
         """Put all tuples with BET vectors into a set so that comparison with repeated vectors is eliminated"""
         self.bet_uniques_vectors = set()
         self.bet_uniques_words = set()
-        for t in self.tuples:
+        for tpl in self.tuples:
             # transform numpy array into a tuple, so it can be hashed and added into a set
-            self.bet_uniques_vectors.add(tuple(t.bet_vector))
-            self.bet_uniques_words.add(t.bet_words)
+            self.bet_uniques_vectors.add(tuple(tpl.bet_vector))
+            self.bet_uniques_words.add(tpl.bet_words)
 
-    def update_selectivity(self, t, config):
+    def update_selectivity(self, tpl, config):
+        """Update the selectivity of the pattern"""
         matched_both = False
         matched_e1 = False
 
-        for s in config.positive_seed_tuples:
-            if s.e1.strip() == t.e1.strip():
+        for seed in config.positive_seed_tuples:
+            if seed.ent1.strip() == tpl.ent1.strip():
                 matched_e1 = True
-                if s.e2.strip() == t.e2.strip():
+                if seed.ent2.strip() == tpl.ent2.strip():
                     self.positive += 1
                     matched_both = True
                     break
@@ -64,9 +70,9 @@ class Pattern(object):
             self.negative += 1
 
         if matched_both is False:
-            for n in config.negative_seed_tuples:
-                if n.e1.strip() == t.e1.strip():
-                    if n.e2.strip() == t.e2.strip():
+            for ngt_seed in config.negative_seed_tuples:
+                if ngt_seed.ent1.strip() == tpl.ent1.strip():
+                    if ngt_seed.ent2.strip() == tpl.ent2.strip():
                         self.negative += 1
                         matched_both = True
                         break
