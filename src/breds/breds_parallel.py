@@ -433,8 +433,7 @@ class BREDS:
                 # Look for sentences with occurrence of
                 # seeds semantic types (e.g., ORG - LOC)
 
-                # This was already collect and its stored in
-                # self.processed_tuples
+                # This was already collected, it's stored in self.processed_tuples
                 #
                 # Measure the similarity of each occurrence with
                 # each extraction pattern and store each pattern that has a
@@ -497,7 +496,7 @@ class BREDS:
                             p_original.negative += p_updated.negative
                             p_original.unknown += p_updated.unknown
 
-                # Index the patterns in an hashtable for later use
+                # Index the patterns in a hashtable for later use
                 for p in self.patterns:
                     self.patterns_index[p.id] = p
 
@@ -625,7 +624,7 @@ class BREDS:
                             max_similarity = score
                             pattern_best = p
 
-                # if its above a threshold associated the pattern with it
+                # if it's above a threshold associated the pattern with it
                 if max_similarity >= self.config.threshold_similarity:
                     candidate_tuples.append((t, pattern_best, max_similarity))
 
@@ -666,7 +665,7 @@ class BREDS:
             else:
                 updated_patterns[max_similarity_cluster_index].add_tuple(t)
 
-        # Eliminate clusters with two or less patterns
+        # Eliminate clusters with two or fewer patterns
         new_patterns = [p for p in updated_patterns if len(p.tuples) > 5]
         pid = multiprocessing.current_process().pid
         print(multiprocessing.current_process(), "Patterns: ", len(new_patterns))
@@ -676,7 +675,7 @@ class BREDS:
 def main():
     if len(sys.argv) != 8:
         print(
-            "\nBREDS.py paramters.cfg sentences_file positive_seeds "
+            "\nBREDS.py parameters.cfg sentences_file positive_seeds "
             "negative_seeds similarity_threshold confidence_threshold "
             "#cpus_to_use\n"
         )
