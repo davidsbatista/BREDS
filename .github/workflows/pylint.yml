@@ -17,8 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
-        pip install -r requirements.txt
+        pip install -r requirements_dev.txt
     - name: Analysing the code with pylint
       run: |
         pylint --rcfile=pylint.cfg src
