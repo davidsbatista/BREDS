@@ -302,13 +302,13 @@ class BREDS:
                     print("\n#CPUS", self.num_cpus, "\t", "Tuples per CPU", n_tuples_per_child)
 
                     chunk_n = 0
-                    chunck_begin = 0
-                    chunck_end = n_tuples_per_child
+                    chunk_begin = 0
+                    chunk_end = n_tuples_per_child
 
                     while chunk_n < self.num_cpus:
-                        chunks[chunk_n] = matched_tuples[chunck_begin:chunck_end]
-                        chunck_begin = chunck_end
-                        chunck_end += n_tuples_per_child
+                        chunks[chunk_n] = matched_tuples[chunk_begin:chunk_end]
+                        chunk_begin = chunk_end
+                        chunk_end += n_tuples_per_child
                         chunk_n += 1
 
                     count = 0
