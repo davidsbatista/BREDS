@@ -4,6 +4,7 @@ import pickle
 import sys
 from collections import defaultdict
 
+
 from gensim import matutils
 from nltk.data import load
 from numpy import dot
@@ -40,9 +41,10 @@ class BREDS:
     """
 
     def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence):
+        # pylint: disable=too-many-arguments
         self.curr_iteration = 0
-        self.patterns = list()
-        self.processed_tuples = list()
+        self.patterns = []
+        self.processed_tuples = []
         self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
@@ -50,7 +52,7 @@ class BREDS:
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged.
 
-        :param sentences_file:
+        :param sentences_file: input sentences, one per line, with named-entities tagged
         """
         if os.path.exists("processed_tuples.pkl"):
             with open("processed_tuples.pkl", "rb") as f_in:
@@ -63,8 +65,8 @@ class BREDS:
             self.config.read_word2vec()
             tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
 
-            with open(sentences_file, "r") as f:
-                total = sum(bl.count("\n") for bl in blocks(f))
+            with open(sentences_file, "r", encoding="utf8") as f_in:
+                total = sum(bl.count("\n") for bl in blocks(f_in))
 
             print("\nGenerating relationship instances from sentences")
             with open(sentences_file, encoding="utf-8") as f_sentences:
@@ -80,8 +82,8 @@ class BREDS:
                     )
 
                     for rel in sentence.relationships:
-                        t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
-                        self.processed_tuples.append(t)
+                        tpl = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                        self.processed_tuples.append(tpl)
 
                 print("\n", len(self.processed_tuples), "tuples generated")
 
@@ -103,19 +105,19 @@ class BREDS:
 
         return self.config.alpha * bef + self.config.beta * bet + self.config.gamma * aft
 
-    def similarity_all(self, t, extraction_pattern):
-        # calculates the cosine similarity between all patterns part of a
-        # cluster (i.e., extraction pattern) and the vector of a ReVerb pattern
-        # extracted from a sentence;
+    def similarity_all(self, tuple, extraction_pattern):
+        """
+        Calculates the cosine similarity between all patterns part of a cluster (i.e., extraction pattern) and the
+        vector of a ReVerb pattern extracted from a sentence;
 
-        # returns the max similarity scores
-
+        Returns the max similarity score
+        """
         good = 0
         bad = 0
         max_similarity = 0
 
-        for p in list(extraction_pattern.tuples):
-            score = self.similarity_3_contexts(t, p)
+        for pattern in list(extraction_pattern.tuples):
+            score = self.similarity_3_contexts(tuple, pattern)
             if score > max_similarity:
                 max_similarity = score
             if score >= self.config.threshold_similarity:
@@ -125,15 +127,14 @@ class BREDS:
 
         if good >= bad:
             return True, max_similarity
-        else:
-            return False, 0.0
+        return False, 0.0
 
     def match_seeds_tuples(self):
         """
         Checks if the extracted tuples match the seeds tuples.
         """
-        matched_tuples = list()
-        count_matches = dict()
+        matched_tuples = []
+        count_matches = {}
         for t in self.processed_tuples:
             for s in self.config.positive_seed_tuples:
                 if t.ent1 == s.ent1 and t.ent2 == s.ent2:
@@ -240,16 +241,8 @@ class BREDS:
                 # Each candidate tuple will then have a number of patterns
                 # that extracted it each with an associated degree of match.
                 print("Number of tuples to be analyzed:", len(self.processed_tuples))
-
                 print("\nCollecting instances based on extraction patterns")
-                count = 0
-
-                for t in self.processed_tuples:
-                    count += 1
-                    if count % 1000 == 0:
-                        sys.stdout.write(".")
-                        sys.stdout.flush()
-
+                for t in tqdm(self.processed_tuples):
                     sim_best = 0
                     for extraction_pattern in self.patterns:
                         accept, score = self.similarity_all(t, extraction_pattern)
