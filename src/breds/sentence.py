@@ -10,10 +10,11 @@ __email__ = "dsbatista@gmail.com"
 bad_tokens = [",", "(", ")", ";", "''", "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
 stopwords = stopwords.words("english")
 not_valid = bad_tokens + stopwords
-regex_clean_tags = re.compile('</?[A-Z]+>', re.U)
+regex_clean_tags = re.compile("</?[A-Z]+>", re.U)
 
 
 def tokenize_entity(entity):
+    """Simple tokenize an entity string"""
     parts = word_tokenize(entity)
     if parts[-1] == ".":
         replace = parts[-2] + parts[-1]
@@ -24,6 +25,7 @@ def tokenize_entity(entity):
 
 
 def find_locations(entity_string, text_tokens):
+    """Find the locations of an entity in a text."""
     locations = []
     ent_parts = tokenize_entity(entity_string)
     for idx in range(len(text_tokens)):
@@ -33,6 +35,8 @@ def find_locations(entity_string, text_tokens):
 
 
 class Entity:
+    """Entity class to hold information about an entity extracted from a sentence."""
+
     def __init__(self, surface_string, surface_string_parts, ent_type, locations) -> None:
         self.string = surface_string
         self.parts = surface_string_parts
@@ -46,7 +50,9 @@ class Entity:
         return self.string == other.string and self.type == other.type
 
 
-class Relationship:
+class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-attributes
+    """Relationship class to hold information about a relationship extracted from a sentence."""
+
     def __init__(self, sentence, before, between, after, ent1, ent2, e1_type, e2_type):
         self.sentence = sentence
         self.before = before
@@ -69,14 +75,14 @@ class Relationship:
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.before) ^ hash(self.between) ^ hash(self.after)
 
 
-class Sentence:
+class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-many-arguments
+    """Sentence class to hold information about a sentence extracted from a document."""
+
     def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None):  # noqa: C901
         self.relationships = []
         self.tagged_text = None
-        self.entities_regex = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)  # <PER>Bill Gates</PER>
-
-        # find named-entities
-        entities = [match for match in re.finditer(self.entities_regex, sentence)]
+        self.entities_regex = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)
+        entities = list(re.finditer(self.entities_regex, sentence))
 
         if len(entities) >= 2:
             sentence_no_tags = re.sub(regex_clean_tags, "", sentence)  # clean tags from text
@@ -86,21 +92,21 @@ class Sentence:
             # and store in a structure to hold information collected about
             # all the entities in the sentence
             entities_info = set()
-            for idx, _ in enumerate(entities):
-                entity = entities[idx].group()
+            for ent in entities:
+                entity = ent.group()
                 e_string = re.findall("<[A-Z]+>([^<]+)</[A-Z]+>", entity)[0]
                 e_type = re.findall("<([A-Z]+)", entity)[0]
                 e_parts, locations = find_locations(e_string, text_tokens)
-                e = Entity(e_string, e_parts, e_type, locations)
-                entities_info.add(e)
+                ent = Entity(e_string, e_parts, e_type, locations)
+                entities_info.add(ent)
 
             # create a hash table:
             # - key is the starting index in the tokenized sentence of an entity
             # - value the corresponding Entity instance
             locations = {}
-            for e in entities_info:
-                for start in e.locations:
-                    locations[start] = e
+            for ent in entities_info:
+                for start in ent.locations:
+                    locations[start] = ent
 
             # look for a pair of entities such that:
             # the distance between the two entities is less than 'max_tokens'
@@ -135,6 +141,5 @@ class Sentence:
                     if all(x in not_valid for x in text_tokens[sorted_keys[i] + len(ent1.parts) : sorted_keys[i + 1]]):
                         continue
 
-                    r = Relationship(sentence, before, between, after, ent1.string, ent2.string, e1_type, ent2.type)
-
-                    self.relationships.append(r)
+                    rel = Relationship(sentence, before, between, after, ent1.string, ent2.string, e1_type, ent2.type)
+                    self.relationships.append(rel)

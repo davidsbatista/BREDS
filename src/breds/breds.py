@@ -7,6 +7,7 @@ from collections import defaultdict
 from gensim import matutils
 from nltk.data import load
 from numpy import dot
+from tqdm import tqdm
 
 from config import Config
 from pattern import Pattern
@@ -22,7 +23,18 @@ PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
-class BREDS(object):
+def blocks(files, size=65536):
+    """
+    Read the file block-wise and then count the '\n' characters in each block.
+    """
+    while True:
+        b = files.read(size)
+        if not b:
+            break
+        yield b
+
+
+class BREDS:
     """
     BREDS is a system that extracts relationships between named entities from text.
     """
@@ -51,16 +63,12 @@ class BREDS(object):
             self.config.read_word2vec()
             tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
 
+            with open(sentences_file, "r") as f:
+                total = sum(bl.count("\n") for bl in blocks(f))
+
             print("\nGenerating relationship instances from sentences")
             with open(sentences_file, encoding="utf-8") as f_sentences:
-                count = 0
-                for line in f_sentences:
-                    if line.startswith("#"):
-                        continue
-                    count += 1
-                    if count % 10000 == 0:
-                        sys.stdout.write(".")
-
+                for line in tqdm(f_sentences, total=total):
                     sentence = Sentence(
                         line.strip(),
                         self.config.e1_type,
@@ -74,6 +82,7 @@ class BREDS(object):
                     for rel in sentence.relationships:
                         t = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                         self.processed_tuples.append(t)
+
                 print("\n", len(self.processed_tuples), "tuples generated")
 
             print("Writing generated tuples to disk")
@@ -120,7 +129,9 @@ class BREDS(object):
             return False, 0.0
 
     def match_seeds_tuples(self):
-        # checks if an extracted tuple matches seeds tuples
+        """
+        Checks if the extracted tuples match the seeds tuples.
+        """
         matched_tuples = list()
         count_matches = dict()
         for t in self.processed_tuples:
@@ -135,6 +146,9 @@ class BREDS(object):
         return count_matches, matched_tuples
 
     def write_relationships_to_disk(self):
+        """
+        Writes the extracted relationships to disk.
+        """
         print("\nWriting extracted relationships to disk")
         f_output = open("relationships.txt", "w")
         tmp = sorted(list(self.candidate_tuples.keys()), reverse=True)
@@ -216,7 +230,7 @@ class BREDS(object):
 
                 # Look for sentences with occurrence of seeds
                 # semantic types (e.g., ORG - LOC)
-                # This was already collect and its stored in:
+                # This was already collect and it's stored in:
                 # self.processed_tuples
                 #
                 # Measure the similarity of each occurrence with each

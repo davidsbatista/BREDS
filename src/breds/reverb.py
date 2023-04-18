@@ -10,6 +10,10 @@ __email__ = "dsbatista@gmail.com"
 
 
 class Reverb:
+    """
+    Extract ReVerb relational patterns
+    """
+
     def __init__(self):
         self.lmtzr = WordNetLemmatizer()
         self.aux_verbs = ["be"]
@@ -97,7 +101,7 @@ class Reverb:
         return patterns, patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_tagged_ptb(tagged_text):
+    def extract_reverb_patterns_tagged_ptb(tagged_text):  # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -180,7 +184,7 @@ class Reverb:
         return merged_patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_ptb(text: str):
+    def extract_reverb_patterns_ptb(text: str):  # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -271,6 +275,9 @@ class Reverb:
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
+        """
+        Detect if the passive voice is present in a pattern
+        """
         passive_voice = False
 
         # TODO: there more complex exceptions, adjectives or adverbs in between
