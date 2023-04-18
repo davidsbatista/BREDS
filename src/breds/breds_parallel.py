@@ -25,7 +25,7 @@ PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
-class BREDS(object):
+class BREDS:
     """
     BREDS is a system for extracting relationships between named entities from text.
 
@@ -45,8 +45,7 @@ class BREDS(object):
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
     def generate_tuples(self, sentences_file):
-        # generate tuples instances from a text file with sentences
-        # where named entities are already tagged
+        # generate tuples instances from a text file with sentences where named entities are already tagged
 
         # load word2vec model
         self.config.read_word2vec()
