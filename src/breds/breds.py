@@ -29,10 +29,10 @@ def blocks(files, size=65536):
     Read the file block-wise and then count the '\n' characters in each block.
     """
     while True:
-        b = files.read(size)
-        if not b:
+        buffer = files.read(size)
+        if not buffer:
             break
-        yield b
+        yield buffer
 
 
 class BREDS:
@@ -48,7 +48,7 @@ class BREDS:
         self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
-    def generate_tuples(self, sentences_file):
+    def generate_tuples(self, sentences_file: str):
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged.
 
@@ -91,21 +91,24 @@ class BREDS:
             with open("processed_tuples.pkl", "wb") as f_out:
                 pickle.dump(self.processed_tuples, f_out)
 
-    def similarity_3_contexts(self, p, t):
+    def similarity_3_contexts(self, pattern, tuple):
+        """
+        Calculates the cosine similarity between the context vectors of a pattern and a tuple.
+        """
         (bef, bet, aft) = (0, 0, 0)
 
-        if t.bef_vector is not None and p.bef_vector is not None:
-            bef = dot(matutils.unitvec(t.bef_vector), matutils.unitvec(p.bef_vector))
+        if tuple.bef_vector is not None and pattern.bef_vector is not None:
+            bef = dot(matutils.unitvec(tuple.bef_vector), matutils.unitvec(pattern.bef_vector))
 
-        if t.bet_vector is not None and p.bet_vector is not None:
-            bet = dot(matutils.unitvec(t.bet_vector), matutils.unitvec(p.bet_vector))
+        if tuple.bet_vector is not None and pattern.bet_vector is not None:
+            bet = dot(matutils.unitvec(tuple.bet_vector), matutils.unitvec(pattern.bet_vector))
 
-        if t.aft_vector is not None and p.aft_vector is not None:
-            aft = dot(matutils.unitvec(t.aft_vector), matutils.unitvec(p.aft_vector))
+        if tuple.aft_vector is not None and pattern.aft_vector is not None:
+            aft = dot(matutils.unitvec(tuple.aft_vector), matutils.unitvec(pattern.aft_vector))
 
         return self.config.alpha * bef + self.config.beta * bet + self.config.gamma * aft
 
-    def similarity_all(self, tuple, extraction_pattern):
+    def similarity_all(self, tpl, extraction_pattern):
         """
         Calculates the cosine similarity between all patterns part of a cluster (i.e., extraction pattern) and the
         vector of a ReVerb pattern extracted from a sentence;
@@ -117,7 +120,7 @@ class BREDS:
         max_similarity = 0
 
         for pattern in list(extraction_pattern.tuples):
-            score = self.similarity_3_contexts(tuple, pattern)
+            score = self.similarity_3_contexts(tpl, pattern)
             if score > max_similarity:
                 max_similarity = score
             if score >= self.config.threshold_similarity:
@@ -135,14 +138,14 @@ class BREDS:
         """
         matched_tuples = []
         count_matches = {}
-        for t in self.processed_tuples:
-            for s in self.config.positive_seed_tuples:
-                if t.ent1 == s.ent1 and t.ent2 == s.ent2:
-                    matched_tuples.append(t)
+        for tuple in self.processed_tuples:
+            for sent in self.config.positive_seed_tuples:
+                if tuple.ent1 == sent.ent1 and tuple.ent2 == sent.ent2:
+                    matched_tuples.append(tuple)
                     try:
-                        count_matches[(t.ent1, t.ent2)] += 1
+                        count_matches[(tuple.ent1, tuple.ent2)] += 1
                     except KeyError:
-                        count_matches[(t.ent1, t.ent2)] = 1
+                        count_matches[(tuple.ent1, tuple.ent2)] = 1
 
         return count_matches, matched_tuples
 
@@ -167,9 +170,7 @@ class BREDS:
         f_output.close()
 
     def init_bootstrap(self, tuples):  # noqa: C901
-        """
-        Initializes the bootstrap process
-        """
+        """Initializes the bootstrap process"""
         if tuples is not None:
             f = open(tuples, "r")
             print("\nLoading processed tuples from disk...")
@@ -182,8 +183,8 @@ class BREDS:
             print("==========================================")
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
-            for s in self.config.positive_seed_tuples:
-                print(s.ent1, "\t", s.ent2)
+            for sent in self.config.positive_seed_tuples:
+                print(sent.ent1, "\t", sent.ent2)
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
@@ -200,13 +201,11 @@ class BREDS:
 
                 print("\n", len(matched_tuples), "tuples matched")
 
-                # Cluster the matched instances, to generate
-                # patterns/update patterns
+                # Cluster the matched instances, to generate patterns/update patterns
                 print("\nClustering matched instances to generate patterns")
                 self.cluster_tuples(matched_tuples)
 
-                # Eliminate patterns supported by less than
-                # 'min_pattern_support' tuples
+                # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
                 self.patterns = new_patterns
 
@@ -215,12 +214,12 @@ class BREDS:
                 if PRINT_PATTERNS is True:
                     count = 1
                     print("\nPatterns:")
-                    for p in self.patterns:
+                    for pattern in self.patterns:
                         print(count)
-                        for t in p.tuples:
-                            print("BEF", t.bef_words)
-                            print("BET", t.bet_words)
-                            print("AFT", t.aft_words)
+                        for tuple in pattern.tuples:
+                            print("BEF", tuple.bef_words)
+                            print("BET", tuple.bet_words)
+                            print("AFT", tuple.aft_words)
                             print("========")
                             print("\n")
                         count += 1
@@ -318,14 +317,17 @@ class BREDS:
         self.write_relationships_to_disk()
 
     def cluster_tuples(self, matched_tuples):
-        # this is a single-pass clustering
+        """
+        Single Pass Clustering Algorithm
+        Cluster the matched tuples to generate patterns
+        """
         # Initialize: if no patterns exist, first tuple goes to first cluster
         if len(self.patterns) == 0:
             c1 = Pattern(matched_tuples[0])
             self.patterns.append(c1)
 
         count = 0
-        for t in matched_tuples:
+        for tuple in matched_tuples:
             count += 1
             if count % 1000 == 0:
                 sys.stdout.write(".")
@@ -333,30 +335,27 @@ class BREDS:
             max_similarity = 0
             max_similarity_cluster_index = 0
 
-            # go through all patterns(clusters of tuples) and find the one
-            # with the highest similarity score
+            # go through all patterns(clusters of tuples) and find the one with the highest similarity score
             for i in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[i]
-                accept, score = self.similarity_all(t, extraction_pattern)
+                accept, score = self.similarity_all(tuple, extraction_pattern)
                 if accept is True and score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = i
 
-            # if max_similarity < min_degree_match create a new cluster having
-            #  this tuple as the centroid
+            # if max_similarity < min_degree_match create a new cluster having this tuple as the centroid
             if max_similarity < self.config.threshold_similarity:
-                c = Pattern(t)
+                c = Pattern(tuple)
                 self.patterns.append(c)
 
-            # if max_similarity >= min_degree_match add to the cluster with
-            # the highest similarity
+            # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
-                self.patterns[max_similarity_cluster_index].add_tuple(t)
+                self.patterns[max_similarity_cluster_index].add_tuple(tuple)
 
 
 def main():
     if len(sys.argv) != 7:
-        print("\nBREDS.py parameters sentences positive_seeds negative_seeds " "similarity confidence\n")
+        print("\nBREDS.py parameters sentences positive_seeds negative_seeds similarity confidence\n")
         sys.exit(0)
     else:
         configuration = sys.argv[1]
