@@ -14,6 +14,7 @@ from config import Config
 from pattern import Pattern
 from seed import Seed
 from sentence import Sentence
+from commons import blocks
 from tuple import Tuple
 
 __author__ = "David S. Batista"
@@ -22,17 +23,6 @@ __email__ = "dsbatista@gmail.com"
 # useful for debugging
 PRINT_TUPLES = False
 PRINT_PATTERNS = False
-
-
-def blocks(files, size=65536):
-    """
-    Read the file block-wise and then count the '\n' characters in each block.
-    """
-    while True:
-        buffer = files.read(size)
-        if not buffer:
-            break
-        yield buffer
 
 
 class BREDS:
