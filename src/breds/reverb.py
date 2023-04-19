@@ -14,7 +14,7 @@ class Reverb:
     Extract ReVerb relational patterns
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.lmtzr = WordNetLemmatizer()
         self.aux_verbs = ["be"]
 
