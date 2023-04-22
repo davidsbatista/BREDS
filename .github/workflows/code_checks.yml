@@ -24,4 +24,4 @@ jobs:
       run: make lint
 
     - name: Type checking with mypy
-      run: pylint --rcfile=pylint.cfg src
+      run: mypy --config mypy.ini src
