@@ -45,24 +45,24 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         self.w_neg: float = 0.0
         self.w_unk: float = 0.0
         self.w_updt: float = 0.5
-        self.tag_type = None
+        self.tag_type = ""
         self.filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
         self.regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
         self.regex_clean_linked = re.compile("</[A-Z]+>|<[A-Z]+ url=[^>]+>", re.U)
         self.tags_regex = re.compile("</?[A-Z]+>", re.U)
         self.positive_seed_tuples: Set[Any] = set()
         self.negative_seed_tuples: Set[Any] = set()
-        self.e1_type = None
-        self.e2_type = None
+        self.e1_type = ""
+        self.e2_type = ""
         self.stopwords = stopwords.words("english")
         self.lmtzr = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
-        self.word2vec_model_path: str = ''
-        self.word2vec = None
+        self.word2vec_model_path: str = ""
         self.vec_dim: int = 0
         self.read_config(config_file)
+        self.word2vec = self.read_word2vec(self.word2vec_model_path)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
 
@@ -154,15 +154,16 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         except ValueError:
             print("alpha + beta + gamma != 1")
 
-    def read_word2vec(self) -> None:
+    def read_word2vec(self, path: str) -> KeyedVectors:  # type: ignore
         """Reads the word2vec model."""
 
         print("Loading word2vec model ...\n")
-        self.word2vec = KeyedVectors.load_word2vec_format(self.word2vec_model_path, binary=True)
-        self.vec_dim = self.word2vec.vector_size
+        word2vec = KeyedVectors.load_word2vec_format(path, binary=True)
+        self.vec_dim = word2vec.vector_size
         print(self.vec_dim, "dimensions")
+        return word2vec
 
-    def read_seeds(self, seeds_file, holder):
+    def read_seeds(self, seeds_file: str, holder: Set[Any]) -> None:
         """
         Reads the seeds file and adds the seeds to the holder.
         """

@@ -30,7 +30,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         before: List[Tuple[str, str]],
         between: List[Tuple[str, str]],
         after: List[Tuple[str, str]],
-        config: Config,
+        config: Config,  # type: ignore
     ):
         self.ent1 = ent1
         self.ent2 = ent2
@@ -49,13 +49,15 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.passive_voice = False
         self.construct_vectors(config)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.ent1 + "\t" + self.ent2 + "\t" + self.bef_words + "\t" + self.bet_words + "\t" + self.aft_words)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         return (
             self.ent1 == other.ent1
             and self.ent2 == other.ent2
@@ -64,17 +66,21 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
             and self.aft_words == other.aft_words
         )
 
-    def __cmp__(self, other):
+    def __cmp__(self, other: object) -> int:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         if other.confidence > self.confidence:
             return -1
         if other.confidence < self.confidence:
             return 1
         return 0
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         return self.confidence < other.confidence
 
-    def construct_vectors(self, config):
+    def construct_vectors(self, config: Config) -> None:
         """
         Construct the vectors for the tuple, based on the words before, between and after the relation.
         """
@@ -101,7 +107,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.aft_vector = self.pattern2vector_sum(aft_no_tags, config)
 
     @staticmethod
-    def pattern2vector_sum(tokens, config):
+    def pattern2vector_sum(tokens: List[str], config: Config):
         """
         Compute the vector for a given pattern, by summing the vectors of the words in the pattern.
         """

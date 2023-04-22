@@ -30,7 +30,7 @@ class BREDS:
     BREDS is a system that extracts relationships between named entities from text.
     """
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence):
+    def __init__(self, config_file: str, seeds_file: str, negative_seeds: str, similarity: float, confidence: float):
         # pylint: disable=too-many-arguments
         self.curr_iteration = 0
         self.patterns = []
@@ -52,7 +52,7 @@ class BREDS:
 
         else:
             # load needed stuff, word2vec model and a pos-tagger
-            self.config.read_word2vec()
+            self.config.read_word2vec(self.config.word2vec_model_path)
             tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
 
             with open(sentences_file, "r", encoding="utf8") as f_in:
@@ -72,7 +72,9 @@ class BREDS:
                     )
 
                     for rel in sentence.relationships:
-                        tpl = BREDSTuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                        tpl = BREDSTuple(
+                            rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config
+                        )
                         self.processed_tuples.append(tpl)
 
                 print("\n", len(self.processed_tuples), "tuples generated")
@@ -338,7 +340,7 @@ class BREDS:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
 
 
-def main():  # pylint: disable=missing-function-docstring
+def main()->None:  # pylint: disable=missing-function-docstring
     if len(sys.argv) != 7:
         print("\nBREDS.py parameters sentences positive_seeds negative_seeds similarity confidence\n")
         sys.exit(0)

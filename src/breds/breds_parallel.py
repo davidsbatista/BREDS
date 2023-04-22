@@ -16,7 +16,7 @@ from pattern import Pattern
 from seed import Seed
 from sentence import Sentence
 from commons import blocks
-from tuple import BREDSTuple
+from bredstuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -50,7 +50,7 @@ class BREDS:
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
         """
-        self.config.read_word2vec()
+        self.config.read_word2vec(self.config.word2vec_model_path)
 
         # copy all sentences from input file into a Queue shared by all processes
         manager = multiprocessing.Manager()
@@ -216,7 +216,7 @@ class BREDS:
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
 
-    def write_relationships_to_disk(self):
+    def write_relationships_to_disk(self) -> None:
         """
         Write extracted relationships to disk
         """
