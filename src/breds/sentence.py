@@ -130,7 +130,6 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
             #   value: the corresponding Entity instance
             locations: Dict[int, Entity] = {
                 start: entity_obj for entity_obj in entities_info for start in entity_obj.locations
-
             }
 
             # look for a pair of entities such that:
