@@ -143,8 +143,8 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
                 ent1 = locations[sorted_keys[i]]
                 ent2 = locations[sorted_keys[i + 1]]
 
+                # ignore relationships between the same entity
                 if max_tokens >= distance >= min_tokens and ent1.type == e1_type and ent2.type == e2_type:
-                    # ignore relationships between the same entity
                     if ent1.string == ent2.string:
                         continue
 
