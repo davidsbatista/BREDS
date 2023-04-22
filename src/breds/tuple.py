@@ -14,7 +14,6 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     before: the tokens before the relation
     between: the tokens between the relation
     after: the tokens after the relation
-
     """
 
     # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
