@@ -11,7 +11,10 @@ __email__ = "dsbatista@gmail.com"
 
 class Reverb:
     """
-    Extract ReVerb relational patterns
+    An implementation of the paper:
+
+    "Identifying Relations for Open Information Extraction" (Anthony Fader, Stephen Soderland, and Oren Etzioni)
+    https://aclanthology.org/D11-1142.pdf
     """
 
     def __init__(self) -> None:
@@ -53,9 +56,9 @@ class Reverb:
 
         # convert the tags to reduced tag set (Petrov et al. 2012) http://arxiv.org/pdf/1104.2086.pdf
         tags = []
-        for t in tags_ptb:
-            tag = map_tag("en-ptb", "universal", t[1])
-            tags.append((t[0], tag))
+        for tmp_tag in tags_ptb:
+            tag = map_tag("en-ptb", "universal", tmp_tag[1])
+            tags.append((tmp_tag[0], tag))
 
         patterns = []
         patterns_tags = []
@@ -69,29 +72,29 @@ class Reverb:
             # a ReVerb pattern always starts with a verb
             if tags[i][1] == "VERB":
                 tmp.write(tags[i][0] + " ")
-                t = (tags[i][0], tags[i][1])
-                tmp_tags.append(t)
+                tmp_tag = (tags[i][0], tags[i][1])
+                tmp_tags.append(tmp_tag)
                 i += 1
 
                 # V = verb particle? adv? (also capture auxiliary verbs)
                 while i <= limit and tags[i][1] in ["VERB", "PRT", "ADV"]:
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # W = (noun | adj | adv | pron | det)
                 while i <= limit and tags[i][1] in ["NOUN", "ADJ", "ADV", "PRON", "DET"]:
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # P = (prep | particle | inf. marker)
                 while i <= limit and tags[i][1] in ["ADP", "PRT"]:
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
                 # add the build pattern to the list collected patterns
                 patterns.append(tmp.getvalue())
@@ -142,15 +145,15 @@ class Reverb:
             # a ReVerb pattern always starts with a verb
             if tags[i][1] in verb:
                 tmp.write(tags[i][0] + " ")
-                t = (tags[i][0], tags[i][1])
-                tmp_tags.append(t)
+                tmp_tag = (tags[i][0], tags[i][1])
+                tmp_tags.append(tmp_tag)
                 i += 1
 
                 # V = verb particle? adv? (also capture auxiliary verbs)
                 while i <= limit and (tags[i][1] in verb or tags[i][1] in adverb or tags[i][1] in particule):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # W = (noun | adj | adv | pron | det)
@@ -162,15 +165,15 @@ class Reverb:
                     or tags[i][1] in determiner
                 ):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # P = (prep | particle | inf. marker)
                 while i <= limit and (tags[i][1] in adp or tags[i][1] in particule):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # add the build pattern to the list collected patterns
@@ -186,8 +189,9 @@ class Reverb:
     @staticmethod
     def extract_reverb_patterns_ptb(text: str):  # pylint: disable=too-many-locals
         """
-        Extract ReVerb relational patterns
-        http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
+        Extract ReVerb relational patterns from raw text.
+
+        Part-of-speech tagging is performed using the default NTLK English tagger.
         """
 
         # The pattern limits the relation to be a verb (e.g., invented),
@@ -230,15 +234,15 @@ class Reverb:
             # a ReVerb pattern always starts with a verb
             if tags[i][1] in verb:
                 tmp.write(tags[i][0] + " ")
-                t = (tags[i][0], tags[i][1])
-                tmp_tags.append(t)
+                tmp_tag = (tags[i][0], tags[i][1])
+                tmp_tags.append(tmp_tag)
                 i += 1
 
                 # V = verb particle? adv? (also capture auxiliary verbs)
                 while i <= limit and (tags[i][1] in verb or tags[i][1] in adverb or tags[i][1] in particule):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # W = (noun | adj | adv | pron | det)
@@ -250,15 +254,15 @@ class Reverb:
                     or tags[i][1] in determiner
                 ):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # P = (prep | particle | inf. marker)
                 while i <= limit and (tags[i][1] in adp or tags[i][1] in particule):
                     tmp.write(tags[i][0] + " ")
-                    t = (tags[i][0], tags[i][1])
-                    tmp_tags.append(t)
+                    tmp_tag = (tags[i][0], tags[i][1])
+                    tmp_tags.append(tmp_tag)
                     i += 1
 
                 # add the build pattern to the list collected patterns
@@ -275,9 +279,7 @@ class Reverb:
         return merged_patterns_tags
 
     def detect_passive_voice(self, pattern):
-        """
-        Detect if the passive voice is present in a pattern
-        """
+        """Detect if the passive voice is present in a pattern"""
         passive_voice = False
 
         # TODO: there more complex exceptions, adjectives or adverbs in between
