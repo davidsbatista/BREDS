@@ -11,12 +11,12 @@ from nltk.data import load
 from numpy import dot, asarray
 from tqdm import tqdm
 
-from config import Config
-from pattern import Pattern
-from seed import Seed
-from sentence import Sentence
-from commons import blocks
-from tuple import Tuple
+from breds.config import Config
+from breds.pattern import Pattern
+from breds.seed import Seed
+from breds.sentence import Sentence
+from breds.commons import blocks
+from breds.tuple import Tuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"

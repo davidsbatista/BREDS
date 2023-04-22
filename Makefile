@@ -14,8 +14,11 @@ dev:
 
 lint:
 	black --check -t py39 -l 120 src
-	pylint --rcfile=pylint.cfg src
-	flake8 --config=setup.cfg src
+	PYTHONPATH=src/ pylint --rcfile=pylint.cfg src
+	PYTHONPATH=src/ flake8 --config=setup.cfg src
+
+
+typing:
 	MYPYPATH=src mypy --config mypy.ini src
 
 
