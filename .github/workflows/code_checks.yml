@@ -25,3 +25,6 @@ jobs:
 
     - name: Type checking with mypy
       run: mypy --config mypy.ini src
+
+    - name: Running tests
+    - run: make test
