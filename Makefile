@@ -19,7 +19,7 @@ lint:
 
 
 typing:
-	MYPYPATH=src/breds mypy --config mypy.ini src
+	mypy --config mypy.ini src
 
 
 test:

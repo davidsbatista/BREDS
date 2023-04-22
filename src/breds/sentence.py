@@ -1,5 +1,5 @@
 import re
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Set, Dict
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -117,21 +117,21 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
             # extract information about the entity, create an Entity instance
             # and store in a structure to hold information collected about
             # all the entities in the sentence
-            entities_info = set()
+            entities_info: Set[Entity] = set()
             for ent in entities:
                 entity = ent.group()
                 e_string = re.findall("<[A-Z]+>([^<]+)</[A-Z]+>", entity)[0]
                 e_type = re.findall("<([A-Z]+)", entity)[0]
-                e_parts, locations = find_locations(e_string, text_tokens)
-                entities_info.add(Entity(e_string, e_parts, e_type, locations))
+                e_parts, ent_locations = find_locations(e_string, text_tokens)
+                entities_info.add(Entity(e_string, e_parts, e_type, ent_locations))
 
             # create a hash table:
-            # - key is the starting index in the tokenized sentence of an entity
-            # - value the corresponding Entity instance
-            locations = {}
-            for ent in entities_info:
-                for start in ent.locations:
-                    locations[start] = ent
+            #   key: is the starting index in the tokenized sentence of an entity
+            #   value: the corresponding Entity instance
+            locations: Dict[int, Entity] = {
+                start: entity_obj for entity_obj in entities_info for start in entity_obj.locations
+
+            }
 
             # look for a pair of entities such that:
             # the distance between the two entities is less than 'max_tokens'
