@@ -3,19 +3,19 @@ import os
 import pickle
 import sys
 from collections import defaultdict
-
+from typing import List
 
 from gensim import matutils
 from nltk.data import load
 from numpy import dot
 from tqdm import tqdm
 
-from breds.config import Config
-from breds.pattern import Pattern
-from breds.seed import Seed
-from breds.sentence import Sentence
-from breds.commons import blocks
-from breds.tuple import Tuple
+from config import Config
+from pattern import Pattern
+from seed import Seed
+from sentence import Sentence
+from commons import blocks
+from tuple import Tuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -139,7 +139,7 @@ class BREDS:
 
         return count_matches, matched_tuples
 
-    def write_relationships_to_disk(self):
+    def write_relationships_to_disk(self) -> None:
         """Writes the extracted relationships to disk."""
         print("\nWriting extracted relationships to disk")
         with open("relationships.txt", "w", encoding="utf8") as f_out:
@@ -302,7 +302,7 @@ class BREDS:
 
         self.write_relationships_to_disk()
 
-    def cluster_tuples(self, matched_tuples):
+    def cluster_tuples(self, matched_tuples: List[Tuple]) -> None:
         """
         Single Pass Clustering Algorithm
         Cluster the matched tuples to generate patterns

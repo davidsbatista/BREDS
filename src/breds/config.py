@@ -5,8 +5,8 @@ from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 
-from breds.reverb import Reverb
-from breds.seed import Seed
+from reverb import Reverb
+from seed import Seed
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -149,10 +149,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         fileinput.close()
         assert self.alpha + self.beta + self.gamma == 1
 
-    def read_word2vec(self):
-        """
-        Reads the word2vec model.
-        """
+    def read_word2vec(self) -> None:
+        """Reads the word2vec model."""
 
         print("Loading word2vec model ...\n")
         self.word2vec = KeyedVectors.load_word2vec_format(self.word2vec_model_path, binary=True)

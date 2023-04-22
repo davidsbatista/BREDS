@@ -14,12 +14,12 @@ dev:
 
 lint:
 	black --check -t py39 -l 120 src
-	PYTHONPATH=src/ pylint --rcfile=pylint.cfg src
-	PYTHONPATH=src/ flake8 --config=setup.cfg src
+	PYTHONPATH=src/breds pylint --rcfile=pylint.cfg src
+	PYTHONPATH=src/breds flake8 --config=setup.cfg src
 
 
 typing:
-	MYPYPATH=src mypy --config mypy.ini src
+	MYPYPATH=src/breds mypy --config mypy.ini src
 
 
 test:
@@ -28,7 +28,7 @@ test:
 
 
 clean:
-	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache .pytest_cache
+	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache .pytest_cache src/*.egg-info
 
 
 dist:
