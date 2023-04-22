@@ -15,7 +15,7 @@ from pattern import Pattern
 from seed import Seed
 from sentence import Sentence
 from commons import blocks
-from tuple import Tuple
+from bredstuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -72,7 +72,7 @@ class BREDS:
                     )
 
                     for rel in sentence.relationships:
-                        tpl = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                        tpl = BREDSTuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                         self.processed_tuples.append(tpl)
 
                 print("\n", len(self.processed_tuples), "tuples generated")
@@ -302,7 +302,7 @@ class BREDS:
 
         self.write_relationships_to_disk()
 
-    def cluster_tuples(self, matched_tuples: List[Tuple]) -> None:
+    def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
         """
         Single Pass Clustering Algorithm
         Cluster the matched tuples to generate patterns

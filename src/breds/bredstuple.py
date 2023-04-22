@@ -1,10 +1,13 @@
-from numpy import zeros
-
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
+from typing import List, Tuple
 
-class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
+from numpy import zeros
+from config import Config
+
+
+class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     """
     A Tuple holds the information about a relation between two entities, namely:
 
@@ -19,7 +22,16 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
     filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
 
-    def __init__(self, ent1, ent2, sentence, before, between, after, config):
+    def __init__(
+        self,
+        ent1: str,
+        ent2: str,
+        sentence: str,
+        before: List[Tuple[str, str]],
+        between: List[Tuple[str, str]],
+        after: List[Tuple[str, str]],
+        config: Config,
+    ):
         self.ent1 = ent1
         self.ent2 = ent2
         self.sentence = sentence

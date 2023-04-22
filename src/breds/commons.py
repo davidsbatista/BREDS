@@ -1,4 +1,7 @@
-def blocks(files, size=65536):
+from typing import TextIO, Generator
+
+
+def blocks(files: TextIO, size: int = 65536) -> Generator[str, None, None]:
     """
     Read the file block-wise and then count the '\n' characters in each block.
     """

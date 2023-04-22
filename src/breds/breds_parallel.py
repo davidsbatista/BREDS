@@ -16,7 +16,7 @@ from pattern import Pattern
 from seed import Seed
 from sentence import Sentence
 from commons import blocks
-from tuple import Tuple
+from tuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -117,7 +117,7 @@ class BREDS:
                 )
 
                 for rel in sentence.relationships:
-                    tpl = Tuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
+                    tpl = BREDSTuple(rel.ent1, rel.ent2, rel.sentence, rel.before, rel.between, rel.after, self.config)
                     instances.append(tpl)
 
             except queue.Empty:

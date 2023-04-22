@@ -1,7 +1,11 @@
-import uuid
-
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
+
+import uuid
+from typing import Set, Any
+
+from config import Config
+from bredstuple import BREDSTuple
 
 
 class Pattern:  # pylint: disable=too-many-instance-attributes
@@ -9,29 +13,34 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
     A pattern is a set of tuples that is used to extract relationships between named-entities.
     """
 
-    def __init__(self, tpl=None):
+    def __init__(self, tpl: BREDSTuple = None):    # type: ignore
         self.uuid = uuid.uuid4()
         self.positive = 0
         self.negative = 0
         self.unknown = 0
-        self.confidence = 0
+        self.confidence: float = 0.0
         self.tuples = set()
-        self.bet_uniques_vectors = set()
-        self.bet_uniques_words = set()
+        self.bet_uniques_vectors: Set[Any] = set()
+        self.bet_uniques_words: Set[Any] = set()
         if tpl is not None:
             self.tuples.add(tpl)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Pattern):
+            return NotImplemented
         return self.tuples == other.tuples
 
-    def __cmp__(self, other):
+    def __cmp__(self, other: object) -> int:
+        """Compare two patterns based on their confidence"""
+        if not isinstance(other, Pattern):
+            return NotImplemented
         if other.confidence > self.confidence:
             return -1
         if other.confidence < self.confidence:
             return 1
         return 0
 
-    def update_confidence(self, config):
+    def update_confidence(self, config: Config) -> None:    # type: ignore
         """Update the confidence of the pattern"""
         if self.positive > 0:
             self.confidence = float(self.positive) / float(
@@ -40,7 +49,7 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
         elif self.positive == 0:
             self.confidence = 0
 
-    def add_tuple(self, tpl):
+    def add_tuple(self, tpl: BREDSTuple) -> None:    # type: ignore
         """Add another tuple to be used to generate the pattern"""
         self.tuples.add(tpl)
 
@@ -53,7 +62,7 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
             self.bet_uniques_vectors.add(tuple(tpl.bet_vector))
             self.bet_uniques_words.add(tpl.bet_words)
 
-    def update_selectivity(self, tpl, config):
+    def update_selectivity(self, tpl: BREDSTuple, config: Config) -> None:      # type: ignore
         """Update the selectivity of the pattern"""
         matched_both = False
         matched_e1 = False

@@ -1,5 +1,6 @@
 import fileinput
 import re
+from typing import Set, Any
 
 from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer
@@ -29,28 +30,28 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
     - Initialize the Reverb object.
     """
 
-    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence) -> None:  # noqa: C901
+    def __init__(
+        self, config_file: str, positive_seeds: str, negative_seeds: str, similarity: float, confidence: float
+    ) -> None:  # noqa: C901
         self.context_window_size: int = 2
         self.min_tokens_away: int = 1
         self.max_tokens_away: int = 6
-        self.similarity = None
-        self.alpha = None
-        self.word2vec_model_path = None
-        self.beta = None
-        self.gamma = None
-        self.min_pattern_support = None
-        self.number_iterations = None
-        self.w_neg = None
+        self.similarity: float = 0.6
+        self.alpha: float = 0.0
+        self.beta: float = 1.0
+        self.gamma: float = 0.0
+        self.min_pattern_support: int = 2
+        self.number_iterations: int = 2
+        self.w_neg: float = 0.0
+        self.w_unk: float = 0.0
+        self.w_updt: float = 0.5
         self.tag_type = None
-        self.w_unk = None
-        self.w_updt = None
         self.filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
         self.regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
         self.regex_clean_linked = re.compile("</[A-Z]+>|<[A-Z]+ url=[^>]+>", re.U)
         self.tags_regex = re.compile("</?[A-Z]+>", re.U)
-        self.positive_seed_tuples = set()
-        self.negative_seed_tuples = set()
-        self.vec_dim = 0
+        self.positive_seed_tuples: Set[Any] = set()
+        self.negative_seed_tuples: Set[Any] = set()
         self.e1_type = None
         self.e2_type = None
         self.stopwords = stopwords.words("english")
@@ -58,8 +59,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
+        self.word2vec_model_path: str = ''
         self.word2vec = None
-        self.vec_dim = None
+        self.vec_dim: int = 0
         self.read_config(config_file)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
@@ -94,7 +96,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         print("iteration wUpdt      :", self.w_updt)
         print("\n")
 
-    def read_config(self, config_file):  # noqa: C901
+    def read_config(self, config_file: str) -> None:  # noqa: C901
         # pylint: disable=too-many-branches
         """
         Reads the configuration file and sets the parameters.
@@ -129,7 +131,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
                 self.context_window_size = int(line.split("=")[1])
 
             if line.startswith("similarity"):
-                self.similarity = line.split("=")[1].strip()
+                self.similarity = float(line.split("=")[1].strip())
 
             if line.startswith("word2vec_path"):
                 self.word2vec_model_path = line.split("=")[1].strip()
@@ -147,7 +149,10 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
                 self.tag_type = line.split("=")[1].strip()
 
         fileinput.close()
-        assert self.alpha + self.beta + self.gamma == 1
+        try:
+            assert self.alpha + self.beta + self.gamma == 1
+        except ValueError:
+            print("alpha + beta + gamma != 1")
 
     def read_word2vec(self) -> None:
         """Reads the word2vec model."""
