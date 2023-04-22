@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "breds"
+version = "1.0.0"
+authors = [{name = "David S. Batista", email = "dsbatista@gmail.com"}]
+description = "My package description"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["nlp", "semantic relationship extraction", "distributional semantics", "bootstrapping", "emnlp",
+    "embeddings", "vector representations", "word embeddings", "word2vec", "phrase embeddings"]
+license = {file = "LICENSE.txt"}
+classifiers = [
+    "Topic :: Text Processing :: Linguistic",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "gensim >= 3.7.3",
+    "nltk >= 3.4.1",
+    "numpy >= 1.16.3",
+]
+
+[project.urls]
+homepage = "https://github.com/davidsbatista/BREDS"
+documentation = "https://www.davidsbatista.net/assets/documents/publications/breds-emnlp_15.pdf"
+repository = "https://github.com/davidsbatista/BREDS"
