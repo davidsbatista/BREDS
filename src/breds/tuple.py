@@ -69,7 +69,6 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
         # Check if BET context contains a ReVerb pattern
         reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(self.bet_tags)
         if len(reverb_pattern) > 0:
-            # test for passive voice presence
             self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
             bet_words = reverb_pattern
         else:

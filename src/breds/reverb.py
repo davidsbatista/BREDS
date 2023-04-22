@@ -11,9 +11,10 @@ __email__ = "dsbatista@gmail.com"
 
 class Reverb:
     """
-    An implementation of the paper:
+    An implementation of:
 
     "Identifying Relations for Open Information Extraction" (Anthony Fader, Stephen Soderland, and Oren Etzioni)
+
     https://aclanthology.org/D11-1142.pdf
     """
 
@@ -104,7 +105,8 @@ class Reverb:
         return patterns, patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_tagged_ptb(tagged_text):  # pylint: disable=too-many-locals
+    def extract_reverb_patterns_tagged_ptb(tagged_text: List[Tuple[Any, Any]]) -> List[Tuple[Any, Any]]:
+        # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -130,7 +132,7 @@ class Reverb:
         adverb = ["RB", "RBR", "RBS", "RB|RP", "RB|VBG", "WRB"]
         particule = ["POS", "PRT", "TO", "RP"]
         noun = ["NN", "NNP", "NNPS", "NNS", "NN|NNS", "NN|SYM", "NN|VBG", "NP"]
-        adjectiv = ["JJ", "JJR", "JJRJR", "JJS", "JJ|RB", "JJ|VBG"]
+        adjective = ["JJ", "JJR", "JJRJR", "JJS", "JJ|RB", "JJ|VBG"]
         pronoun = ["WP", "WP$", "PRP", "PRP$", "PRP|VBP"]
         determiner = ["DT", "EX", "PDT", "WDT"]
         adp = ["IN", "IN|RP"]
@@ -159,7 +161,7 @@ class Reverb:
                 # W = (noun | adj | adv | pron | det)
                 while i <= limit and (
                     tags[i][1] in noun
-                    or tags[i][1] in adjectiv
+                    or tags[i][1] in adjective
                     or tags[i][1] in adverb
                     or tags[i][1] in pronoun
                     or tags[i][1] in determiner
@@ -187,7 +189,7 @@ class Reverb:
         return merged_patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_ptb(text: str):  # pylint: disable=too-many-locals
+    def extract_reverb_patterns_ptb(text: str) -> List[Tuple[Any, Any]]:  # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns from raw text.
 
@@ -278,7 +280,7 @@ class Reverb:
         merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
         return merged_patterns_tags
 
-    def detect_passive_voice(self, pattern):
+    def detect_passive_voice(self, pattern: List[Tuple[Any, Any]]) -> bool:
         """Detect if the passive voice is present in a pattern"""
         passive_voice = False
 
