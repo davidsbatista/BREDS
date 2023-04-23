@@ -235,12 +235,6 @@ class BREDS:
         print("\n\nCalculating tuples confidence")
         for tpl in list(self.candidate_tuples.keys()):
             confidence = 1
-
-            print(tpl)
-            print(dir(tpl))
-            print("\n\n")
-            exit(-1)
-
             tpl.confidence_old = tpl.confidence
             for pattern in self.candidate_tuples.get(tpl):
                 confidence *= 1 - (pattern[0].confidence * pattern[1])
@@ -300,8 +294,8 @@ class BREDS:
             else:
                 print("\nNumber of seed matches found")
                 sorted_counts = sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True)
-                for tpl in sorted_counts:
-                    print(tpl[0][0], "\t", tpl[0][1], tpl[1])
+                for candidate_tpl in sorted_counts:
+                    print(candidate_tpl[0][0], "\t", candidate_tpl[0][1], candidate_tpl[1])
 
                 print("\n", len(matched_tuples), "tuples matched")
 
@@ -350,9 +344,9 @@ class BREDS:
                 self.debug_tuples()
 
                 print(f"Adding tuples to seed with confidence >= {str(self.config.instance_confidence)}")
-                for tpl in list(self.candidate_tuples.keys()):
-                    if tpl.confidence >= self.config.instance_confidence:
-                        seed = Seed(tpl.ent1, tpl.ent2)
+                for candidate_tpl in list(self.candidate_tuples.keys()):
+                    if candidate_tpl.confidence >= self.config.instance_confidence:
+                        seed = Seed(candidate_tpl.ent1, candidate_tpl.ent2)
                         self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations

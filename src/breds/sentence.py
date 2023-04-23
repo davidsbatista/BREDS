@@ -1,11 +1,11 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import re
 from typing import List, Tuple, Any, Set, Dict
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
-
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
 
 # tokens between entities which do not represent relationships
 bad_tokens = [",", "(", ")", ";", "''", "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]

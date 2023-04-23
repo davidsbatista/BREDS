@@ -1,3 +1,6 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import math
 import multiprocessing
 import operator
@@ -19,10 +22,6 @@ from breds.sentence import Sentence
 from breds.commons import blocks
 from breds.breds_tuple import BREDSTuple
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
-
-# useful stuff for debugging
 PRINT_TUPLES = False
 PRINT_PATTERNS = False
 

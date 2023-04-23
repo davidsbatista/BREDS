@@ -1,12 +1,12 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import io
 from typing import Tuple, List, Any
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tag.mapping import map_tag
-
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
 
 
 class Reverb:
