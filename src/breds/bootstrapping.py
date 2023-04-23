@@ -49,7 +49,6 @@ class BREDS:
                 print("\nLoading processed tuples from disk...")
                 self.processed_tuples = pickle.load(f_in)
             print(len(self.processed_tuples), "tuples loaded")
-
         else:
             # load needed stuff, word2vec model and a pos-tagger
             self.config.word2vec = self.config.read_word2vec(self.config.word2vec_model_path)

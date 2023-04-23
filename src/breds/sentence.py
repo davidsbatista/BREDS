@@ -61,9 +61,9 @@ class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-att
     def __init__(
         self,
         sentence: str,
-        before: str,
-        between: str,
-        after: str,
+        before: List[Tuple[str, str]],
+        between: List[Tuple[str, str]],
+        after: List[Tuple[str, str]],
         ent1_str: str,
         ent2_str: str,
         e1_type: str,
