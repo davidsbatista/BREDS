@@ -7,6 +7,8 @@ from numpy import zeros
 
 from breds.config import Config
 
+# from config import Config
+
 
 class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     """
@@ -36,7 +38,8 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.ent1 = ent1
         self.ent2 = ent2
         self.sentence = sentence
-        self.confidence = 0
+        self.confidence = 0.0
+        self.confidence_old = 0.0
         self.bef_tags = before
         self.bet_tags = between
         self.bet_filtered: List[str] = []

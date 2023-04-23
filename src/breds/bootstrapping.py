@@ -1,3 +1,6 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import operator
 import os
 import pickle
@@ -15,10 +18,14 @@ from breds.pattern import Pattern
 from breds.seed import Seed
 from breds.sentence import Sentence
 from breds.commons import blocks
-from breds.bredstuple import BREDSTuple
+from breds.breds_tuple import BREDSTuple
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
+# from config import Config
+# from pattern import Pattern
+# from seed import Seed
+# from sentence import Sentence
+# from commons import blocks
+# from breds_tuple import BREDSTuple
 
 # useful for debugging
 PRINT_TUPLES = False
@@ -33,10 +40,11 @@ class BREDS:
     def __init__(self, config_file: str, seeds_file: str, negative_seeds: str, similarity: float, confidence: float):
         # pylint: disable=too-many-arguments
         self.curr_iteration = 0
-        self.patterns: List[Pattern]
-        self.processed_tuples: List[BREDSTuple]
+        self.patterns: List[Pattern] = []
+        self.processed_tuples: List[BREDSTuple] = []
         self.candidate_tuples: Dict[BREDSTuple, List[Tuple[Pattern, float]]] = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
+        self.config.print_config()
 
     def generate_tuples(self, sentences_file: str) -> None:
         """
@@ -52,7 +60,7 @@ class BREDS:
 
         else:
             # load needed stuff, word2vec model and a pos-tagger
-            self.config.read_word2vec(self.config.word2vec_model_path)
+            self.config.word2vec = self.config.read_word2vec(self.config.word2vec_model_path)
             tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
 
             with open(sentences_file, "r", encoding="utf8") as f_in:
@@ -235,6 +243,12 @@ class BREDS:
         print("\n\nCalculating tuples confidence")
         for tpl in list(self.candidate_tuples.keys()):
             confidence = 1
+
+            print(tpl)
+            print(dir(tpl))
+            print("\n\n")
+            exit(-1)
+
             tpl.confidence_old = tpl.confidence
             for pattern in self.candidate_tuples.get(tpl):
                 confidence *= 1 - (pattern[0].confidence * pattern[1])

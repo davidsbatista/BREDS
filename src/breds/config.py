@@ -1,3 +1,7 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
+
 import fileinput
 import re
 from typing import Set, Any
@@ -9,11 +13,11 @@ from nltk.corpus import stopwords
 from breds.reverb import Reverb
 from breds.seed import Seed
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
+# from reverb import Reverb
+# from seed import Seed
 
 
-class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-statements, too-many-arguments
+class Config:  # pylint: disable=too-many-instance-attributes, too-many-arguments
     """
     Initializes a configuration object with the parameters from the config file:
 
@@ -60,15 +64,18 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         self.instance_confidence = confidence
         self.reverb = Reverb()
         self.word2vec_model_path: str
+        self.word2vec: Any
         self.vec_dim: int
         self.read_config(config_file)
-        self.word2vec = self.read_word2vec(self.word2vec_model_path)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
 
+    def print_config(self) -> None:
+        """
+        Prints the configuration parameters.
+        """
         print("Configuration parameters")
         print("========================\n")
-
         print("Relationship/Sentence Representation")
         print("e1 type              :", self.e1_type)
         print("e2 type              :", self.e2_type)
@@ -76,18 +83,15 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         print("max tokens away      :", self.max_tokens_away)
         print("min tokens away      :", self.min_tokens_away)
         print("Word2Vec Model       :", self.word2vec_model_path)
-
         print("\nContext Weighting")
         print("alpha                :", self.alpha)
         print("beta                 :", self.beta)
         print("gamma                :", self.gamma)
-
         print("\nSeeds")
         print("positive seeds       :", len(self.positive_seed_tuples))
         print("negative seeds       :", len(self.negative_seed_tuples))
         print("negative seeds wNeg  :", self.w_neg)
         print("unknown seeds wUnk   :", self.w_unk)
-
         print("\nParameters and Thresholds")
         print("threshold_similarity :", self.threshold_similarity)
         print("instance confidence  :", self.instance_confidence)

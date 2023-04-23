@@ -17,7 +17,7 @@ from breds.pattern import Pattern
 from breds.seed import Seed
 from breds.sentence import Sentence
 from breds.commons import blocks
-from breds.bredstuple import BREDSTuple
+from breds.breds_tuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"

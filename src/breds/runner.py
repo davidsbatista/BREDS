@@ -1,6 +1,6 @@
 import sys
 
-from breds.breds import BREDS
+from breds.bootstrapping import BREDS
 
 
 def main() -> None:  # pylint: disable=missing-function-docstring
