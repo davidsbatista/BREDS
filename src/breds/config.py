@@ -66,10 +66,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
 
-    def print_config(self) -> None:
-        """
-        Prints the configuration parameters.
-        """
+    def print_config(self) -> None:  # pragma: no cover
+        """Prints the configuration parameters."""
         print("Configuration parameters")
         print("========================\n")
         print("Relationship/Sentence Representation")

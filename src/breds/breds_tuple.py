@@ -52,7 +52,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.construct_vectors(config)
 
     def __str__(self) -> str:
-        return str(self.ent1 + "\t" + self.ent2 + "\t" + self.bef_words + "\t" + self.bet_words + "\t" + self.aft_words)
+        return f"{self.ent1}\t{self.ent2}\t{self.bef_words}\t{self.bet_words}\t{self.aft_words}"
 
     def __hash__(self) -> int:
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
