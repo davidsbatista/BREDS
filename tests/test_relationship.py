@@ -1,4 +1,4 @@
-from src.breds.sentence import Sentence, Relationship
+from breds.sentence import Sentence, Relationship
 
 
 def skip_test_relationship():
