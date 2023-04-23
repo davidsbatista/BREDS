@@ -193,6 +193,9 @@ class BREDS:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
 
     def debug_patterns_1(self) -> None:
+        """
+        Prints the patterns to the console
+        """
         count = 1
         print("\nPatterns:")
         for pattern in self.patterns:
@@ -206,6 +209,9 @@ class BREDS:
             count += 1
 
     def debug_patterns_2(self) -> None:
+        """
+        Prints the patterns to the console
+        """
         print("\nPatterns:")
         for pattern in self.patterns:
             for tpl in pattern.tuples:
@@ -221,6 +227,9 @@ class BREDS:
             print("\n")
 
     def debug_tuples(self) -> None:
+        """
+        Prints the tuples to the console
+        """
         if PRINT_TUPLES is True:
             extracted_tuples = list(self.candidate_tuples.keys())
             tuples_sorted = sorted(extracted_tuples, key=lambda tpl: tpl.confidence, reverse=True)
@@ -231,6 +240,9 @@ class BREDS:
                 print("\n")
 
     def updated_tuple_confidence(self) -> None:
+        """
+        Updates the confidence of the tuples
+        """
         print("\n\nCalculating tuples confidence")
         for tpl, patterns in self.candidate_tuples.items():
             confidence: float = 1.0
@@ -240,6 +252,9 @@ class BREDS:
             tpl.confidence = 1 - confidence
 
     def generate_candidate_tuples(self) -> None:
+        """
+        Generates the candidate tuples
+        """
         for tpl in tqdm(self.processed_tuples):
             sim_best: float = 0.0
             for extraction_pattern in self.patterns:
@@ -266,7 +281,7 @@ class BREDS:
                 else:
                     self.candidate_tuples[tpl].append((pattern_best, sim_best))
 
-    def init_bootstrap(self, processed_tuples: Optional[str]) -> None:
+    def init_bootstrap(self, processed_tuples: Optional[str]) -> None:  # noqa: C901
         """Initializes the bootstrap process"""
         if processed_tuples is not None:
             print("\nLoading processed tuples from disk...")
