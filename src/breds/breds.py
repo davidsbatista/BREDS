@@ -3,7 +3,7 @@ import os
 import pickle
 import sys
 from collections import defaultdict
-from typing import List
+from typing import List, Dict, Tuple
 
 from gensim import matutils
 from nltk.data import load
@@ -33,9 +33,9 @@ class BREDS:
     def __init__(self, config_file: str, seeds_file: str, negative_seeds: str, similarity: float, confidence: float):
         # pylint: disable=too-many-arguments
         self.curr_iteration = 0
-        self.patterns = []
-        self.processed_tuples = []
-        self.candidate_tuples = defaultdict(list)
+        self.patterns: List[Pattern]
+        self.processed_tuples: List[BREDSTuple]
+        self.candidate_tuples: Dict[BREDSTuple, List[Tuple[Pattern, float]]] = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
     def generate_tuples(self, sentences_file: str) -> None:
@@ -83,7 +83,7 @@ class BREDS:
             with open("processed_tuples.pkl", "wb") as f_out:
                 pickle.dump(self.processed_tuples, f_out)
 
-    def similarity_3_contexts(self, tpl: BREDSTuple, pattern: Pattern):
+    def similarity_3_contexts(self, tpl: BREDSTuple, pattern: BREDSTuple):
         """
         Calculates the cosine similarity between the context vectors of a pattern and a tuple.
         """
@@ -338,29 +338,3 @@ class BREDS:
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
-
-
-def main() -> None:  # pylint: disable=missing-function-docstring
-    if len(sys.argv) != 7:
-        print("\nBREDS.py parameters sentences positive_seeds negative_seeds similarity confidence\n")
-        sys.exit(0)
-    else:
-        configuration = sys.argv[1]
-        sentences_file = sys.argv[2]
-        seeds_file = sys.argv[3]
-        negative_seeds = sys.argv[4]
-        similarity = float(sys.argv[5])
-        confidence = float(sys.argv[6])
-
-        breads = BREDS(configuration, seeds_file, negative_seeds, similarity, confidence)
-
-        if sentences_file.endswith(".pkl"):
-            print("Loading pre-processed sentences", sentences_file)
-            breads.init_bootstrap(tuples=sentences_file)
-        else:
-            breads.generate_tuples(sentences_file)
-            breads.init_bootstrap(tuples=None)
-
-
-if __name__ == "__main__":
-    main()

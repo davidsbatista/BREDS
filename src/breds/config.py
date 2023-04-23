@@ -6,8 +6,8 @@ from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 
-from reverb import Reverb
-from seed import Seed
+from breds.reverb import Reverb
+from breds.seed import Seed
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"

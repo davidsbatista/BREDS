@@ -59,7 +59,7 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
         self.bet_uniques_words = set()
         for tpl in self.tuples:
             # transform numpy array into a tuple, so it can be hashed and added into a set
-            self.bet_uniques_vectors.add(tuple(tpl.bet_vector))
+            self.bet_uniques_vectors.add(tuple(tpl.bet_vector))  # type: ignore
             self.bet_uniques_words.add(tpl.bet_words)
 
     def update_selectivity(self, tpl: BREDSTuple, config: Config) -> None:
