@@ -13,7 +13,7 @@ dev:
 
 
 lint:
-	black --check -t py39 -l 120 src
+	black --check -t py39 -l 120 src tests
 	PYTHONPATH=src/breds pylint --rcfile=pylint.cfg src
 	PYTHONPATH=src/breds flake8 --config=setup.cfg src
 
