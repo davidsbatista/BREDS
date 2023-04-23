@@ -19,10 +19,10 @@ def main() -> None:  # pylint: disable=missing-function-docstring
 
         if sentences_file.endswith(".pkl"):
             print("Loading pre-processed sentences", sentences_file)
-            breads.init_bootstrap(tuples=sentences_file)
+            breads.init_bootstrap(processed_tuples=sentences_file)
         else:
             breads.generate_tuples(sentences_file)
-            breads.init_bootstrap(tuples=None)
+            breads.init_bootstrap(processed_tuples=None)
 
 
 if __name__ == "__main__":
