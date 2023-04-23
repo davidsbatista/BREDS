@@ -15,7 +15,7 @@ regex_clean_tags = re.compile("</?[A-Z]+>", re.U)
 
 
 def tokenize_entity(entity: str) -> List[str]:
-    """Simple tokenize an entity string"""
+    """Simple poor man's tokenization of an entity string"""
     parts = word_tokenize(entity)
     if parts[-1] == ".":
         replace = parts[-2] + parts[-1]

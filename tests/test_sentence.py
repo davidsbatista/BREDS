@@ -1,21 +1,14 @@
-import unittest
+import pytest
 
 from breds.sentence import Entity, Relationship, Sentence, find_locations, tokenize_entity
 
 
-# class TestEntity(unittest.TestCase):
-#     def setUp(self):
-#         self.ent1 = Entity("Paris", ["Paris"], "Location", [0])
-#         self.ent2 = Entity("France", ["France"], "Country", [2])
-#         self.ent3 = Entity("Paris", ["Paris"], "Location", [0])
-#
-#     def test_equality(self):
-#         self.assertEqual(self.ent1, self.ent3)
-#         self.assertNotEqual(self.ent1, self.ent2)
-#
-#     def test_hash(self):
-#         self.assertEqual(hash(self.ent1), hash(self.ent3))
-#         self.assertNotEqual(hash(self.ent1), hash(self.ent2))
+def test_entity():
+    ent1 = Entity("Paris", ["Paris"], "Location", [2, 4])
+    ent2 = Entity("France", ["France"], "Country", [2, 4])
+    ent3 = Entity("Paris", ["Paris"], "Location", [2, 4])
+
+    assert ent1 == ent3
 
 
 # class TestRelationship(unittest.TestCase):
