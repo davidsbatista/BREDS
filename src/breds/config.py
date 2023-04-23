@@ -55,7 +55,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.e1_type: str
         self.e2_type: str
         self.stopwords = stopwords.words("english")
-        self.lmtzr = WordNetLemmatizer()
+        self.lemmatizer = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
