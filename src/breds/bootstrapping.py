@@ -292,10 +292,9 @@ class BREDS:
 
             else:
                 print("\nNumber of seed matches found")
-                sorted_counts = sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True)
-                for c in sorted_counts:
+                for seed_match in sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True):
                     # ToDo: use f-strings and format
-                    print(c[0][0], "\t", c[0][1], c[1])
+                    print(seed_match[0][0], "\t", seed_match[0][1], seed_match[1])
 
                 print("\n", len(matched_tuples), "tuples matched")
 
@@ -344,7 +343,7 @@ class BREDS:
                 self.debug_tuples()
 
                 print(f"Adding tuples to seed with confidence >= {str(self.config.instance_confidence)}")
-                for tpl, patterns in self.candidate_tuples.items():
+                for tpl, _ in self.candidate_tuples.items():
                     if tpl.confidence >= self.config.instance_confidence:
                         seed = Seed(tpl.ent1, tpl.ent2)
                         self.config.positive_seed_tuples.add(seed)
