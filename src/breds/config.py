@@ -13,9 +13,6 @@ from nltk.corpus import stopwords
 from breds.reverb import Reverb
 from breds.seed import Seed
 
-# from reverb import Reverb
-# from seed import Seed
-
 
 class Config:  # pylint: disable=too-many-instance-attributes, too-many-arguments
     """

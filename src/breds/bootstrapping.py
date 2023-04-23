@@ -20,14 +20,6 @@ from breds.sentence import Sentence
 from breds.commons import blocks
 from breds.breds_tuple import BREDSTuple
 
-# from config import Config
-# from pattern import Pattern
-# from seed import Seed
-# from sentence import Sentence
-# from commons import blocks
-# from breds_tuple import BREDSTuple
-
-# useful for debugging
 PRINT_TUPLES = False
 PRINT_PATTERNS = False
 

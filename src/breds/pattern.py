@@ -7,9 +7,6 @@ from typing import Set, Any, Optional
 from breds.config import Config
 from breds.breds_tuple import BREDSTuple
 
-# from config import Config
-# from breds_tuple import BREDSTuple
-
 
 class Pattern:  # pylint: disable=too-many-instance-attributes
     """

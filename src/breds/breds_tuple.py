@@ -7,8 +7,6 @@ from numpy import zeros
 
 from breds.config import Config
 
-# from config import Config
-
 
 class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     """
