@@ -10,12 +10,12 @@ from nltk.data import load
 from numpy import dot
 from tqdm import tqdm
 
-from config import Config
-from pattern import Pattern
-from seed import Seed
-from sentence import Sentence
-from commons import blocks
-from bredstuple import BREDSTuple
+from breds.config import Config
+from breds.pattern import Pattern
+from breds.seed import Seed
+from breds.sentence import Sentence
+from breds.commons import blocks
+from breds.bredstuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -38,7 +38,7 @@ class BREDS:
         self.candidate_tuples = defaultdict(list)
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
-    def generate_tuples(self, sentences_file: str):
+    def generate_tuples(self, sentences_file: str) -> None:
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged.
 
@@ -83,7 +83,7 @@ class BREDS:
             with open("processed_tuples.pkl", "wb") as f_out:
                 pickle.dump(self.processed_tuples, f_out)
 
-    def similarity_3_contexts(self, tpl, pattern):
+    def similarity_3_contexts(self, tpl: BREDSTuple, pattern: Pattern):
         """
         Calculates the cosine similarity between the context vectors of a pattern and a tuple.
         """
@@ -340,7 +340,7 @@ class BREDS:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
 
 
-def main()->None:  # pylint: disable=missing-function-docstring
+def main() -> None:  # pylint: disable=missing-function-docstring
     if len(sys.argv) != 7:
         print("\nBREDS.py parameters sentences positive_seeds negative_seeds similarity confidence\n")
         sys.exit(0)

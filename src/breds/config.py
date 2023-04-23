@@ -52,15 +52,15 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         self.tags_regex = re.compile("</?[A-Z]+>", re.U)
         self.positive_seed_tuples: Set[Any] = set()
         self.negative_seed_tuples: Set[Any] = set()
-        self.e1_type = ""
-        self.e2_type = ""
+        self.e1_type: str
+        self.e2_type: str
         self.stopwords = stopwords.words("english")
         self.lmtzr = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
-        self.word2vec_model_path: str = ""
-        self.vec_dim: int = 0
+        self.word2vec_model_path: str
+        self.vec_dim: int
         self.read_config(config_file)
         self.word2vec = self.read_word2vec(self.word2vec_model_path)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)

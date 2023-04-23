@@ -19,7 +19,7 @@ lint:
 
 
 typing:
-	mypy --config mypy.ini src
+	MYPYPATH=src/ mypy --config mypy.ini src
 
 
 test:

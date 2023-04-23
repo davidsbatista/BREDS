@@ -5,18 +5,19 @@ import pickle
 import queue
 import sys
 from collections import defaultdict
+from typing import Tuple, Dict, List
 
 from gensim import matutils
 from nltk.data import load
 from numpy import dot, asarray
 from tqdm import tqdm
 
-from config import Config
-from pattern import Pattern
-from seed import Seed
-from sentence import Sentence
-from commons import blocks
-from bredstuple import BREDSTuple
+from breds.config import Config
+from breds.pattern import Pattern
+from breds.seed import Seed
+from breds.sentence import Sentence
+from breds.commons import blocks
+from breds.bredstuple import BREDSTuple
 
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
@@ -33,7 +34,15 @@ class BREDS:
     This is the parallel version of BREDS, which uses multiple processes to speed up the clustering process.
     """
 
-    def __init__(self, config_file, seeds_file, negative_seeds, similarity, confidence, num_cores):
+    def __init__(
+        self,
+        config_file: str,
+        seeds_file: str,
+        negative_seeds: str,
+        similarity: float,
+        confidence: float,
+        num_cores: int,
+    ):
         # pylint: disable=too-many-arguments
         if num_cores == 0:
             self.num_cpus = multiprocessing.cpu_count()
@@ -46,7 +55,7 @@ class BREDS:
         self.patterns_index = {}
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
-    def generate_tuples(self, sentences_file):
+    def generate_tuples(self, sentences_file: str) -> None:
         """
         Generate tuples instances from a text file with sentences where named entities are already tagged
         """
@@ -167,10 +176,10 @@ class BREDS:
             return True, max_similarity
         return False, 0.0
 
-    def match_seeds_tuples(self):
+    def match_seeds_tuples(self) -> Tuple[Dict[Tuple[str, str], int], List[BREDSTuple]]:
         """Match tuples with seeds"""
         matched_tuples = []
-        count_matches = {}
+        count_matches: Dict[Tuple[str, str], int] = {}
         for tpl in self.processed_tuples:
             for sent in self.config.positive_seed_tuples:
                 if tpl.ent1 == sent.ent1 and tpl.ent2 == sent.ent2:
@@ -181,7 +190,7 @@ class BREDS:
                         count_matches[(tpl.ent1, tpl.ent2)] = 1
         return count_matches, matched_tuples
 
-    def cluster_tuples(self, matched_tuples):
+    def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
         """
         Cluster tuples using single-pass clustering algorithm
         """
@@ -566,7 +575,7 @@ class BREDS:
 
         self.write_relationships_to_disk()
 
-    def similarity_cluster(self, pattern_1, pattern_2):
+    def similarity_cluster(self, pattern_1: Pattern, pattern_2: Pattern) -> float:
         """
         Calculate the similarity between two patterns based on the similarity
         """
@@ -676,7 +685,7 @@ class BREDS:
         child_conn.send((pid, new_patterns))
 
 
-def main():
+def main() -> None:
     # pylint: disable=missing-function-docstring
     if len(sys.argv) != 8:
         print(

@@ -1,10 +1,11 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 from numpy import zeros
-from config import Config
+
+from breds.config import Config
 
 
 class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
@@ -30,7 +31,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         before: List[Tuple[str, str]],
         between: List[Tuple[str, str]],
         after: List[Tuple[str, str]],
-        config: Config,  # type: ignore
+        config: Config,
     ):
         self.ent1 = ent1
         self.ent2 = ent2
@@ -38,7 +39,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.confidence = 0
         self.bef_tags = before
         self.bet_tags = between
-        self.bet_filtered = None
+        self.bet_filtered: List[str] = []
         self.aft_tags = after
         self.bef_words = " ".join([x[0] for x in self.bef_tags])
         self.bet_words = " ".join([x[0] for x in self.bet_tags])
@@ -107,7 +108,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.aft_vector = self.pattern2vector_sum(aft_no_tags, config)
 
     @staticmethod
-    def pattern2vector_sum(tokens: List[str], config: Config):
+    def pattern2vector_sum(tokens: List[str], config: Config) -> Any:
         """
         Compute the vector for a given pattern, by summing the vectors of the words in the pattern.
         """
