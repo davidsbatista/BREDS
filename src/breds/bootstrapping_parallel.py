@@ -26,7 +26,7 @@ PRINT_TUPLES = False
 PRINT_PATTERNS = False
 
 
-class BREDS:
+class BREDSParallel:
     """
     BREDS is a system for extracting relationships between named entities from text.
 
@@ -40,7 +40,7 @@ class BREDS:
         negative_seeds: str,
         similarity: float,
         confidence: float,
-        num_cores: int,
+        num_cores: int = 0,
     ):
         # pylint: disable=too-many-arguments
         if num_cores == 0:
@@ -702,7 +702,7 @@ def main() -> None:
         confidence = sys.argv[6]
         num_cores = int(sys.argv[7])
 
-        breads = BREDS(configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores)
+        breads = BREDSParallel(configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores)
 
         if sentences_file.endswith(".pkl"):
             breads.init_bootstrap(tuples=sentences_file)
