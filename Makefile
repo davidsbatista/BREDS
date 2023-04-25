@@ -14,8 +14,8 @@ dev:
 
 lint:
 	black --check -t py39 -l 120 src tests
-	PYTHONPATH=src/breds pylint --rcfile=pylint.cfg src
-	PYTHONPATH=src/breds flake8 --config=setup.cfg src
+	pylint --rcfile=pylint.cfg src
+	flake8 --config=setup.cfg src
 
 
 typing:
@@ -23,8 +23,10 @@ typing:
 
 
 test:
-	PYTHONPATH=src/breds coverage run --rcfile=setup.cfg --source=./src -m pytest
-	PYTHONPATH=src/breds coverage report --rcfile=setup.cfg
+	# PYTHONPATH=src/breds
+	coverage run --rcfile=setup.cfg --source=./src -m pytest
+	# PYTHONPATH=src/breds
+	coverage report --rcfile=setup.cfg
 
 
 clean:
