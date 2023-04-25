@@ -1,7 +1,8 @@
-name: Pylint
-
-on: [push]
-
+name: Code Checks
+on:
+    push:
+      branches:
+        - '*'
 jobs:
   build:
     runs-on: ubuntu-latest
