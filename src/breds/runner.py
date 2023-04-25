@@ -48,12 +48,7 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         action="store_true",
         help="whether to run the clustering in parallel or not",
     )
-    parser.add_argument(
-        "--num_cores",
-        type=int,
-        default=0,
-        help="number of cores to use for parallel processing"
-    )
+    parser.add_argument("--num_cores", type=int, default=0, help="number of cores to use for parallel processing")
 
     return parser
 

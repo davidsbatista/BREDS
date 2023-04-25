@@ -702,7 +702,9 @@ def main() -> None:
         confidence = sys.argv[6]
         num_cores = int(sys.argv[7])
 
-        breads = BREDSParallel(configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores)
+        breads = BREDSParallel(
+            configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores
+        )
 
         if sentences_file.endswith(".pkl"):
             breads.init_bootstrap(tuples=sentences_file)
