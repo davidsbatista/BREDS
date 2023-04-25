@@ -1,8 +1,5 @@
 name: Code Checks
-on:
-    push:
-      branches:
-        - '*'
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
