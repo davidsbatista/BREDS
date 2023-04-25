@@ -8,7 +8,7 @@ import pickle
 import queue
 import sys
 from collections import defaultdict
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Optional
 
 from gensim import matutils
 from nltk.data import load
@@ -242,14 +242,14 @@ class BREDSParallel:
                     f_out.write("passive voice: True\n")
                 f_out.write("\n")
 
-    def init_bootstrap(self, tuples):  # noqa: C901
+    def init_bootstrap(self, processed_tuples: Optional[str] = None):  # noqa: C901
         # pylint: disable=too-many-branches,too-many-statements, too-many-locals, too-many-nested-blocks
         """
         Initialize the bootstrapping process
         """
-        if tuples is not None:
-            print("Loading pre-processed sentences", tuples)
-            with open(tuples, "r", encoding="utf8") as f_in:
+        if processed_tuples is not None:
+            print("Loading pre-processed sentences", processed_tuples)
+            with open(processed_tuples, "r", encoding="utf8") as f_in:
                 self.processed_tuples = pickle.load(f_in)
             print(len(self.processed_tuples), "tuples loaded")
 
@@ -483,10 +483,10 @@ class BREDSParallel:
                     data = proc[0].recv()
                     child_pid = data[0]
                     patterns = data[1]
-                    tuples = data[2]
-                    print(child_pid, "patterns", len(patterns), "tuples", len(tuples))
+                    processed_tuples = data[2]
+                    print(child_pid, "patterns", len(patterns), "tuples", len(processed_tuples))
                     patterns_updated.extend(patterns)
-                    collected_tuples.extend(tuples)
+                    collected_tuples.extend(processed_tuples)
 
                 for proc in processes:
                     proc.join()
@@ -707,10 +707,10 @@ def main() -> None:
         )
 
         if sentences_file.endswith(".pkl"):
-            breads.init_bootstrap(tuples=sentences_file)
+            breads.init_bootstrap(processed_tuples=sentences_file)
         else:
             breads.generate_tuples(sentences_file)
-            breads.init_bootstrap(tuples=None)
+            breads.init_bootstrap(processed_tuples=None)
 
 
 if __name__ == "__main__":

@@ -67,10 +67,10 @@ def main() -> None:  # pylint: disable=missing-function-docstring
 
     if args.sentences.endswith(".pkl"):
         print("Loading pre-processed sentences", args.sentences)
-        breads.init_bootstrap(processed_tuples=args.sentences)
+        breads.init_bootstrap(args.sentences)
     else:
         breads.generate_tuples(args.sentences)
-        breads.init_bootstrap(processed_tuples=None)
+        breads.init_bootstrap()
 
 
 if __name__ == "__main__":

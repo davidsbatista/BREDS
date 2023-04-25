@@ -281,7 +281,7 @@ class BREDS:
                 else:
                     self.candidate_tuples[tpl].append((pattern_best, sim_best))
 
-    def init_bootstrap(self, processed_tuples: Optional[str]) -> None:  # noqa: C901
+    def init_bootstrap(self, processed_tuples: Optional[str] = None) -> None:  # noqa: C901
         """Initializes the bootstrap process"""
         if processed_tuples is not None:
             print("\nLoading processed tuples from disk...")
