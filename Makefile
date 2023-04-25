@@ -23,10 +23,8 @@ typing:
 
 
 test:
-	# PYTHONPATH=src/breds
-	coverage run --rcfile=setup.cfg --source=./src -m pytest
-	# PYTHONPATH=src/breds
-	coverage report --rcfile=setup.cfg
+	PYTHONPATH=src/ coverage run --rcfile=setup.cfg --source=./src -m pytest
+	PYTHONPATH=src/ coverage report --rcfile=setup.cfg
 
 
 clean:
