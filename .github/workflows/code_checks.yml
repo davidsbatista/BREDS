@@ -21,8 +21,8 @@ jobs:
     - name: Checking formatting and analysing the code with pylint and flake8
       run: make lint
 
-    - name: Type checking with mypy
-      run: mypy --config mypy.ini src
-
     - name: Running tests
       run: make test
+
+    - name: Type checking with mypy
+      run: mypy --config mypy.ini src
