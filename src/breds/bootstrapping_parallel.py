@@ -8,7 +8,7 @@ import pickle
 import queue
 import sys
 from collections import defaultdict
-from typing import Tuple, Dict, List, Optional, Set, Any
+from typing import Tuple, Dict, List, Optional, Any
 
 from gensim import matutils
 from nltk.data import load
@@ -353,6 +353,9 @@ class BREDSParallel:
         child_conn.send((pid, new_patterns))
 
     def debug_tuples_1(self):
+        """
+        Print the extracted tuples
+        """
         if PRINT_TUPLES is True:
             extracted_tuples = list(self.candidate_tuples.keys())
             tuples_sorted = sorted(extracted_tuples, key=lambda tl: tl.confidence, reverse=True)
@@ -363,6 +366,9 @@ class BREDSParallel:
                 print("\n")
 
     def debug_patterns_2(self):
+        """
+        Print the extracted patterns
+        """
         if PRINT_PATTERNS is True:
             print("\nPatterns:")
             for pattern in self.patterns:
@@ -373,6 +379,9 @@ class BREDSParallel:
                 print("\n")
 
     def debug_patterns_1(self):
+        """
+        Print the extracted patterns
+        """
         if PRINT_PATTERNS is True:
             print("\nPatterns:")
             for pattern in self.patterns:
