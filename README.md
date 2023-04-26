@@ -12,34 +12,6 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
   &nbsp;&nbsp;[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/default.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
-## Architecture
-
-[Poster presented at EMNLP'15](http://davidsbatista.net/assets/documents/publications/emnlp15-poster.pdf)
-
-
-
-Dependencies
-============
-
-You need to have Python 3.6.5 and the following libraries installed:
-
-**Numpy**: http://www.numpy.org/
-
-**NLTK**: http://www.nltk.org/
-
-**Gensim**: https://radimrehurek.com/gensim/
-
-which you can install issuing the following command:
-
-    pip install -r requirements.txt
-
-You also need to install NLTK's Treebank PoS-tagger, stop words list, punkt, and wordnet:
-
-    import nltk
-    nltk.download('maxent_treebank_pos_tagger')
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('wordnet')
 
 Usage:
 =====
