@@ -1,4 +1,5 @@
 ![example event parameter](https://github.com/davidsbatista/BREDS/actions/workflows/code_checks.yml/badge.svg?event=pull_request)
+![code coverage](https://raw.githubusercontent.com/davidsbatista/BREDS/coverage-badge/coverage.svg?raw=true)
 
 ## Bootstrapping Relationship Extraction with Distributional Semantics
 
