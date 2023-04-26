@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from breds.pattern import Pattern
 from breds.seed import Seed
-from breds.tuple import Tuple
+from breds.breds_tuple import BREDSTuple
 
 
 class TestPattern(TestCase):
@@ -22,7 +22,7 @@ class TestPattern(TestCase):
 
         # positive
         pattern = Pattern()
-        t = Tuple("seed_1 ", "seed_2 ", None, bef_words, bet_words, aft_words, self.config)
+        t = BREDSTuple("seed_1 ", "seed_2 ", None, bef_words, bet_words, aft_words, self.config)
         pattern.update_selectivity(t, self.config)
         self.assertEqual(pattern.positive, 1)
         self.assertEqual(pattern.negative, 0)
@@ -30,7 +30,7 @@ class TestPattern(TestCase):
 
         # negative
         pattern = Pattern()
-        t = Tuple("seed_1", "seed_5", None, bef_words, bet_words, aft_words, self.config)
+        t = BREDSTuple("seed_1", "seed_5", None, bef_words, bet_words, aft_words, self.config)
         pattern.update_selectivity(t, self.config)
         self.assertEqual(pattern.negative, 1)
         self.assertEqual(pattern.positive, 0)
@@ -38,7 +38,7 @@ class TestPattern(TestCase):
 
         # negative
         pattern = Pattern()
-        t = Tuple("seed_1", "seed_3", None, bef_words, bet_words, aft_words, self.config)
+        t = BREDSTuple("seed_1", "seed_3", None, bef_words, bet_words, aft_words, self.config)
         pattern.update_selectivity(t, self.config)
         self.assertEqual(pattern.unknown, 0)
         self.assertEqual(pattern.positive, 0)
@@ -46,7 +46,7 @@ class TestPattern(TestCase):
 
         # unknown
         pattern = Pattern()
-        t = Tuple("seed_4", "seed_5", None, bef_words, bet_words, aft_words, self.config)
+        t = BREDSTuple("seed_4", "seed_5", None, bef_words, bet_words, aft_words, self.config)
         pattern.update_selectivity(t, self.config)
         self.assertEqual(pattern.negative, 0)
         self.assertEqual(pattern.positive, 0)

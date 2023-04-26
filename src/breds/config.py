@@ -1,5 +1,9 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import fileinput
 import re
+from typing import Set, Any
 
 from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer
@@ -8,11 +12,8 @@ from nltk.corpus import stopwords
 from breds.reverb import Reverb
 from breds.seed import Seed
 
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
 
-
-class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-statements, too-many-arguments
+class Config:  # pylint: disable=too-many-instance-attributes, too-many-arguments
     """
     Initializes a configuration object with the parameters from the config file:
 
@@ -29,44 +30,46 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
     - Initialize the Reverb object.
     """
 
-    def __init__(self, config_file, positive_seeds, negative_seeds, similarity, confidence) -> None:  # noqa: C901
+    def __init__(
+        self, config_file: str, positive_seeds: str, negative_seeds: str, similarity: float, confidence: float
+    ) -> None:  # noqa: C901
         self.context_window_size: int = 2
         self.min_tokens_away: int = 1
         self.max_tokens_away: int = 6
-        self.similarity = None
-        self.alpha = None
-        self.word2vec_model_path = None
-        self.beta = None
-        self.gamma = None
-        self.min_pattern_support = None
-        self.number_iterations = None
-        self.w_neg = None
-        self.tag_type = None
-        self.w_unk = None
-        self.w_updt = None
+        self.similarity: float = 0.6
+        self.alpha: float = 0.0
+        self.beta: float = 1.0
+        self.gamma: float = 0.0
+        self.min_pattern_support: int = 2
+        self.number_iterations: int = 2
+        self.w_neg: float = 0.0
+        self.w_unk: float = 0.0
+        self.w_updt: float = 0.5
+        self.tag_type = ""
         self.filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
         self.regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
         self.regex_clean_linked = re.compile("</[A-Z]+>|<[A-Z]+ url=[^>]+>", re.U)
         self.tags_regex = re.compile("</?[A-Z]+>", re.U)
-        self.positive_seed_tuples = set()
-        self.negative_seed_tuples = set()
-        self.vec_dim = 0
-        self.e1_type = None
-        self.e2_type = None
+        self.positive_seed_tuples: Set[Any] = set()
+        self.negative_seed_tuples: Set[Any] = set()
+        self.e1_type: str
+        self.e2_type: str
         self.stopwords = stopwords.words("english")
-        self.lmtzr = WordNetLemmatizer()
+        self.lemmatizer = WordNetLemmatizer()
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
-        self.word2vec = None
-        self.vec_dim = None
+        self.word2vec_model_path: str
+        self.word2vec: Any
+        self.vec_dim: int
         self.read_config(config_file)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
         self.read_seeds(negative_seeds, self.negative_seed_tuples)
 
+    def print_config(self) -> None:  # pragma: no cover
+        """Prints the configuration parameters."""
         print("Configuration parameters")
         print("========================\n")
-
         print("Relationship/Sentence Representation")
         print("e1 type              :", self.e1_type)
         print("e2 type              :", self.e2_type)
@@ -74,18 +77,15 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         print("max tokens away      :", self.max_tokens_away)
         print("min tokens away      :", self.min_tokens_away)
         print("Word2Vec Model       :", self.word2vec_model_path)
-
         print("\nContext Weighting")
         print("alpha                :", self.alpha)
         print("beta                 :", self.beta)
         print("gamma                :", self.gamma)
-
         print("\nSeeds")
         print("positive seeds       :", len(self.positive_seed_tuples))
         print("negative seeds       :", len(self.negative_seed_tuples))
         print("negative seeds wNeg  :", self.w_neg)
         print("unknown seeds wUnk   :", self.w_unk)
-
         print("\nParameters and Thresholds")
         print("threshold_similarity :", self.threshold_similarity)
         print("instance confidence  :", self.instance_confidence)
@@ -94,7 +94,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
         print("iteration wUpdt      :", self.w_updt)
         print("\n")
 
-    def read_config(self, config_file):  # noqa: C901
+    def read_config(self, config_file: str) -> None:  # noqa: C901
         # pylint: disable=too-many-branches
         """
         Reads the configuration file and sets the parameters.
@@ -129,7 +129,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
                 self.context_window_size = int(line.split("=")[1])
 
             if line.startswith("similarity"):
-                self.similarity = line.split("=")[1].strip()
+                self.similarity = float(line.split("=")[1].strip())
 
             if line.startswith("word2vec_path"):
                 self.word2vec_model_path = line.split("=")[1].strip()
@@ -147,19 +147,21 @@ class Config:  # pylint: disable=too-many-instance-attributes, disable=too-many-
                 self.tag_type = line.split("=")[1].strip()
 
         fileinput.close()
-        assert self.alpha + self.beta + self.gamma == 1
+        try:
+            assert self.alpha + self.beta + self.gamma == 1
+        except ValueError:
+            print("alpha + beta + gamma != 1")
 
-    def read_word2vec(self):
-        """
-        Reads the word2vec model.
-        """
+    def read_word2vec(self, path: str) -> KeyedVectors:  # type: ignore
+        """Reads the word2vec model."""
 
         print("Loading word2vec model ...\n")
-        self.word2vec = KeyedVectors.load_word2vec_format(self.word2vec_model_path, binary=True)
-        self.vec_dim = self.word2vec.vector_size
+        word2vec = KeyedVectors.load_word2vec_format(path, binary=True)
+        self.vec_dim = word2vec.vector_size
         print(self.vec_dim, "dimensions")
+        return word2vec
 
-    def read_seeds(self, seeds_file, holder):
+    def read_seeds(self, seeds_file: str, holder: Set[Any]) -> None:
         """
         Reads the seeds file and adds the seeds to the holder.
         """

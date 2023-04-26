@@ -1,10 +1,11 @@
+__author__ = "David S. Batista"
+__email__ = "dsbatista@gmail.com"
+
 import re
+from typing import List, Tuple, Any, Set, Dict
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
-
-__author__ = "David S. Batista"
-__email__ = "dsbatista@gmail.com"
 
 # tokens between entities which do not represent relationships
 bad_tokens = [",", "(", ")", ";", "''", "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
@@ -13,8 +14,8 @@ not_valid = bad_tokens + stopwords
 regex_clean_tags = re.compile("</?[A-Z]+>", re.U)
 
 
-def tokenize_entity(entity):
-    """Simple tokenize an entity string"""
+def tokenize_entity(entity: str) -> List[str]:
+    """Simple poor man's tokenization of an entity string"""
     parts = word_tokenize(entity)
     if parts[-1] == ".":
         replace = parts[-2] + parts[-1]
@@ -24,7 +25,7 @@ def tokenize_entity(entity):
     return parts
 
 
-def find_locations(entity_string, text_tokens):
+def find_locations(entity_string: str, text_tokens: List[str]) -> Tuple[List[str], List[int]]:
     """Find the locations of an entity in a text."""
     locations = []
     ent_parts = tokenize_entity(entity_string)
@@ -37,7 +38,9 @@ def find_locations(entity_string, text_tokens):
 class Entity:
     """Entity class to hold information about an entity extracted from a sentence."""
 
-    def __init__(self, surface_string, surface_string_parts, ent_type, locations) -> None:
+    def __init__(
+        self, surface_string: str, surface_string_parts: List[str], ent_type: str, locations: List[int]
+    ) -> None:
         self.string = surface_string
         self.parts = surface_string_parts
         self.type = ent_type
@@ -46,24 +49,38 @@ class Entity:
     def __hash__(self) -> int:
         return hash(self.string) ^ hash(self.type)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Entity):
+            return NotImplemented
         return self.string == other.string and self.type == other.type
 
 
 class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-attributes
     """Relationship class to hold information about a relationship extracted from a sentence."""
 
-    def __init__(self, sentence, before, between, after, ent1, ent2, e1_type, e2_type):
+    def __init__(
+        self,
+        sentence: str,
+        before: List[Tuple[str, str]],
+        between: List[Tuple[str, str]],
+        after: List[Tuple[str, str]],
+        ent1_str: str,
+        ent2_str: str,
+        e1_type: str,
+        e2_type: str,
+    ) -> None:
         self.sentence = sentence
         self.before = before
         self.between = between
         self.after = after
-        self.ent1 = ent1
-        self.ent2 = ent2
+        self.ent1 = ent1_str
+        self.ent2 = ent2_str
         self.e1_type = e1_type
         self.e2_type = e2_type
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Relationship):
+            return NotImplemented
         return (
             self.ent1 == other.ent1
             and self.before == other.before
@@ -76,9 +93,18 @@ class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-att
 
 
 class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-many-arguments
-    """Sentence class to hold information about a sentence extracted from a document."""
+    """Holds information about a sentence extracted from a document."""
 
-    def __init__(self, sentence, e1_type, e2_type, max_tokens, min_tokens, window_size, pos_tagger=None):  # noqa: C901
+    def __init__(
+        self,
+        sentence: str,
+        e1_type: str,
+        e2_type: str,
+        max_tokens: int,
+        min_tokens: int,
+        window_size: int,
+        pos_tagger: Any = None,
+    ):  # noqa: C901
         self.relationships = []
         self.tagged_text = None
         self.entities_regex = re.compile("<[A-Z]+>[^<]+</[A-Z]+>", re.U)
@@ -91,22 +117,20 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
             # extract information about the entity, create an Entity instance
             # and store in a structure to hold information collected about
             # all the entities in the sentence
-            entities_info = set()
+            entities_info: Set[Entity] = set()
             for ent in entities:
                 entity = ent.group()
                 e_string = re.findall("<[A-Z]+>([^<]+)</[A-Z]+>", entity)[0]
                 e_type = re.findall("<([A-Z]+)", entity)[0]
-                e_parts, locations = find_locations(e_string, text_tokens)
-                ent = Entity(e_string, e_parts, e_type, locations)
-                entities_info.add(ent)
+                e_parts, ent_locations = find_locations(e_string, text_tokens)
+                entities_info.add(Entity(e_string, e_parts, e_type, ent_locations))
 
             # create a hash table:
-            # - key is the starting index in the tokenized sentence of an entity
-            # - value the corresponding Entity instance
-            locations = {}
-            for ent in entities_info:
-                for start in ent.locations:
-                    locations[start] = ent
+            #   key: is the starting index in the tokenized sentence of an entity
+            #   value: the corresponding Entity instance
+            locations: Dict[int, Entity] = {
+                start: entity_obj for entity_obj in entities_info for start in entity_obj.locations
+            }
 
             # look for a pair of entities such that:
             # the distance between the two entities is less than 'max_tokens'
@@ -119,8 +143,8 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
                 ent1 = locations[sorted_keys[i]]
                 ent2 = locations[sorted_keys[i + 1]]
 
+                # ignore relationships between the same entity
                 if max_tokens >= distance >= min_tokens and ent1.type == e1_type and ent2.type == e2_type:
-                    # ignore relationships between the same entity
                     if ent1.string == ent2.string:
                         continue
 

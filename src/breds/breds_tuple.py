@@ -1,10 +1,14 @@
-from numpy import zeros
-
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
+from typing import List, Tuple, Any
 
-class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
+from numpy import zeros
+
+from breds.config import Config
+
+
+class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     """
     A Tuple holds the information about a relation between two entities, namely:
 
@@ -14,21 +18,30 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
     before: the tokens before the relation
     between: the tokens between the relation
     after: the tokens after the relation
-
     """
 
     # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
     filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
 
-    def __init__(self, ent1, ent2, sentence, before, between, after, config):
+    def __init__(
+        self,
+        ent1: str,
+        ent2: str,
+        sentence: str,
+        before: List[Tuple[str, str]],
+        between: List[Tuple[str, str]],
+        after: List[Tuple[str, str]],
+        config: Config,
+    ):
         self.ent1 = ent1
         self.ent2 = ent2
         self.sentence = sentence
-        self.confidence = 0
+        self.confidence = 0.0
+        self.confidence_old = 0.0
         self.bef_tags = before
         self.bet_tags = between
-        self.bet_filtered = None
         self.aft_tags = after
+        self.bet_filtered: List[str] = []
         self.bef_words = " ".join([x[0] for x in self.bef_tags])
         self.bet_words = " ".join([x[0] for x in self.bet_tags])
         self.aft_words = " ".join([x[0] for x in self.aft_tags])
@@ -38,13 +51,15 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
         self.passive_voice = False
         self.construct_vectors(config)
 
-    def __str__(self):
-        return str(self.ent1 + "\t" + self.ent2 + "\t" + self.bef_words + "\t" + self.bet_words + "\t" + self.aft_words)
+    def __str__(self) -> str:
+        return f"{self.ent1}\t{self.ent2}\t{self.bef_words}\t{self.bet_words}\t{self.aft_words}"
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ hash(self.bet_words) ^ hash(self.aft_words)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         return (
             self.ent1 == other.ent1
             and self.ent2 == other.ent2
@@ -53,24 +68,27 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
             and self.aft_words == other.aft_words
         )
 
-    def __cmp__(self, other):
+    def __cmp__(self, other: object) -> int:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         if other.confidence > self.confidence:
             return -1
         if other.confidence < self.confidence:
             return 1
         return 0
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, BREDSTuple):
+            return NotImplemented
         return self.confidence < other.confidence
 
-    def construct_vectors(self, config):
+    def construct_vectors(self, config: Config) -> None:
         """
         Construct the vectors for the tuple, based on the words before, between and after the relation.
         """
         # Check if BET context contains a ReVerb pattern
         reverb_pattern = config.reverb.extract_reverb_patterns_tagged_ptb(self.bet_tags)
         if len(reverb_pattern) > 0:
-            # test for passive voice presence
             self.passive_voice = config.reverb.detect_passive_voice(reverb_pattern)
             bet_words = reverb_pattern
         else:
@@ -91,7 +109,7 @@ class Tuple:  # pylint: disable=too-many-instance-attributes,too-many-arguments
         self.aft_vector = self.pattern2vector_sum(aft_no_tags, config)
 
     @staticmethod
-    def pattern2vector_sum(tokens, config):
+    def pattern2vector_sum(tokens: List[str], config: Config) -> Any:
         """
         Compute the vector for a given pattern, by summing the vectors of the words in the pattern.
         """

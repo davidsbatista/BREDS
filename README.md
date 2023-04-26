@@ -1,5 +1,8 @@
-Bootstrapping Relationship Extraction with Distributional Semantics
-===================================================================
+![example event parameter](https://github.com/davidsbatista/BREDS/actions/workflows/code_checks.yml/badge.svg?event=pull_request)
+![code coverage](https://raw.githubusercontent.com/davidsbatista/BREDS/coverage-badge/coverage.svg?raw=true)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+## Bootstrapping Relationship Extraction with Distributional Semantics
 
 BREDS is a bootstrapping system for relationship extraction relying on word vector representations (i.e., word embeddings). For more details please refer to:
 
@@ -11,37 +14,8 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
   &nbsp;&nbsp;[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/default.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
-Architecture: system description
-================================
-[Poster presented at EMNLP'15](http://davidsbatista.net/assets/documents/publications/emnlp15-poster.pdf)
 
-
-
-Dependencies
-============
-
-You need to have Python 3.6.5 and the following libraries installed:
-
-**Numpy**: http://www.numpy.org/
-
-**NLTK**: http://www.nltk.org/
-
-**Gensim**: https://radimrehurek.com/gensim/
-
-which you can install issuing the following command:
-
-    pip install -r requirements.txt
-
-You also need to install NLTK's Treebank PoS-tagger, stop words list, punkt, and wordnet:
-
-    import nltk
-    nltk.download('maxent_treebank_pos_tagger')
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('wordnet')
-
-Usage:
-=====
+### Usage:
 
     python breds.py parameters sentences positive_seeds negative_seeds similarity confidence
 

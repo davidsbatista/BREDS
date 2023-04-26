@@ -14,5 +14,7 @@ class Seed:
     def __hash__(self) -> int:
         return hash(self.ent1) ^ hash(self.ent2)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Seed):
+            return NotImplemented
         return self.ent1 == other.ent1 and self.ent2 == other.ent2
