@@ -8,7 +8,7 @@ import pickle
 import queue
 import sys
 from collections import defaultdict
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, Dict, List, Optional, Set, Any
 
 from gensim import matutils
 from nltk.data import load
@@ -47,11 +47,11 @@ class BREDSParallel:
             self.num_cpus = multiprocessing.cpu_count()
         else:
             self.num_cpus = num_cores
-        self.processed_tuples = []
+        self.processed_tuples: List[BREDSTuple] = []
         self.candidate_tuples = defaultdict(list)
-        self.curr_iteration = 0
-        self.patterns = []
-        self.patterns_index = {}
+        self.curr_iteration: int = 0
+        self.patterns: Set[Pattern] = set()
+        self.patterns_index: Dict[str, Pattern] = {}
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
 
     def generate_tuples(self, sentences_file: str) -> None:
@@ -100,7 +100,7 @@ class BREDSParallel:
         with open("processed_tuples.pkl", "wb") as f_out:
             pickle.dump(self.processed_tuples, f_out)
 
-    def generate_instances(self, sentences, child_conn):
+    def generate_instances(self, sentences: queue.Queue, child_conn: Any) -> None:
         """
         Generate instances from a Queue of sentences
 
@@ -523,9 +523,8 @@ class BREDSParallel:
                     pattern_best = element[1]
                     sim_best = element[2]
 
-                    # if this tuple was already extracted, check if this
-                    # extraction pattern is already associated with it, if not,
-                    # associate this pattern with it and similarity score
+                    # if this tuple was already extracted, check if this extraction pattern is already associated
+                    # with it, if not, associate this pattern with it and similarity score
                     if tpl in self.candidate_tuples:
                         t_patterns = self.candidate_tuples[tpl]
                         if t_patterns is not None:
