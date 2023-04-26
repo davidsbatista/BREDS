@@ -41,5 +41,5 @@ jobs:
         branch: coverage-badge
         folder: coverage
 
-    #- name: Type checking with mypy
-    #  run: mypy --config mypy.ini src
+    - name: Type checking with mypy
+    -  run: mypy --config mypy.ini src
