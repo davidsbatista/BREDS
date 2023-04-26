@@ -1,7 +1,6 @@
 ![example event parameter](https://github.com/davidsbatista/BREDS/actions/workflows/code_checks.yml/badge.svg?event=pull_request)
 
-Bootstrapping Relationship Extraction with Distributional Semantics
-===================================================================
+## Bootstrapping Relationship Extraction with Distributional Semantics
 
 BREDS is a bootstrapping system for relationship extraction relying on word vector representations (i.e., word embeddings). For more details please refer to:
 
@@ -13,8 +12,8 @@ BREDS is a bootstrapping system for relationship extraction relying on word vect
 
   &nbsp;&nbsp;[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/default.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
-Architecture: system description
-================================
+## Architecture
+
 [Poster presented at EMNLP'15](http://davidsbatista.net/assets/documents/publications/emnlp15-poster.pdf)
 
 
