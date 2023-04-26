@@ -681,36 +681,3 @@ class BREDSParallel:
         pid = multiprocessing.current_process().pid
         print(multiprocessing.current_process(), "Patterns: ", len(new_patterns))
         child_conn.send((pid, new_patterns))
-
-
-def main() -> None:
-    # pylint: disable=missing-function-docstring
-    if len(sys.argv) != 8:
-        print(
-            "\nBREDS.py parameters.cfg sentences_file positive_seeds "
-            "negative_seeds similarity_threshold confidence_threshold "
-            "#cpus_to_use\n"
-        )
-        sys.exit(0)
-    else:
-        configuration = sys.argv[1]
-        sentences_file = sys.argv[2]
-        seeds_file = sys.argv[3]
-        negative_seeds = sys.argv[4]
-        similarity = sys.argv[5]
-        confidence = sys.argv[6]
-        num_cores = int(sys.argv[7])
-
-        breads = BREDSParallel(
-            configuration, seeds_file, negative_seeds, float(similarity), float(confidence), num_cores
-        )
-
-        if sentences_file.endswith(".pkl"):
-            breads.init_bootstrap(processed_tuples=sentences_file)
-        else:
-            breads.generate_tuples(sentences_file)
-            breads.init_bootstrap(processed_tuples=None)
-
-
-if __name__ == "__main__":
-    main()
