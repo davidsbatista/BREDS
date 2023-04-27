@@ -48,7 +48,7 @@ class BREDSParallel:
         else:
             self.num_cpus = num_cores
         self.processed_tuples: List[BREDSTuple] = []
-        self.candidate_tuples = defaultdict(list)
+        self.candidate_tuples: defaultdict[Any, List] = defaultdict(List)
         self.curr_iteration: int = 0
         self.patterns: List[Pattern] = []
         self.patterns_index: Dict[str, Pattern] = {}
@@ -135,7 +135,7 @@ class BREDSParallel:
                 child_conn.send((pid, instances))
                 break
 
-    def similarity_3_contexts(self, tpl, pattern):
+    def similarity_3_contexts(self, tpl: BREDSTuple, pattern: BREDSTuple) -> float:
         """
         Calculates the cosine similarity between the context vectors of a pattern and a tuple.
         """
@@ -152,16 +152,16 @@ class BREDSParallel:
 
         return self.config.alpha * bef + self.config.beta * bet + self.config.gamma * aft
 
-    def similarity_all(self, tpl, extraction_pattern):
+    def similarity_all(self, tpl: BREDSTuple, extraction_pattern: Pattern) -> Tuple[bool, float]:
         """
         Calculates the cosine similarity between all patterns part of a cluster (i.e., extraction pattern)
         and the vector of a ReVerb pattern extracted from a sentence;
 
         Returns the max similarity scores
         """
-        good = 0
-        bad = 0
-        max_similarity = 0
+        good: int = 0
+        bad: int = 0
+        max_similarity: float = 0.0
 
         for pattern in list(extraction_pattern.tuples):
             score = self.similarity_3_contexts(tpl, pattern)
@@ -205,7 +205,7 @@ class BREDSParallel:
             if count % 1000 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
-            max_similarity = 0
+            max_similarity: float = 0.0
             max_similarity_cluster_index = 0
 
             # go through all patterns(clusters of tuples) and find the one with the highest similarity score
@@ -247,8 +247,8 @@ class BREDSParallel:
         """
         Calculate the similarity between two patterns based on the similarity
         """
-        count = 0
-        score = 0
+        count: int = 0
+        score: float = 0.0
         if self.config.alpha == 0 and self.config.gamma == 0:
             pattern_1.merge_all_tuples_bet()
             pattern_2.merge_all_tuples_bet()
@@ -265,7 +265,7 @@ class BREDSParallel:
 
         return float(score) / float(count)
 
-    def find_instances(self, patterns, instances, child_conn):  # noqa: C901
+    def find_instances(self, patterns: List[Pattern], instances: queue.Queue, child_conn: Any) -> None:  # noqa: C901
         # pylint: disable=too-many-branches, too-many-nested-blocks
         """
         Find instances of patterns in the corpus
@@ -329,7 +329,7 @@ class BREDSParallel:
                 print(multiprocessing.current_process(), count, "tuples processed")
 
             # go through all patterns(clusters of tuples) and find the one with the highest similarity score
-            max_similarity = 0
+            max_similarity: float = 0.0
             max_similarity_cluster_index = 0
             for idx, _ in enumerate(updated_patterns):
                 extraction_pattern = updated_patterns[idx]
@@ -352,7 +352,7 @@ class BREDSParallel:
         print(multiprocessing.current_process(), "Patterns: ", len(new_patterns))
         child_conn.send((pid, new_patterns))
 
-    def debug_tuples_1(self):
+    def debug_tuples_1(self) -> None:
         """
         Print the extracted tuples
         """
@@ -365,27 +365,27 @@ class BREDSParallel:
                 print(tpl.confidence)
                 print("\n")
 
-    def debug_patterns_2(self):
+    def debug_patterns_2(self) -> None:
         """
         Print the extracted patterns
         """
         if PRINT_PATTERNS is True:
             print("\nPatterns:")
             for pattern in self.patterns:
-                print(pattern.id)
+                print(pattern.uuid)
                 print("Positive", pattern.positive)
                 print("Negative", pattern.negative)
                 print("Pattern Confidence", pattern.confidence)
                 print("\n")
 
-    def debug_patterns_1(self):
+    def debug_patterns_1(self) -> None:
         """
         Print the extracted patterns
         """
         if PRINT_PATTERNS is True:
             print("\nPatterns:")
             for pattern in self.patterns:
-                print("\n" + str(pattern.id))
+                print("\n" + str(pattern.uuid))
                 if self.config.alpha == 0 and self.config.gamma == 0:
                     for bet_words in pattern.bet_uniques_words:
                         print("BET", bet_words)
@@ -396,14 +396,14 @@ class BREDSParallel:
                         print("AFT", tpl.aft_words)
                         print("========")
 
-    def init_bootstrap(self, processed_tuples: Optional[str] = None):  # noqa: C901
+    def init_bootstrap(self, processed_tuples: Optional[str] = None) -> None:  # noqa: C901
         # pylint: disable=too-many-branches,too-many-statements, too-many-locals, too-many-nested-blocks
         """
         Initialize the bootstrapping process
         """
         if processed_tuples is not None:
             print("Loading pre-processed sentences", processed_tuples)
-            with open(processed_tuples, "r", encoding="utf8") as f_in:
+            with open(processed_tuples, "rb", encoding="utf8") as f_in:
                 self.processed_tuples = pickle.load(f_in)
             print(len(self.processed_tuples), "tuples loaded")
 
@@ -459,7 +459,7 @@ class BREDSParallel:
                     patterns = [[self.patterns] for _ in range(self.num_cpus)]
 
                     # distribute tuples per different CPUs
-                    chunks = [[] for _ in range(self.num_cpus)]
+                    chunks: List[List] = [[] for _ in range(self.num_cpus)]
                     n_tuples_per_child = int(math.ceil(float(len(matched_tuples)) / self.num_cpus))
 
                     print("\n#CPUS", self.num_cpus, "\t", "Tuples per CPU", n_tuples_per_child)
@@ -502,7 +502,7 @@ class BREDSParallel:
                         for p_updated in patterns:
                             pattern_exists = False
                             for p_original in self.patterns:
-                                if p_original.id == p_updated.id:
+                                if p_original.uuid == p_updated.uuid:
                                     p_original.tuples.update(p_updated.tuples)
                                     pattern_exists = True
                                     break
@@ -516,7 +516,7 @@ class BREDSParallel:
                     print("\nSELF Patterns:")
                     for pattern in self.patterns:
                         pattern.merge_all_tuples_bet()
-                        print("\n" + str(pattern.id))
+                        print("\n" + str(pattern.uuid))
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in pattern.bet_uniques_words:
                                 print("BET", bet_words.encode("utf8"))
@@ -524,7 +524,7 @@ class BREDSParallel:
                     print("\nChild Patterns:")
                     for pattern in child_patterns:
                         pattern.merge_all_tuples_bet()
-                        print("\n" + str(pattern.id))
+                        print("\n" + str(pattern.uuid))
                         if self.config.alpha == 0 and self.config.gamma == 0:
                             for bet_words in pattern.bet_uniques_words:
                                 print("BET", bet_words.encode("utf8"))
@@ -540,7 +540,7 @@ class BREDSParallel:
                     for pattern_1 in child_patterns:
                         print("\nNew Patterns", len(child_patterns), "Processed", count)
                         print("New List", len(new_list))
-                        print("Pattern:", pattern_1.id, "Tuples:", len(pattern_1.tuples))
+                        print("Pattern:", pattern_1.uuid, "Tuples:", len(pattern_1.tuples))
                         max_similarity = 0
                         max_similarity_cluster = None
                         for pattern_2 in new_list:
@@ -634,14 +634,14 @@ class BREDSParallel:
                 # Extraction patterns aggregation happens here:
                 for p_updated in patterns_updated:
                     for p_original in self.patterns:
-                        if p_original.id == p_updated.id:
+                        if p_original.uuid == p_updated.uuid:
                             p_original.positive += p_updated.positive
                             p_original.negative += p_updated.negative
                             p_original.unknown += p_updated.unknown
 
                 # Index the patterns in a hashtable for later use
                 for pattern in self.patterns:
-                    self.patterns_index[pattern.id] = pattern
+                    self.patterns_index[pattern.uuid] = pattern
 
                 # update all patterns confidence
                 for pattern in self.patterns:
