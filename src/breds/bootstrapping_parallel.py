@@ -9,6 +9,7 @@ import queue
 import sys
 from collections import defaultdict
 from typing import Tuple, Dict, List, Optional, Any
+from uuid import UUID
 
 from gensim import matutils
 from nltk.data import load
@@ -48,10 +49,10 @@ class BREDSParallel:
         else:
             self.num_cpus = num_cores
         self.processed_tuples: List[BREDSTuple] = []
-        self.candidate_tuples: defaultdict[Any, List] = defaultdict(List)
+        self.candidate_tuples: defaultdict[Any, List] = defaultdict(list)
         self.curr_iteration: int = 0
         self.patterns: List[Pattern] = []
-        self.patterns_index: Dict[str, Pattern] = {}
+        self.patterns_index: Dict[UUID, Pattern] = {}
         self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
         self.config.print_config()
 
@@ -317,7 +318,7 @@ class BREDSParallel:
                 child_conn.send((pid, updated_patterns, candidate_tuples))
                 break
 
-    def cluster_tuples_parallel(self, patterns, matched_tuples, child_conn) -> None:
+    def cluster_tuples_parallel(self, patterns: List[Pattern], matched_tuples, child_conn) -> None:
         """
         Cluster tuples in parallel
         """
@@ -495,8 +496,8 @@ class BREDSParallel:
                     # 'child_patterns' and then are merged by single-pass clustering between patterns
                     child_patterns = []
 
-                    for proc in pipes:
-                        data = proc[0].recv()
+                    for pipe in pipes:
+                        data = pipe[0].recv()
                         recv_patterns = data[1]
                         for p_updated in recv_patterns:
                             pattern_exists = False
@@ -549,8 +550,8 @@ class BREDSParallel:
                                 max_similarity = score
                                 max_similarity_cluster = pattern_2
                         if max_similarity >= self.config.threshold_similarity:
-                            for tpl in pattern_1.tuples:
-                                max_similarity_cluster.tuples.add(tpl)
+                            for patt_tpl in pattern_1.tuples:
+                                max_similarity_cluster.tuples.add(patt_tpl)
                         else:
                             new_list.append(pattern_1)
                         count += 1
@@ -654,6 +655,8 @@ class BREDSParallel:
                     pattern_best = element[1]
                     sim_best = element[2]
 
+                    print(pattern_best, sim_best, tpl)
+
                     # if this tuple was already extracted, check if this extraction pattern is already associated
                     # with it, if not, associate this pattern with it and similarity score
                     if tpl in self.candidate_tuples:
@@ -669,15 +672,15 @@ class BREDSParallel:
 
                 # update tuple confidence based on patterns confidence
                 print("\n\nCalculating tuples confidence")
-                for tpl in list(self.candidate_tuples.keys()):
+                for cand_tpl in list(self.candidate_tuples.keys()):
                     confidence = 1
-                    tpl.confidence_old = tpl.confidence
-                    for pattern in self.candidate_tuples.get(tpl):
+                    cand_tpl.confidence_old = cand_tpl.confidence
+                    for pattern in self.candidate_tuples.get(cand_tpl):
                         confidence *= 1 - (pattern[0].confidence * pattern[1])
-                    tpl.confidence = 1 - confidence
+                    cand_tpl.confidence = 1 - confidence
 
                     if self.curr_iteration > 0:
-                        tpl.confidence = tpl.confidence * self.config.w_updt + tpl.confidence_old * (
+                        cand_tpl.confidence = cand_tpl.confidence * self.config.w_updt + cand_tpl.confidence_old * (
                             1 - self.config.w_updt
                         )
 
@@ -687,9 +690,9 @@ class BREDSParallel:
                 # update seed set of tuples to use in next iteration
                 # seeds = { T | conf(T) > instance_confidence }
                 print("Adding tuples to seed with confidence >=" + str(self.config.instance_confidence))
-                for tpl in list(self.candidate_tuples.keys()):
-                    if tpl.confidence >= self.config.instance_confidence:
-                        seed = Seed(tpl.ent1, tpl.ent2)
+                for tpl_seed in list(self.candidate_tuples.keys()):
+                    if tpl_seed.confidence >= self.config.instance_confidence:
+                        seed = Seed(tpl_seed.ent1, tpl_seed.ent2)
                         self.config.positive_seed_tuples.add(seed)
 
                 # increment the number of iterations
