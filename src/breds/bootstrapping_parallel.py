@@ -540,7 +540,7 @@ class BREDSParallel:
                         print("\nNew Patterns", len(child_patterns), "Processed", count)
                         print("New List", len(new_list))
                         print("Pattern:", pattern_1.uuid, "Tuples:", len(pattern_1.tuples))
-                        max_similarity = 0
+                        max_similarity: float = 0.0
                         max_similarity_cluster = None
                         for pattern_2 in new_list:
                             if pattern_1 == pattern_2:
@@ -655,20 +655,18 @@ class BREDSParallel:
                     pattern_best = element[1]
                     sim_best = element[2]
 
-                    print(pattern_best, sim_best, tpl)
-
                     # if this tuple was already extracted, check if this extraction pattern is already associated
                     # with it, if not, associate this pattern with it and similarity score
                     if tpl in self.candidate_tuples:
                         t_patterns = self.candidate_tuples[tpl]
                         if t_patterns is not None:
                             if pattern_best not in [x[0] for x in t_patterns]:
-                                self.candidate_tuples[tpl].append((self.patterns_index[pattern_best.id], sim_best))
+                                self.candidate_tuples[tpl].append((self.patterns_index[pattern_best.uuid], sim_best))
 
                     # if this tuple was not extracted before, associate this pattern with the instance and the
                     # similarity score
                     else:
-                        self.candidate_tuples[tpl].append((self.patterns_index[pattern_best.id], sim_best))
+                        self.candidate_tuples[tpl].append((self.patterns_index[pattern_best.uuid], sim_best))
 
                 # update tuple confidence based on patterns confidence
                 print("\n\nCalculating tuples confidence")
