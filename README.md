@@ -1,6 +1,8 @@
 ![example event parameter](https://github.com/davidsbatista/BREDS/actions/workflows/code_checks.yml/badge.svg?event=pull_request)
 ![code coverage](https://raw.githubusercontent.com/davidsbatista/BREDS/coverage-badge/coverage.svg?raw=true)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![python](https://img.shields.io/badge/Python-3.9-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
+[![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
 
 ## Bootstrapping Relationship Extraction with Distributional Semantics
 
@@ -137,3 +139,17 @@ relationship and whether the passive voice is present in the relationship, e.g.:
     pattern_bet: , a company based in
     pattern_aft: that looks
     passive voice: False
+
+## Development
+
+```sh
+git clone https://github.com/breds/
+cd pybadges
+python -m virtualenv venv
+source venv/bin/activate
+# Installs in edit mode and with development dependencies.
+pip install -e .[dev]
+nox
+```
+
+If you'd like to contribute your changes back to breds, please read the [contributor guide.](CONTRIBUTING.md)
