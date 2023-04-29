@@ -148,7 +148,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
 
         fileinput.close()
         if self.alpha + self.beta + self.gamma != 1:
-            raise(ValueError(print("alpha + beta + gamma != 1")))
+            raise (ValueError(print("alpha + beta + gamma != 1")))
 
     def read_word2vec(self, path: str) -> KeyedVectors:  # type: ignore
         """Reads the word2vec model."""

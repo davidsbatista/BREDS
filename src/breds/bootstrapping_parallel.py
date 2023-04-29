@@ -95,7 +95,7 @@ class BREDSParallel:
         with open("processed_tuples.pkl", "wb") as f_out:
             pickle.dump(self.processed_tuples, f_out)
 
-    def generate_instances(self, sentences, child_conn):
+    def generate_instances(self, sentences, child_conn):  # type: ignore
         """
         Generates instances from sentences
         Each process has its own NLTK PoS-tagger
@@ -185,7 +185,7 @@ class BREDSParallel:
 
         return count_matches, matched_tuples
 
-    def cluster_tuples(self, matched_tuples):
+    def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
         """
         Clusters tuples based on their similarity score w/ a single-pass clustering
         """
@@ -200,7 +200,7 @@ class BREDSParallel:
             if count % 1000 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
-            max_similarity = 0
+            max_similarity: float = 0.0
             max_similarity_cluster_index = 0
 
             # go through all patterns(clusters of tuples) and find the one with the highest similarity score
@@ -282,12 +282,12 @@ class BREDSParallel:
                 print(tpl.confidence)
                 print("\n")
 
-    def similarity_cluster(self, pattern_1, pattern_2):
+    def similarity_cluster(self, pattern_1: Pattern, pattern_2: Pattern) -> float:
         """
         Calculates the similarity between two extraction patterns
         """
-        count = 0
-        score = 0
+        count: int = 0
+        score: float = 0.0
         if self.config.alpha == 0 and self.config.gamma == 0:
             pattern_1.merge_all_tuples_bet()
             pattern_2.merge_all_tuples_bet()
@@ -304,7 +304,7 @@ class BREDSParallel:
 
         return float(score) / float(count)
 
-    def find_instances(self, patterns, instances, child_conn):  # noqa: C901
+    def find_instances(self, patterns, instances, child_conn):  # type: ignore # noqa: C901
         # pylint: disable=too-many-nested-blocks,too-many-branches
         """
         Finds instances for a set of extraction patterns
@@ -357,7 +357,7 @@ class BREDSParallel:
                 child_conn.send((pid, updated_patterns, candidate_tuples))
                 break
 
-    def cluster_tuples_parallel(self, patterns, matched_tuples, child_conn):
+    def cluster_tuples_parallel(self, patterns, matched_tuples, child_conn):  # type: ignore
         """
         Clusters tuples in parallel
         """
