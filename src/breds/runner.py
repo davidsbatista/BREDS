@@ -1,4 +1,5 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from typing import Union
 
 from breds.bootstrapping import BREDS
 from breds.bootstrapping_parallel import BREDSParallel
@@ -57,10 +58,12 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     parser = create_args()
     args = parser.parse_args()
 
+    breads: Union[BREDS, BREDSParallel]
+
     if args.parallel:
         print("Running in parallel")
         breads = BREDSParallel(
-            args.parameters, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence
+            args.parameters, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence, args.num_cores
         )
     else:
         breads = BREDS(args.parameters, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)

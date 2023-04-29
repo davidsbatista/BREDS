@@ -296,6 +296,7 @@ class BREDS:
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
             for sent in self.config.positive_seed_tuples:
+                # ToDo: replace with f-strings
                 print(sent.ent1, "\t", sent.ent2)
 
             # Looks for sentences matching the seed instances
@@ -308,15 +309,12 @@ class BREDS:
             else:
                 print("\nNumber of seed matches found")
                 for seed_match in sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True):
-                    # ToDo: use f-strings and format
-                    print(seed_match[0][0], "\t", seed_match[0][1], seed_match[1])
-
-                print("\n", len(matched_tuples), "tuples matched")
+                    print(f"{seed_match[0][0]}\t{seed_match[0][1]}{seed_match[1]}")
+                print(f"\n{len(matched_tuples)} tuples matched")
 
                 # Cluster the matched instances, to generate patterns/update patterns
                 print("\nClustering matched instances to generate patterns")
                 self.cluster_tuples(matched_tuples)
-
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
                 new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
                 self.patterns = new_patterns
