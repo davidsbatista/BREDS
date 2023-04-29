@@ -658,7 +658,7 @@ class BREDSParallel:
                 for cand_tpl in list(self.candidate_tuples.keys()):
                     confidence = 1
                     cand_tpl.confidence_old = cand_tpl.confidence
-                    for cand_tpl_pattern in self.candidate_tuples.get(cand_tpl):
+                    for cand_tpl_pattern in self.candidate_tuples.get(cand_tpl, None):
                         confidence *= 1 - (cand_tpl_pattern[0].confidence * cand_tpl_pattern[1])
                     cand_tpl.confidence = 1 - confidence
 
