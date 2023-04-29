@@ -309,7 +309,7 @@ class BREDS:
             else:
                 print("\nNumber of seed matches found")
                 for seed_match in sorted(list(count_matches.items()), key=operator.itemgetter(1), reverse=True):
-                    print(f"{seed_match[0][0]}\t{seed_match[0][1]}{seed_match[1]}")
+                    print(f"{seed_match[0][0]}\t{seed_match[0][1]}\t{seed_match[1]}")
                 print(f"\n{len(matched_tuples)} tuples matched")
 
                 # Cluster the matched instances, to generate patterns/update patterns
