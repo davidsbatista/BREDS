@@ -18,9 +18,9 @@ semantic drift.
 
 ### Extracting __headquarters__ locations of companies from news articles:
 
-This example shows to use BREDS to extract relationsghips between named-entities ORGANISATIONS and LOCATIONS. We need the 
-text from where we want to extract relationships with the named-entities already tagged, like show in the example bellow. 
-This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities tagged, e.g:
+We need the text from where we want to extract relationships with the named-entities already tagged, like show in the 
+example bellow. This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities 
+tagged, e.g.:
  
  ```   
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
@@ -37,7 +37,9 @@ This input file `sentences.txt`, should contain thousands of news articles sente
     .
  ```
 
-`seeds_positive.txt` contains the type of named-entities to be extract, and seed examples:
+
+
+`seeds.txt` contains the type of named-entities to be extract, and seed examples:
 
     e1:ORG
     e2:LOC
@@ -48,9 +50,7 @@ This input file `sentences.txt`, should contain thousands of news articles sente
     Microsoft;Redmond
 
 
-`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt`
-
-
+`python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt`
 
 The output of the process is a file `relationships.jsonl`, containing the extracted relationships, you can pretty print
 them with 'jq' in the terminal `jq '.' < relationships.jsonl`
