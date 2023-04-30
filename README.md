@@ -12,7 +12,7 @@ set of seed relationships using distributional semantics to generalize the relat
 semantic drift.
 
 
-### Example: extracting headquarters locations of companies from news articles:
+### Extracting headquarters locations of companies from news articles:
 
 
 `python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt
