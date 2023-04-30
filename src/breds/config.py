@@ -33,6 +33,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
     def __init__(
         self, config_file: str, positive_seeds: str, negative_seeds: str, similarity: float, confidence: float
     ) -> None:  # noqa: C901
+        # ToDo: if config_file is None, then use the default values
         self.context_window_size: int = 2
         self.min_tokens_away: int = 1
         self.max_tokens_away: int = 6
@@ -62,9 +63,11 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.word2vec_model_path: str
         self.word2vec: Any
         self.vec_dim: int
-        self.read_config(config_file)
+        if config_file:
+            self.read_config(config_file)
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
-        self.read_seeds(negative_seeds, self.negative_seed_tuples)
+        if negative_seeds:
+            self.read_seeds(negative_seeds, self.negative_seed_tuples)
 
     def print_config(self) -> None:  # pragma: no cover
         """Prints the configuration parameters."""
@@ -143,9 +146,6 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
             if line.startswith("gamma"):
                 self.gamma = float(line.split("=")[1])
 
-            if line.startswith("tags_type"):
-                self.tag_type = line.split("=")[1].strip()
-
         fileinput.close()
         if self.alpha + self.beta + self.gamma != 1:
             raise (ValueError(print("alpha + beta + gamma != 1")))
@@ -163,6 +163,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         """
         Reads the seeds file and adds the seeds to the holder.
         """
+
+        print("seeds_file: ", seeds_file)
 
         for line in fileinput.input(seeds_file):
             if line.startswith("#") or len(line) == 1:

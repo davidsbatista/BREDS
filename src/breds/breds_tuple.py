@@ -134,12 +134,12 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         Return a JSON representation of the tuple.
         """
         return {
-            'entity_1': self.ent1,
-            'entity_2': self.ent2,
-            'confidence': self.confidence,
-            'sentence': self.sentence,
-            'bef_words': self.bef_words,
-            'bet_words': self.bet_words,
-            'aft_words': self.aft_words,
-            'passive_voice': self.passive_voice,
+            "entity_1": self.ent1,
+            "entity_2": self.ent2,
+            "confidence": self.confidence,
+            "sentence": self.sentence,
+            "bef_words": self.bef_words,
+            "bet_words": self.bet_words,
+            "aft_words": self.aft_words,
+            "passive_voice": self.passive_voice,
         }

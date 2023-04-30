@@ -13,9 +13,9 @@
 # BREDS
 
 BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
-seed examples, i.e.: pairs of examples of named-entities representing relationship to be extracted. The algorithm expands
-the initial  set of seed relationships using distributional semantics to generalize the relationship while limiting the 
-semantic drift.
+seed examples, i.e.: pairs of examples of named-entities representing relationship to be extracted. The algorithm 
+expands  the initial  set of seed relationships using distributional semantics to generalize the relationship while 
+limiting the semantic drift.
 
 
 ### Extracting companies headquarters:
@@ -37,8 +37,8 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 ...
 ```
 
-We also need to define example seeds to boostrap the extraction process. We need to specify the type of each named-entity 
-and examples  that should be present in the `sentences.txt`, the file below `seeds.txt` shows an example:
+We also need to define example seeds to boostrap the extraction process. We need to specify the type of each 
+named-entity  and examples  that should be present in the `sentences.txt`, the file below `seeds.txt` shows an example:
 
 ```   
 e1:ORG
@@ -53,11 +53,15 @@ Microsoft;Redmond
 Next when run the following command to initiate the bootstrapping extraction process:
 
 ```
-python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt`
+python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt --similarity=0.6 --confidence=0.6
 ```
 
-Depending on the size of your input text, the seeds, and the relationships to be extracted the time can varry. After the process is terminated
-an output file `relationships.jsonl` is generated containing the extracted relationships. You can pretty print it's content to the terminal with:
+The parameters `--similarity=0.6` and `--confidence=0.6` are used to control the semantic drift and the confidence 
+of the extracted relationships.
+
+Depending on the size of your input text, the seeds, and the relationships to be extracted the time can vary. After the 
+process is terminated  an output file `relationships.jsonl` is generated containing the extracted relationships. You 
+can pretty print it's content to the terminal with:
 
 `jq '.' < relationships.jsonl`
 
@@ -95,7 +99,7 @@ an output file `relationships.jsonl` is generated containing the extracted relat
     }
 
 
-## Reference
+## Cite
 - [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
 ```
 @inproceedings{batista-etal-2015-semi,
@@ -130,8 +134,6 @@ an output file `relationships.jsonl` is generated containing the extracted relat
 <!--
 Demo
 ====
-
-`--similarity=0.6` and `--confidence=0.6` are parameters controlling similarity and confidence thresholds.
 
 You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
 download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. 
@@ -170,7 +172,7 @@ levering multicore architectures. You must specify at the end how many cores you
 
 ```sh
 git clone https://github.com/breds/
-cd pybadges
+cd breds
 python -m virtualenv venv
 source venv/bin/activate
 # Installs in edit mode and with development dependencies.

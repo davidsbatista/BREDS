@@ -11,7 +11,7 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         formatter_class=RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--parameters", help="file with bootstrapping configuration parameters", type=str, required=True
+        "--parameters", help="file with bootstrapping configuration parameters", type=str, required=False
     )
     parser.add_argument(
         "--sentences",
@@ -29,7 +29,7 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         "--negative_seeds",
         help="a text file with a seed per line, in the format, e.g.: 'Microsoft;San Francisco'",
         type=str,
-        required=True,
+        required=False,
     )
     parser.add_argument(
         "--similarity",
@@ -57,8 +57,9 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
 def main() -> None:  # pylint: disable=missing-function-docstring
     parser = create_args()
     args = parser.parse_args()
-
     breads: Union[BREDS, BREDSParallel]
+
+    print(args)
 
     if args.parallel:
         print("Running in parallel")

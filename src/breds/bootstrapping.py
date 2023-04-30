@@ -150,7 +150,7 @@ class BREDS:
         print("\nWriting extracted relationships to disk")
         with open("relationships.jsonl", "wt", encoding="utf8") as f_out:
             for tpl in sorted(list(self.candidate_tuples.keys()), reverse=True):
-                f_out.write(json.dumps(tpl.to_json())+"\n")
+                f_out.write(json.dumps(tpl.to_json()) + "\n")
 
     def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
         """
