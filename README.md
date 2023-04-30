@@ -16,7 +16,7 @@ the initial  set of seed relationships using distributional semantics to general
 semantic drift.
 
 
-### Extracting __headquarters__ locations of companies from news articles:
+### Extracting companies headquarters or facilities from news articles:
 
 We need the text from where we want to extract relationships with the named-entities already tagged, like show in the 
 example bellow. This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities 
@@ -37,18 +37,20 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 .
 ```
 
-Next, we need to give example seeds to boostrap the extraction process.
+Next, we need to give example seeds to boostrap the extraction process. We need to specific the type of each named-entity 
+and examples  that should be present in the `sentences.txt`, the file below `seeds.txt` shows an example:
 
-`seeds.txt` contains the type of named-entities to be extract, and seed examples:
+```   
+e1:ORG
+e2:LOC
 
-    e1:ORG
-    e2:LOC
+Nokia;Espoo
+Pfizer;New York
+Google;Mountain View
+Microsoft;Redmond
+```   
 
-    Nokia;Espoo
-    Pfizer;New York
-    Google;Mountain View
-    Microsoft;Redmond
-
+Next when run the 
 
 `python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt`
 
