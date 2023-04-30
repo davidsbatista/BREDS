@@ -127,8 +127,7 @@ can pretty print it's content to the terminal with: `jq '.' < relationships.json
 
 
 ## Presentation at PyData Berlin 2017
-
-  [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
+[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
 <!--
