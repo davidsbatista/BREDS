@@ -8,7 +8,7 @@
 &nbsp;
 [![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
 
-# BREDS: Bootstrapping Relationship Extraction with Distributional Semantics
+# BREDS
 
 BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
 seed examples, i.e.: pairs of examples of named-entities representing relationship to be extracted. The algorithm expands
