@@ -61,43 +61,42 @@ of the extracted relationships.
 
 Depending on the size of your input text, the seeds, and the relationships to be extracted the time can vary. After the 
 process is terminated  an output file `relationships.jsonl` is generated containing the extracted relationships. You 
-can pretty print it's content to the terminal with:
+can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`
 
-`jq '.' < relationships.jsonl`
+```
+{
+  "entity_1": "Medtronic",
+  "entity_2": "Minneapolis",
+  "confidence": 0.9982486865148862,
+  "sentence": "<ORG>Medtronic</ORG> , based in <LOC>Minneapolis</LOC> , is the nation 's largest independent medical device maker . Last month , when it reported revenue of $ 10 billion for the fiscal year , <ORG>Medtronic</ORG> also said that it had set up a business unit to pursue applications of its heart and brain stimulation technology in the obesity market .",
+  "bef_words": "",
+  "bet_words": ", based in",
+  "aft_words": ", is",
+  "passive_voice": false
+}
 
-    {
-      "entity_1": "Medtronic",
-      "entity_2": "Minneapolis",
-      "confidence": 0.9982486865148862,
-      "sentence": "<ORG>Medtronic</ORG> , based in <LOC>Minneapolis</LOC> , is the nation 's largest independent medical device maker . Last month , when it reported revenue of $ 10 billion for the fiscal year , <ORG>Medtronic</ORG> also said that it had set up a business unit to pursue applications of its heart and brain stimulation technology in the obesity market .",
-      "bef_words": "",
-      "bet_words": ", based in",
-      "aft_words": ", is",
-      "passive_voice": false
-    }
+{
+  "entity_1": "DynCorp",
+  "entity_2": "Reston",
+  "confidence": 0.9982486865148862,
+  "sentence": "Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .",
+  "bef_words": "Because",
+  "bet_words": ", headquartered in",
+  "aft_words": ", Va.",
+  "passive_voice": false
+}
 
-    {
-      "entity_1": "DynCorp",
-      "entity_2": "Reston",
-      "confidence": 0.9982486865148862,
-      "sentence": "Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .",
-      "bef_words": "Because",
-      "bet_words": ", headquartered in",
-      "aft_words": ", Va.",
-      "passive_voice": false
-    }
-
-    {
-      "entity_1": "Handspring",
-      "entity_2": "Silicon Valley",
-      "confidence": 0.893486865148862,
-      "sentence": "There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .",
-      "bef_words": "firms like",
-      "bet_words": ", a company based in",
-      "aft_words": "that looks",
-      "passive_voice": false
-    }
-
+{
+  "entity_1": "Handspring",
+  "entity_2": "Silicon Valley",
+  "confidence": 0.893486865148862,
+  "sentence": "There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .",
+  "bef_words": "firms like",
+  "bet_words": ", a company based in",
+  "aft_words": "that looks",
+  "passive_voice": false
+}
+```
 
 
 ## Cite
