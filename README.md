@@ -11,12 +11,14 @@ seed examples, i.e., pairs of examples of the relationship to be extracted. The 
 set of seed relationships using distributional semantics to generalize the relationship while limiting the 
 semantic drift.
 
-### Extracting headquarter locations of companies:
 
-    python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
+### Example: extracting headquarters locations of companies from news articles:
 
 
-`sentences.txt` is a text file containing one sentence per line with named-entities tagged, e.g.: 
+`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6`
+
+
+`sentences.txt` contains one sentence per line with named-entities tagged, e.g.: 
  
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
     <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
@@ -24,7 +26,7 @@ semantic drift.
     <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
 
 
-`seeds_positive.txt` is a text file containing one seed example per line, e.g.:
+`seeds_positive.txt` contains one seed example per line, e.g.:
 
     e1:ORG
     e2:LOC
