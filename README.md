@@ -22,20 +22,20 @@ We need the text from where we want to extract relationships with the named-enti
 example bellow. This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities 
 tagged, e.g.:
  
- ```   
-    The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
-    <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
-    <ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion.
-    <LOC>Switzerland</LOC> and <LOC>South Africa</LOC> are co-chairing the meeting .
-    <LOC>Ireland</LOC> beat <LOC>Italy</LOC> , then lost 43-31 to <LOC>France</LOC> .
-    <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
-    <ORG>Botafogo</ORG> leads Group B of the <LOC>Rio de Janeiro</LOC> state championship with six points from two matches .
-    <PER>Burton</PER> 's engine passed <ORG>NASCAR</ORG> inspection following the qualifying session .
-    <ORG>Associated Press</ORG> writer <ORG>Gene Johnson</ORG> contributed from <LOC>Seattle</LOC> , <LOC>Washington</LOC> .
-    ...
-    ..
-    .
- ```
+```   
+The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
+<ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
+<ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion.
+<LOC>Switzerland</LOC> and <LOC>South Africa</LOC> are co-chairing the meeting .
+<LOC>Ireland</LOC> beat <LOC>Italy</LOC> , then lost 43-31 to <LOC>France</LOC> .
+<ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
+<ORG>Botafogo</ORG> leads Group B of the <LOC>Rio de Janeiro</LOC> state championship with six points from two matches .
+<PER>Burton</PER> 's engine passed <ORG>NASCAR</ORG> inspection following the qualifying session .
+<ORG>Associated Press</ORG> writer <ORG>Gene Johnson</ORG> contributed from <LOC>Seattle</LOC> , <LOC>Washington</LOC> .
+...
+..
+.
+```
 
 
 
