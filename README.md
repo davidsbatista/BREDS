@@ -18,10 +18,10 @@ the initial  set of seed relationships using distributional semantics to general
 semantic drift.
 
 
-### Extracting companies headquarters or facilities from news articles:
+### Extracting companies headquarters:
 
 We need the text from where we want to extract relationships with the named-entities already tagged, like show in the 
-example bellow. This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities 
+example bellow. An input file `sentences.txt` should contain thousands of sentences with named-entities 
 tagged, e.g.:
  
 ```
@@ -35,11 +35,9 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 <PER>Burton</PER> 's engine passed <ORG>NASCAR</ORG> inspection following the qualifying session.
 <ORG>Associated Press</ORG> writer <ORG>Gene Johnson</ORG> contributed from <LOC>Seattle</LOC>, <LOC>Washington</LOC>.
 ...
-..
-.
 ```
 
-Next, we need to give example seeds to boostrap the extraction process. We need to specific the type of each named-entity 
+We also need to define example seeds to boostrap the extraction process. We need to specify the type of each named-entity 
 and examples  that should be present in the `sentences.txt`, the file below `seeds.txt` shows an example:
 
 ```   
@@ -58,10 +56,10 @@ Next when run the following command to initiate the bootstrapping extraction pro
 python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt`
 ```
 
-Depending on the size of your input text, the seeds, and the relationships to be extracted the 
+Depending on the size of your input text, the seeds, and the relationships to be extracted the time can varry. After the process is terminated
+an output file `relationships.jsonl` is generated containing the extracted relationships. You can pretty print it's content to the terminal with:
 
-The output of the process is a file `relationships.jsonl`, containing the extracted relationships, you can pretty print
-them with 'jq' in the terminal `jq '.' < relationships.jsonl`
+`jq '.' < relationships.jsonl`
 
     {
       "entity_1": "Medtronic",
