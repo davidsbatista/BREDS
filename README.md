@@ -6,9 +6,10 @@
 
 ## BREDS: Bootstrapping Relationship Extraction with Distributional Semantics
 
-BREDS extracts relationships from text using a bootstrapping/semi-supervised approach by relying on seed examples and on
-distributional semantics to generalize the relationship.
-
+BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
+seed examples, i.e., pairs of examples of the relationship to be extracted. The algorithm tries to expand the initial 
+set of seed relationships using distributional semantics to generalize the relationship while limiting the 
+semantic drift.
 
 ### Extracting headquarter locations of companies:
 
@@ -36,23 +37,41 @@ distributional semantics to generalize the relationship.
 `--similarity=0.6` and `--confidence=0.6` are parameters controlling similarity and confidence thresholds. 
 
 
-The output of the process is a file `relationships.txt`: 
+The output of the process is a file `relationships.jsonl`, containing the extracted relationships, you can pretty print
+them with 'jq' in the terminal `jq '.' < relationships.jsonl`
 
-    instance: DynCorp       Reston  score:0.998
-    sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
-    pattern_bef: Because
-    pattern_bet: , headquartered in
-    pattern_aft: , Va.
-    passive voice: False
+    {
+      "entity_1": "Medtronic",
+      "entity_2": "Minneapolis",
+      "confidence": 0.9982486865148862,
+      "sentence": "<ORG>Medtronic</ORG> , based in <LOC>Minneapolis</LOC> , is the nation 's largest independent medical device maker . Last month , when it reported revenue of $ 10 billion for the fiscal year , <ORG>Medtronic</ORG> also said that it had set up a business unit to pursue applications of its heart and brain stimulation technology in the obesity market .",
+      "bef_words": "",
+      "bet_words": ", based in",
+      "aft_words": ", is",
+      "passive_voice": false
+    }
 
-    instance: Handspring    Silicon Valley  score:0.893
-    sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
-    pattern_bef: firms like
-    pattern_bet: , a company based in
-    pattern_aft: that looks
-    passive voice: False
+    {
+      "entity_1": "DynCorp",
+      "entity_2": "Reston",
+      "confidence": 0.9982486865148862,
+      "sentence": "Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .",
+      "bef_words": "Because",
+      "bet_words": ", headquartered in",
+      "aft_words": ", Va.",
+      "passive_voice": false
+    }
 
-
+    {
+      "entity_1": "Handspring",
+      "entity_2": "Silicon Valley",
+      "confidence": 0.893486865148862,
+      "sentence": "There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .",
+      "bef_words": "firms like",
+      "bet_words": ", a company based in",
+      "aft_words": "that looks",
+      "passive_voice": false
+    }
 
 
 ## Reference
@@ -71,7 +90,7 @@ The output of the process is a file `relationships.txt`:
     pages = "499--504",
 }
 ```
-- [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5), David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
+- [Large-Scale Semantic Relationship Extraction for Information Discovery - Chapter 5, David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
 ```
 @incollection{phd-dsbatista2016
   title = {Large-Scale Semantic Relationship Extraction for Information Discovery},
@@ -87,7 +106,7 @@ The output of the process is a file `relationships.txt`:
   [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
-
+<!--
 Demo
 ====
 
@@ -122,8 +141,7 @@ can take very long time (i.e., a few hours). You can reduce the size of `sentenc
 a multicore version of BREDS. In the multicore version finding seed matches and clustering them is done in parallel, 
 levering multicore architectures. You must specify at the end how many cores you want to use:
 
-    python breds-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7 #cpus
-
+-->
 
 ## Development
 
