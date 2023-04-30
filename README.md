@@ -20,8 +20,8 @@ semantic drift.
 
 ### Extracting companies headquarters:
 
-We need the text from where we want to extract relationships with the named-entities already tagged, like show in the 
-example bellow. An input file `sentences.txt` should contain thousands of sentences with named-entities 
+We need the text from where we want to extract relationships with the named-entities tagged, like show in the 
+example bellow, an input file `sentences.txt` should contain thousands of sentences with named-entities 
 tagged, e.g.:
  
 ```
