@@ -15,7 +15,7 @@ semantic drift.
 ### Example: extracting headquarters locations of companies from news articles:
 
 
-`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6`
+`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt
 
 
 `sentences.txt` contains one sentence per line with named-entities tagged, e.g.: 
@@ -35,9 +35,6 @@ semantic drift.
     Pfizer;New York
     Google;Mountain View
     Microsoft;Redmond
-
-`--similarity=0.6` and `--confidence=0.6` are parameters controlling similarity and confidence thresholds. 
-
 
 The output of the process is a file `relationships.jsonl`, containing the extracted relationships, you can pretty print
 them with 'jq' in the terminal `jq '.' < relationships.jsonl`
@@ -111,6 +108,8 @@ them with 'jq' in the terminal `jq '.' < relationships.jsonl`
 <!--
 Demo
 ====
+
+`--similarity=0.6` and `--confidence=0.6` are parameters controlling similarity and confidence thresholds.
 
 You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
 download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. 
