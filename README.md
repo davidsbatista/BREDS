@@ -1,32 +1,43 @@
 ![example event parameter](https://github.com/davidsbatista/BREDS/actions/workflows/code_checks.yml/badge.svg?event=pull_request)
+&nbsp;
 ![code coverage](https://raw.githubusercontent.com/davidsbatista/BREDS/coverage-badge/coverage.svg?raw=true)
+&nbsp;
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+&nbsp;
 [![python](https://img.shields.io/badge/Python-3.9-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
+&nbsp;
 [![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
 
-## BREDS: Bootstrapping Relationship Extraction with Distributional Semantics
+# BREDS: Bootstrapping Relationship Extraction with Distributional Semantics
 
 BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
-seed examples, i.e., pairs of examples of the relationship to be extracted. The algorithm tries to expand the initial 
-set of seed relationships using distributional semantics to generalize the relationship while limiting the 
+seed examples, i.e.: pairs of examples of named-entities representing relationship to be extracted. The algorithm expands
+the initial  set of seed relationships using distributional semantics to generalize the relationship while limiting the 
 semantic drift.
 
 
-### Extracting headquarters locations of companies from news articles:
+### Extracting __headquarters__ locations of companies from news articles:
 
-
-`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt
-
-
-`sentences.txt` contains one sentence per line with named-entities tagged, e.g.: 
+This example shows to use BREDS to extract relationsghips between named-entities ORGANISATIONS and LOCATIONS. We need the 
+text from where we want to extract relationships with the named-entities already tagged, like show in the example bellow. 
+This input file `sentences.txt`, should contain thousands of news articles sentences with named-entities tagged, e.g:
  
+ ```   
     The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
     <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
     <ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion.
+    <LOC>Switzerland</LOC> and <LOC>South Africa</LOC> are co-chairing the meeting .
+    <LOC>Ireland</LOC> beat <LOC>Italy</LOC> , then lost 43-31 to <LOC>France</LOC> .
     <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
+    <ORG>Botafogo</ORG> leads Group B of the <LOC>Rio de Janeiro</LOC> state championship with six points from two matches .
+    <PER>Burton</PER> 's engine passed <ORG>NASCAR</ORG> inspection following the qualifying session .
+    <ORG>Associated Press</ORG> writer <ORG>Gene Johnson</ORG> contributed from <LOC>Seattle</LOC> , <LOC>Washington</LOC> .
+    ...
+    ..
+    .
+ ```
 
-
-`seeds_positive.txt` contains one seed example per line, e.g.:
+`seeds_positive.txt` contains the type of named-entities to be extract, and seed examples:
 
     e1:ORG
     e2:LOC
@@ -35,6 +46,11 @@ semantic drift.
     Pfizer;New York
     Google;Mountain View
     Microsoft;Redmond
+
+
+`python runner.py --sentences=sentences.txt --positive_seeds=seeds_positive.txt`
+
+
 
 The output of the process is a file `relationships.jsonl`, containing the extracted relationships, you can pretty print
 them with 'jq' in the terminal `jq '.' < relationships.jsonl`
