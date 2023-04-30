@@ -1,6 +1,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
+import json
 import operator
 import os
 import pickle
@@ -13,12 +14,12 @@ from nltk.data import load
 from numpy import dot
 from tqdm import tqdm
 
+from breds.breds_tuple import BREDSTuple
+from breds.commons import blocks
 from breds.config import Config
 from breds.pattern import Pattern
 from breds.seed import Seed
 from breds.sentence import Sentence
-from breds.commons import blocks
-from breds.breds_tuple import BREDSTuple
 
 PRINT_TUPLES = False
 PRINT_PATTERNS = False
@@ -142,20 +143,14 @@ class BREDS:
         return count_matches, matched_tuples
 
     def write_relationships_to_disk(self) -> None:
-        """Writes the extracted relationships to disk."""
+        """
+        Writes the extracted relationships to disk.
+        The output file is a JSONL file with one relationship per line.
+        """
         print("\nWriting extracted relationships to disk")
-        with open("relationships.txt", "w", encoding="utf8") as f_out:
+        with open("relationships.jsonl", "wt", encoding="utf8") as f_out:
             for tpl in sorted(list(self.candidate_tuples.keys()), reverse=True):
-                f_out.write("instance: " + tpl.ent1 + "\t" + tpl.ent2 + "\tscore:" + str(tpl.confidence) + "\n")
-                f_out.write("sentence: " + tpl.sentence + "\n")
-                f_out.write("pattern_bef: " + tpl.bef_words + "\n")
-                f_out.write("pattern_bet: " + tpl.bet_words + "\n")
-                f_out.write("pattern_aft: " + tpl.aft_words + "\n")
-                if tpl.passive_voice is False:
-                    f_out.write("passive voice: False\n")
-                elif tpl.passive_voice is True:
-                    f_out.write("passive voice: True\n")
-                f_out.write("\n")
+                f_out.write(json.dumps(tpl.to_json())+"\n")
 
     def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
         """

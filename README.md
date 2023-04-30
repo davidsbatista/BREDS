@@ -33,18 +33,58 @@ distributional semantics to generalize the relationship.
     Google;Mountain View
     Microsoft;Redmond
 
+`--similarity=0.6` and `--confidence=0.6` are parameters controlling similarity and confidence thresholds. 
 
 
-### Cite:
+The output of the process is a file `relationships.txt`: 
 
-- David S Batista, Bruno Martins, and Mário J Silva. , [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics](http://davidsbatista.net/assets/documents/publications/breds-emnlp_15.pdf). In Empirical Methods in Natural Language Processing. ACL, 2015. (Honorable Mention for Best Short Paper)
+    instance: DynCorp       Reston  score:0.998
+    sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
+    pattern_bef: Because
+    pattern_bet: , headquartered in
+    pattern_aft: , Va.
+    passive voice: False
 
-- David S Batista, Ph.D. Thesis, [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5)](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf), Instituto Superior Técnico, University of Lisbon, 2016
+    instance: Handspring    Silicon Valley  score:0.893
+    sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
+    pattern_bef: firms like
+    pattern_bet: , a company based in
+    pattern_aft: that looks
+    passive voice: False
 
-- [Presentation at PyData Berlin 2017](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
-  &nbsp;&nbsp;[![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/default.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
+
+## Reference
+- [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
+```
+@inproceedings{batista-etal-2015-semi,
+    title = "Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics",
+    author = "Batista, David S.  and Martins, Bruno  and Silva, M{\'a}rio J.",
+    booktitle = "Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing",
+    month = sep,
+    year = "2015",
+    address = "Lisbon, Portugal",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D15-1056",
+    doi = "10.18653/v1/D15-1056",
+    pages = "499--504",
+}
+```
+- [Large-Scale Semantic Relationship Extraction for Information Discovery (Chapter 5), David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
+```
+@incollection{phd-dsbatista2016
+  title = {Large-Scale Semantic Relationship Extraction for Information Discovery},
+    author = {Batista, David S.},
+  school = {Instituto Superior Técnico, Universidade de Lisboa},
+  year = {2016}
+}
+```
+
+
+## Presentation at PyData Berlin 2017
+
+  [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
 
@@ -84,23 +124,6 @@ levering multicore architectures. You must specify at the end how many cores you
 
     python breds-parallel.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7 #cpus
 
-The output should be in a `relationships.txt` file. The file contains a list of the relationships extracted, 
-containing the confidence score, the sentence where the relationship was found, the patterns that extracted the 
-relationship and whether the passive voice is present in the relationship, e.g.:
-
-    instance: DynCorp       Reston  score:0.998
-    sentence: Because <ORG>DynCorp</ORG> , headquartered in <LOC>Reston</LOC> , <LOC>Va.</LOC> , gets 98 percent of its revenue from government work .
-    pattern_bef: Because
-    pattern_bet: , headquartered in
-    pattern_aft: , Va.
-    passive voice: False
-
-    instance: Handspring    Silicon Valley  score:0.893
-    sentence: There will be more firms like <ORG>Handspring</ORG> , a company based in <LOC>Silicon Valley</LOC> that looks as if it is about to become a force in handheld computers , despite its lack of machinery .
-    pattern_bef: firms like
-    pattern_bet: , a company based in
-    pattern_aft: that looks
-    passive voice: False
 
 ## Development
 
