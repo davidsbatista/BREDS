@@ -3,7 +3,7 @@ __email__ = "dsbatista@gmail.com"
 
 import fileinput
 import re
-from typing import Set, Any, Optional
+from typing import Any, Optional, Set
 
 from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer

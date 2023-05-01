@@ -13,7 +13,9 @@ dev:
 
 
 lint:
-	black --check -t py39 -l 120 src tests
+	black -t py39 -l 120 src tests
+	pycln -a src tests
+	isort --profile black src tests
 	pylint --rcfile=pylint.cfg src
 	flake8 --config=setup.cfg src
 
@@ -35,3 +37,9 @@ dist:
 	-rm -r dist
 	python -m pip install --upgrade build
 	python -m build
+
+all:
+	make clean
+	make lint
+	make typing
+	make test

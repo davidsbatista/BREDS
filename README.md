@@ -4,6 +4,8 @@
 &nbsp;
 ![code coverage](https://raw.githubusercontent.com/davidsbatista/BREDS/coverage-badge/coverage.svg?raw=true)
 &nbsp;
+[![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+&nbsp;
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 &nbsp;
 [![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
@@ -173,7 +175,59 @@ without having to repeat the process of generating word vectors representations.
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
-## Development
+## Contributing to BREDS
 
 Improvements, adding new features and bug fixes are more than welcome. If you wish to participate in the development 
-of BREDS, please read the [contributor guide.](CONTRIBUTING.md)
+of BREDS, please read the following guidelines.
+
+Small fixes and additions can be submitted directly as pull requests, but larger changes should be discussed in 
+an issue first.
+
+### The contribution process at a glance
+
+1. Preparing the development environment
+2. Code away!
+3. Continuous Integration
+4. Submit your changes by opening a pull request
+
+You can expect a reply within a few days, but please be patient if it takes a bit longer.
+
+### Preparing the development environment
+
+```sh
+git clone git@github.com:davidsbatista/BREDS.git
+cd BREDS
+python3.9 -m virtualenv venv  # make sure you have python 3.9 installed
+source venv/bin/activate      # install BREDS in edit mode and with development dependencies
+pip install -e .[dev]
+```
+
+
+### Continuous Integration
+
+BREDS runs a continuous integration (CI) on all pull requests. This means that if you open a pull request (PR), a full 
+test suite is run on your PR: 
+
+- The code is formatted using `black` and `isort` 
+- Unused imports are auto-removed using `pycln`
+- Linting is done using `pyling` and `flake8`
+- Type checking is done using `mypy`
+- Tests are run using `pytest`
+
+This frees you up to ignore all local setup on your side, focus on the code and rely on the CI to fix everything and 
+point you to the places that need fixing. Nevertheless, if you prefer to run the tests & formatting locally, it's 
+possible too. 
+
+```sh
+make all
+```
+
+### Opening a Pull Request
+
+Every PR should be accompanied by short description of the changes, including:
+- Impact and  motivation for the changes
+- Any open issues that are closed by this PR
+
+---
+
+Give a ⭐️ if this project helped you!

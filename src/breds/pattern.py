@@ -2,10 +2,10 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import uuid
-from typing import Set, Any, Optional
+from typing import Any, Optional, Set
 
-from breds.config import Config
 from breds.breds_tuple import BREDSTuple
+from breds.config import Config
 
 
 class Pattern:  # pylint: disable=too-many-instance-attributes

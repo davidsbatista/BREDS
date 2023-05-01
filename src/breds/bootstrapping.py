@@ -7,7 +7,7 @@ import os
 import pickle
 import sys
 from collections import defaultdict
-from typing import List, Dict, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from gensim import matutils
 from nltk.data import load

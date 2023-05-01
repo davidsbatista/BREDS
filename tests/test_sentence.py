@@ -1,6 +1,4 @@
-import pytest
-
-from breds.sentence import Entity, Relationship, Sentence, find_locations, tokenize_entity
+from breds.sentence import Entity
 
 
 def test_entity():

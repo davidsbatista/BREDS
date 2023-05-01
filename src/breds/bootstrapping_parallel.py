@@ -8,11 +8,11 @@ import pickle
 import queue
 import sys
 from collections import defaultdict
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 from gensim import matutils
 from nltk.data import load
-from numpy import dot, asarray
+from numpy import asarray, dot
 from tqdm import tqdm
 
 from breds.breds_tuple import BREDSTuple

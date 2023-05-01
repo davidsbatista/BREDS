@@ -1,7 +1,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
-from typing import List, Tuple, Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from numpy import zeros
 
