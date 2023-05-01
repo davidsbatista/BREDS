@@ -1,17 +1,5 @@
 .PHONY:	test lint virtualenv dist
 
-PYTHON_VERSION = python3.9
-VIRTUALENV := .venv
-
-dev:
-	@if [ -d $(VIRTUALENV) ]; then rm -rf $(VIRTUALENV); fi
-	@mkdir -p $(VIRTUALENV)
-	virtualenv --python $(PYTHON_VERSION) $(VIRTUALENV)
-	$(VIRTUALENV)/bin/pip3 install -r requirements_dev.txt
-	source ${VIRTUALENV}/bin/activate && pip3 install --editable .
-	python -m nltk.downloader maxent_treebank_pos_tagger
-
-
 lint:
 	black -t py39 -l 120 src tests
 	pycln -a src tests
@@ -32,11 +20,6 @@ test:
 clean:
 	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache .pytest_cache src/*.egg-info
 
-
-dist:
-	-rm -r dist
-	python -m pip install --upgrade build
-	python -m build
 
 all:
 	make clean
