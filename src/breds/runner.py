@@ -11,7 +11,13 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         formatter_class=RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--parameters", help="file with bootstrapping configuration parameters", type=str, required=False
+        "--config", help="file with bootstrapping configuration parameters", type=str, required=False
+    )
+    parser.add_argument(
+        "--word2vec",
+        help="an embedding model based on word2vec, in the format of a .bin file",
+        type=str,
+        required=True,
     )
     parser.add_argument(
         "--sentences",

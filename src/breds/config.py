@@ -47,8 +47,6 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
             self.w_neg: float = 0.0
             self.w_unk: float = 0.0
             self.w_updt: float = 0.5
-            self.word2vec_model_path = "afp_apw_xin_embeddings.bin"
-            # "GoogleNews-vectors-negative300.bin.gz"
         else:
             self.read_config(config_file)
 
@@ -164,9 +162,6 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         """
         Reads the seeds file and adds the seeds to the holder.
         """
-
-        print("seeds_file: ", seeds_file)
-
         for line in fileinput.input(seeds_file):
             if line.startswith("#") or len(line) == 1:
                 continue

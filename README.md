@@ -37,8 +37,8 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 ...
 ```
 
-We also need to define example seeds to boostrap the extraction process. We need to specify the type of each 
-named-entity  and examples  that should be present in the `sentences.txt`, the file below `seeds.txt` shows an example:
+We also need to give example seeds to boostrap the extraction process, specifying the type of each  named-entity and 
+examples that should also be present in the `sentences.txt`, snippet shows an example:
 
 ```   
 e1:ORG
@@ -50,18 +50,36 @@ Google;Mountain View
 Microsoft;Redmond
 ```   
 
-Next when run the following command to initiate the bootstrapping extraction process:
+Save this in a file as `seeds.txt`. BREDS also needs a word embedding model to compute the similarities, you can 
+download an already pre-trained model, generated from a subset of the English Gigaword Collection:
 
 ```
-python runner.py --sentences=sentences.txt --positive_seeds=seeds.txt --similarity=0.6 --confidence=0.6
+wget http://data.davidsbatista.net/afp_apw_xin_embeddings.bin
+```
+
+You can also download a sentences files from the example above and decompress it:
+
+```
+wget http://data.davidsbatista.net/sentences.txt.bz2
+bzip -d sentences.txt.bz2
+```
+
+Next you can run BREDS with the following command:
+
+```
+python runner.py --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences.txt --positive_seeds=seeds.txt --similarity=0.6 --confidence=0.6
 ```
 
 The parameters `--similarity=0.6` and `--confidence=0.6` are used to control the semantic drift and the confidence 
 of the extracted relationships.
 
-Depending on the size of your input text, the seeds, and the relationships to be extracted the time can vary. After the 
-process is terminated  an output file `relationships.jsonl` is generated containing the extracted relationships. You 
-can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`
+Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, 
+can take from a few minutes to a few hours. 
+
+After the  process is terminated an output file `relationships.jsonl` is generated containing the extracted 
+relationships. You can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`, 
+
+This is an example of `relationships.jsonl` output file:
 
 ```
 {
@@ -98,6 +116,26 @@ can pretty print it's content to the terminal with: `jq '.' < relationships.json
 }
 ```
 
+BREDS contains much more parameters that can be tuned to improve the extraction process, in the example BREDS falls
+back to the default values, but these can be set in the configuration file: `parameters.cfg`
+
+    max_tokens_away=6           # maximum number of tokens between the two entities
+    min_tokens_away=1           # minimum number of tokens between the two entities
+    context_window_size=2       # number of tokens to the left and right of each entity
+
+    alpha=0.2                   # weight of the BEF context in the similarity function
+    beta=0.6                    # weight of the BET context in the similarity function
+    gamma=0.2                   # weight of the AFT context in the similarity function
+
+    wUpdt=0.5                   # < 0.5 trusts new examples less on each iteration
+    number_iterations=4         # number of bootstrap iterations
+    wUnk=0.1                    # weight given to unknown extracted relationship instances
+    wNeg=2                      # weight given to extracted relationship instances
+    min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
+
+
+and then be passed with the argument `--config`
+
 
 ## Cite
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
@@ -131,49 +169,10 @@ can pretty print it's content to the terminal with: `jq '.' < relationships.json
 
 
 <!--
-Demo
-====
-
-A sample configuration is provided in `parameters.cfg`. The file contains values for differentes parameters:
-
-    max_tokens_away=6           # maximum number of tokens between the two entities
-    min_tokens_away=1           # minimum number of tokens between the two entities
-    context_window_size=2       # number of tokens to the left and right
-
-    wUpdt=0.5                   # < 0.5 trusts new examples less on each iteration
-    number_iterations=4         # number of bootstrap iterations
-    wUnk=0.1                    # weight given to unknown extracted relationship instances
-    wNeg=2                      # weight given to extracted relationship instances
-    min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
-
-    word2vec_path=vectors.bin   # path to a word2vecmodel in binary format
-
-    alpha=0.2                   # weight of the BEF context in the similarity function
-    beta=0.6                    # weight of the BET context in the similarity function
-    gamma=0.2                   # weight of the AFT context in the similarity function
-
-BREDS needs a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
-download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. 
-The model is available here: 
-
-[afp_apw_xin_embeddings.bin](http://data.davidsbatista.net/afp_apw_xin_embeddings.bin)
-
-A sample file containing sentences where the named-entities are already tagged, which has 1 million sentences taken 
-from the New York Times articles part of the English Gigaword Collection, is available here: 
-
-[sentences.txt.bz2](http://data.davidsbatista.net/sentences.txt.bz2)
-
 In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of 
 relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed 
 examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`
 as the second argument to `BREDS.py` instead of `sentences.txt`.
-
-Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, 
-can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or 
-
-you can also use a multicore version of BREDS. In the multicore version finding seed matches and clustering them 
-is done in parallel, levering multicore architectures. You must specify at the end how many cores you want to use:
-
 -->
 
 ## Development
