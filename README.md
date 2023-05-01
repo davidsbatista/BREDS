@@ -134,7 +134,12 @@ back to the default values, but these can be set in the configuration file: `par
     min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
 
 
-and then be passed with the argument `--config`
+and then be passed with the argument `--config=parameters.cfg` to the runner script.
+
+In the first step BREDS pre-processes the input file `sentences.txt` generating word vector representations of  
+relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples
+without having to repeat the process of generating word vectors representations. Just pass the argument 
+`--sentences=processed_tuples.pkl` instead to skip this generation step.
 
 
 ## Cite
@@ -168,14 +173,9 @@ and then be passed with the argument `--config`
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
-<!--
-In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of 
-relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed 
-examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`
-as the second argument to `BREDS.py` instead of `sentences.txt`.
--->
-
 ## Development
+
+If you wish to participate in the development of BREDS, please set up the following environment:
 
 ```sh
 git clone https://github.com/breds/
