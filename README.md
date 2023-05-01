@@ -175,7 +175,8 @@ without having to repeat the process of generating word vectors representations.
 
 ## Development
 
-If you wish to participate in the development of BREDS, please set up the following environment and read the [contributor guide.](CONTRIBUTING.md) 
+Improvements, adding new features and bug fixes are more than welcome. If you wish to participate in the development 
+of BREDS, please set up the following environment and read the [contributor guide.](CONTRIBUTING.md) 
 
 ```sh
 git clone https://github.com/breds/
@@ -186,5 +187,3 @@ source venv/bin/activate
 pip install -e .[dev]
 nox
 ```
-
-
