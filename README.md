@@ -118,7 +118,9 @@ This is an example of `relationships.jsonl` output file:
 }
 ```
 
-BREDS contains much more parameters that can be tuned to improve the extraction process, in the example BREDS falls
+<br>
+
+BREDS has more parameters that can be tuned to improve the extraction process, in the example above it falls
 back to the default values, but these can be set in the configuration file: `parameters.cfg`
 
     max_tokens_away=6           # maximum number of tokens between the two entities
@@ -138,10 +140,20 @@ back to the default values, but these can be set in the configuration file: `par
 
 and then be passed with the argument `--config=parameters.cfg` to the runner script.
 
+It also supports negative seeds, that is, pairs of entities in a potential relationship that should not be extracted.
+The negative seeds also help control the semantic drift of the extraction process. Negative seeds are specified in a 
+file and passed with the argument `--negative_seeds=negative_seeds.txt`.
+
 In the first step BREDS pre-processes the input file `sentences.txt` generating word vector representations of  
 relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples
 without having to repeat the process of generating word vectors representations. Just pass the argument 
 `--sentences=processed_tuples.pkl` instead to skip this generation step.
+
+<br>
+
+---
+
+<br>
 
 
 ## References and citations
@@ -173,6 +185,13 @@ without having to repeat the process of generating word vectors representations.
 
 ## Presenting BREDS at PyData Berlin 2017
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
+
+
+<br>
+
+---
+
+<br>
 
 
 ## Contributing to BREDS
