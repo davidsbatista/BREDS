@@ -158,7 +158,7 @@ without having to repeat the process of generating word vectors representations.
     pages = "499--504",
 }
 ```
-[Large-Scale Semantic Relationship Extraction for Information Discovery - Chapter 5, David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
+["Large-Scale Semantic Relationship Extraction for Information Discovery" - Chapter 5, David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
 ```
 @incollection{phd-dsbatista2016
   title = {Large-Scale Semantic Relationship Extraction for Information Discovery},
