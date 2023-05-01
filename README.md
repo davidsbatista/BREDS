@@ -20,7 +20,7 @@ expands  the initial  set of seed relationships using distributional semantics t
 limiting the semantic drift.
 
 
-### Extracting companies headquarters:
+## Example: extracting companies headquarters:
 
 We need the text from where we want to extract relationships with the named-entities tagged, like show in the 
 example bellow, an input file `sentences.txt` should contain thousands of sentences with named-entities 
@@ -156,7 +156,7 @@ without having to repeat the process of generating word vectors representations.
 <br>
 
 
-## References and citations
+# References and Citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
 ```
 @inproceedings{batista-etal-2015-semi,
@@ -183,7 +183,7 @@ without having to repeat the process of generating word vectors representations.
 ```
 
 
-## Presenting BREDS at PyData Berlin 2017
+# Presenting BREDS at PyData Berlin 2017
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
@@ -194,7 +194,7 @@ without having to repeat the process of generating word vectors representations.
 <br>
 
 
-## Contributing to BREDS
+# Contributing to BREDS
 
 Improvements, adding new features and bug fixes are more than welcome. If you wish to participate in the development 
 of BREDS, please read the following guidelines.
@@ -202,7 +202,7 @@ of BREDS, please read the following guidelines.
 Small fixes and additions can be submitted directly as pull requests, but larger changes should be discussed in 
 an issue first.
 
-### The contribution process at a glance
+## The contribution process at a glance
 
 1. Preparing the development environment
 2. Code away!
@@ -211,7 +211,7 @@ an issue first.
 
 You can expect a reply within a few days, but please be patient if it takes a bit longer.
 
-### Preparing the development environment
+## Preparing the development environment
 
 ```sh
 git clone git@github.com:davidsbatista/BREDS.git
@@ -222,7 +222,7 @@ pip install -e .[dev]
 ```
 
 
-### Continuous Integration
+## Continuous Integration
 
 BREDS runs a continuous integration (CI) on all pull requests. This means that if you open a pull request (PR), a full 
 test suite is run on your PR: 
@@ -241,7 +241,7 @@ possible too.
 make all
 ```
 
-### Opening a Pull Request
+## Opening a Pull Request
 
 Every PR should be accompanied by short description of the changes, including:
 - Impact and  motivation for the changes
