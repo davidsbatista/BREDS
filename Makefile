@@ -13,7 +13,7 @@ dev:
 
 
 lint:
-	black py39 -l 120 src tests
+	black -t py39 -l 120 src tests
 	pycln -a src tests
 	isort --profile black src tests
 	pylint --rcfile=pylint.cfg src
