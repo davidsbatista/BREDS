@@ -176,12 +176,4 @@ without having to repeat the process of generating word vectors representations.
 ## Development
 
 Improvements, adding new features and bug fixes are more than welcome. If you wish to participate in the development 
-of BREDS, please set up the following environment and read the [contributor guide.](CONTRIBUTING.md) 
-
-```sh
-git clone https://github.com/breds/
-cd breds
-python3.9 -m virtualenv venv  # make sure you have python 3.9 installed
-source venv/bin/activate  # install BREDS in edit mode and with development dependencies
-pip install -e .[dev]
-```
+of BREDS, please read the [contributor guide.](CONTRIBUTING.md)

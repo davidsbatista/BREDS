@@ -3,6 +3,15 @@
 If you are using BREDS probably your experience and what you can contribute are important to the project's success.
 
 
+```sh
+git clone https://github.com/breds/
+cd breds
+python3.9 -m virtualenv venv  # make sure you have python 3.9 installed
+source venv/bin/activate  # install BREDS in edit mode and with development dependencies
+pip install -e .[dev]
+```
+
+
 ## The contribution process at a glance
 
 1. [Prepare your environment](#preparing-the-environment).
@@ -16,20 +25,20 @@ If you are using BREDS probably your experience and what you can contribute are 
 5. Optionally [run the tests](tests/README.md).
 6. [Submit your changes](#submitting-changes) by opening a pull request.
 
-You can expect a reply within a few days, but please be patient when
-it takes a bit longer. For more details, read below.
+You can expect a reply within a few days, but please be patient if it takes a bit longer.
 
 ## Preparing the environment
 
 ### Code away!
 
-BREDS runs a continuous integration (CI) on all pull requests. This means that
-if you file a pull request (PR), our full test suite -- including our linter,
-`flake8` -- is run on your PR. It also means that bots will automatically apply
-changes to your PR (using `pycln`, `black` and `isort`) to fix any formatting issues.
-This frees you up to ignore all local setup on your side, focus on the
-code and rely on the CI to fix everything, or point you to the places that
-need fixing.
+BREDS runs a continuous integration (CI) on all pull requests. This means that  if you file a pull request (PR), a full 
+test suite is run on your PR: 
+
+-- including our linter
+`flake8` -- . 
+
+It also means that bots will automatically apply  changes to your PR (using `pycln`, `black` and `isort`) to fix any formatting issues.
+This frees you up to ignore all local setup on your side, focus on the  code and rely on the CI to fix everything, or point you to the places that  need fixing.
 
 ### ... Or create a local development environment
 
@@ -50,13 +59,8 @@ Note that some tests require extra setup steps to install the required dependenc
 
 The code is formatted using `black` and `isort`. Unused imports are also auto-removed using `pycln`.
 
-The repository is equipped with a [`pre-commit.ci`](https://pre-commit.ci/)
-configuration file. This means that you don't *need* to do anything yourself to
-run the code formatters. When you push a commit, a bot will run those for you
-right away and add a commit to your PR.
 
-That being said, if you *want* to run the checks locally when you commit,
-you're free to do so. Either run `pycln`, `black` and `isort` manually...
+if you *want* to run the checks locally when you commit  you're free to do so. Either run `pycln`, `black` and `isort` manually...
 
 ```bash
 $ pycln --config=pyproject.toml .
@@ -71,7 +75,3 @@ Our code is also linted using `flake8`, with plugins `flake8-pyi`,
 `flake8-bugbear`, and `flake8-noqa`. As with our other checks, running
 flake8 before filing a PR is not required. However, if you wish to run flake8
 locally, install the test dependencies as outlined above, and then run:
-
-```bash
-(.venv3)$ flake8 .
-```
