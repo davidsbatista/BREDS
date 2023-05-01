@@ -142,7 +142,7 @@ without having to repeat the process of generating word vectors representations.
 `--sentences=processed_tuples.pkl` instead to skip this generation step.
 
 
-## Cite
+## References and citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
 ```
 @inproceedings{batista-etal-2015-semi,
@@ -169,13 +169,13 @@ without having to repeat the process of generating word vectors representations.
 ```
 
 
-## Presentation at PyData Berlin 2017
+## Presenting BREDS at PyData Berlin 2017
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
 
 ## Development
 
-If you wish to participate in the development of BREDS, please set up the following environment:
+If you wish to participate in the development of BREDS, please set up the following environment and read the [contributor guide.](CONTRIBUTING.md) 
 
 ```sh
 git clone https://github.com/breds/
@@ -187,4 +187,4 @@ pip install -e .[dev]
 nox
 ```
 
-If you'd like to contribute your changes back to breds, please read the [contributor guide.](CONTRIBUTING.md)
+
