@@ -181,9 +181,7 @@ of BREDS, please set up the following environment and read the [contributor guid
 ```sh
 git clone https://github.com/breds/
 cd breds
-python -m virtualenv venv
-source venv/bin/activate
-# Installs in edit mode and with development dependencies.
+python3.9 -m virtualenv venv  # make sure you have python 3.9 installed
+source venv/bin/activate  # install BREDS in edit mode and with development dependencies
 pip install -e .[dev]
-nox
 ```
