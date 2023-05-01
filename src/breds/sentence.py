@@ -2,7 +2,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import re
-from typing import List, Tuple, Any, Set, Dict
+from typing import Any, Dict, List, Set, Tuple
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords

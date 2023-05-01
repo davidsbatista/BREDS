@@ -1,9 +1,9 @@
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from breds.breds_tuple import BREDSTuple
 from breds.pattern import Pattern
 from breds.seed import Seed
-from breds.breds_tuple import BREDSTuple
 
 
 class TestPattern(TestCase):

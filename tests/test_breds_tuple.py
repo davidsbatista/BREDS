@@ -1,6 +1,7 @@
 import pytest
-from breds.config import Config
+
 from breds.breds_tuple import BREDSTuple
+from breds.config import Config
 
 
 @pytest.fixture

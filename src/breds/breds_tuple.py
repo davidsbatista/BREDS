@@ -1,7 +1,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
-from typing import List, Tuple, Any
+from typing import Any, Dict, List, Tuple
 
 from numpy import zeros
 
@@ -128,3 +128,18 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
                 pass
 
         return pattern_vector
+
+    def to_json(self) -> Dict[str, Any]:
+        """
+        Return a JSON representation of the tuple.
+        """
+        return {
+            "entity_1": self.ent1,
+            "entity_2": self.ent2,
+            "confidence": self.confidence,
+            "sentence": self.sentence,
+            "bef_words": self.bef_words,
+            "bet_words": self.bet_words,
+            "aft_words": self.aft_words,
+            "passive_voice": self.passive_voice,
+        }

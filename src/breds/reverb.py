@@ -2,7 +2,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import io
-from typing import Tuple, List, Any
+from typing import Any, List, Tuple
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
