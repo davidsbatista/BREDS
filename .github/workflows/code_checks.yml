@@ -30,7 +30,7 @@ jobs:
       run: |
         mkdir -p coverage
 
-    - name: Coverage Bagdge
+    - name: Coverage Badge
       uses: tj-actions/coverage-badge-py@v1.8
       with:
         output: coverage/coverage.svg
@@ -41,5 +41,5 @@ jobs:
         branch: coverage-badge
         folder: coverage
 
-    #- name: Type checking with mypy
-    #   run: mypy --config mypy.ini src
+    - name: Type checking with mypy
+      run: mypy --config mypy.ini src
