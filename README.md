@@ -136,7 +136,25 @@ can pretty print it's content to the terminal with:
 Demo
 ====
 
-You need to specify a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
+A sample configuration is provided in `parameters.cfg`. The file contains values for differentes parameters:
+
+    max_tokens_away=6           # maximum number of tokens between the two entities
+    min_tokens_away=1           # minimum number of tokens between the two entities
+    context_window_size=2       # number of tokens to the left and right
+
+    wUpdt=0.5                   # < 0.5 trusts new examples less on each iteration
+    number_iterations=4         # number of bootstrap iterations
+    wUnk=0.1                    # weight given to unknown extracted relationship instances
+    wNeg=2                      # weight given to extracted relationship instances
+    min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
+
+    word2vec_path=vectors.bin   # path to a word2vecmodel in binary format
+
+    alpha=0.2                   # weight of the BEF context in the similarity function
+    beta=0.6                    # weight of the BET context in the similarity function
+    gamma=0.2                   # weight of the AFT context in the similarity function
+
+BREDS needs a word2vec model in the `parameters.cfg` file, the model used in my experiments is available for 
 download. It was generated from the sub collections of the English Gigaword Collection, namely the AFP, APW and XIN. 
 The model is available here: 
 
@@ -147,25 +165,16 @@ from the New York Times articles part of the English Gigaword Collection, is ava
 
 [sentences.txt.bz2](http://data.davidsbatista.net/sentences.txt.bz2)
 
-The golden standard used for evaluation is available here: 
-
-[relationships_gold.zip](http://data.davidsbatista.net/relationships_gold.zip)
-
-
-To extract the locations/headquarters of companies from `sentences.txt` based on the seeds examples given in 
-`seeds_positive`, run the following command: 
-
-    python breds.py parameters.cfg sentences.txt seeds_positive.txt seeds_negative.txt 0.7 0.7
-
 In the first step BREDS pre-processes the `sentences.txt` file, generating word vector representations of 
 relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed 
 examples without having to repeat the process of generating word vectors representations. Just use `processed_tuples.pkl`
 as the second argument to `BREDS.py` instead of `sentences.txt`.
 
 Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, 
-can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or you can also use 
-a multicore version of BREDS. In the multicore version finding seed matches and clustering them is done in parallel, 
-levering multicore architectures. You must specify at the end how many cores you want to use:
+can take very long time (i.e., a few hours). You can reduce the size of `sentences.txt` file, or 
+
+you can also use a multicore version of BREDS. In the multicore version finding seed matches and clustering them 
+is done in parallel, levering multicore architectures. You must specify at the end how many cores you want to use:
 
 -->
 

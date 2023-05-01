@@ -1,5 +1,0 @@
-e1:ORG
-e2:LOC
-
-Daiwa Bank Holdings Inc.;Osaka
-Adelphia;Coudersport

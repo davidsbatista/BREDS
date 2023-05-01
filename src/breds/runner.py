@@ -59,8 +59,6 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     args = parser.parse_args()
     breads: Union[BREDS, BREDSParallel]
 
-    print(args)
-
     if args.parallel:
         print("Running in parallel")
         breads = BREDSParallel(
