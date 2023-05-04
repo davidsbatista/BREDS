@@ -216,10 +216,11 @@ You can expect a reply within a few days, but please be patient if it takes a bi
 ```sh
 git clone git@github.com:davidsbatista/BREDS.git
 cd BREDS
-pip3.9 install virtualenv     # make sure you have python3.9 installed + python3.9-virtualenv if you don't have it
-python3.9 -m virtualenv venv  # create a new virtual environment for development using python3.9 
-source venv/bin/activate      # activate the virtual environment
-pip install -e .              # install BREDS in edit mode
+pip3.9 install virtualenv            # make sure you have python3.9 installed + python3.9-virtualenv if you don't have it
+python3.9 -m virtualenv venv         # create a new virtual environment for development using python3.9 
+source venv/bin/activate             # activate the virtual environment
+pip install -r requirements_dev.txt  # install the development requirements
+pip install -e .                     # install BREDS in edit mode
 ```
 
 

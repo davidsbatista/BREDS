@@ -42,4 +42,4 @@ jobs:
         folder: coverage
 
     - name: Type checking with mypy
-      run: mypy --config mypy.ini src
+      run: mypy --config mypy.ini -p breds

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_client"
+version = "1.2.3"
+authors = [{name="Ubr Programmer", email="ubr@gmailington.com" }]
+description = "Client for my awesome system"
+readme = "README.md"
+dependencies = ["cachetools","requests"]
+requires-python = ">=3.9"
+
+[tool.poetry.scripts]
+breds = "breds.cli:app"
+
+
+[project.urls]
+"Homepage" = "https://github.com/your_name_here/something"
+"Bug Tracker" = "https://github.com/your_name_here/something/issues"

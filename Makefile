@@ -1,20 +1,20 @@
 .PHONY:	test lint virtualenv dist
 
 lint:
-	black -t py39 -l 120 src tests
-	pycln -a src tests
-	isort --profile black src tests
-	pylint --rcfile=pylint.cfg src
-	flake8 --config=setup.cfg src
+	black -t py39 -l 120 breds tests
+	pycln -a breds tests
+	isort --profile black breds tests
+	PYTHONPATH=. pylint --rcfile=pylint.cfg breds
+	PYTHONPATH=. flake8 --config=setup.cfg breds
 
 
 typing:
-	MYPYPATH=src/ mypy --config mypy.ini src
+	mypy --config mypy.ini -p breds
 
 
 test:
-	PYTHONPATH=src/ coverage run --rcfile=setup.cfg --source=./src -m pytest
-	PYTHONPATH=src/ coverage report --rcfile=setup.cfg
+	PYTHONPATH=. coverage run --rcfile=setup.cfg --source=./breds -m pytest
+	PYTHONPATH=. coverage report --rcfile=setup.cfg
 
 
 clean:

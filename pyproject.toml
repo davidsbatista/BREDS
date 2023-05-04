@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "breds"
 version = "1.0.0"
 authors = [{name = "David S. Batista", email = "dsbatista@gmail.com"}]
-description = "My package description"
+description = "Bootstrapping Relationship Extraction with Distributional Semantics"
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = ["nlp", "semantic relationship extraction", "distributional semantics", "bootstrapping", "emnlp",
@@ -26,3 +26,6 @@ dependencies = [
 homepage = "https://github.com/davidsbatista/BREDS"
 documentation = "https://www.davidsbatista.net/assets/documents/publications/breds-emnlp_15.pdf"
 repository = "https://github.com/davidsbatista/BREDS"
+
+[project.scripts]
+breds = "breds.cli:main"
