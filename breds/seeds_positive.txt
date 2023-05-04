@@ -1,0 +1,8 @@
+e1:ORG
+e2:LOC
+
+Citibank;Athens
+Nokia;Espoo
+Motorola;Schaumburg
+Pfizer;New York
+Microsoft;Redmond
