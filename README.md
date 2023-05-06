@@ -147,7 +147,7 @@ without having to repeat the process of generating word vectors representations.
 
 ---
 
-
+<br>
 
 # References and Citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
@@ -184,6 +184,7 @@ without having to repeat the process of generating word vectors representations.
 
 ---
 
+<br>
 
 # Contributing to BREDS
 
