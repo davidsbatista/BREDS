@@ -1,5 +1,4 @@
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from typing import Union
 
 from breds.bootstrapping import BREDS
 
