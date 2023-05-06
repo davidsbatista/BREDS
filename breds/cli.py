@@ -2,7 +2,6 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from typing import Union
 
 from breds.bootstrapping import BREDS
-from breds.bootstrapping_parallel import BREDSParallel
 
 
 def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstring
@@ -47,13 +46,6 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         type=float,
         required=True,
     )
-    parser.add_argument(
-        "--parallel",
-        default=False,
-        action="store_true",
-        help="whether to run the clustering in parallel or not",
-    )
-    parser.add_argument("--num_cores", type=int, default=0, help="number of cores to use for parallel processing")
 
     return parser
 
@@ -61,15 +53,9 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
 def main() -> None:  # pylint: disable=missing-function-docstring
     parser = create_args()
     args = parser.parse_args()
-    breads: Union[BREDS, BREDSParallel]
+    breads: BREDS
 
-    if args.parallel:
-        print("Running in parallel")
-        breads = BREDSParallel(
-            args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence, args.num_cores
-        )
-    else:
-        breads = BREDS(args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)
+    breads = BREDS(args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)
 
     if args.sentences.endswith(".pkl"):
         print("Loading pre-processed sentences", args.sentences)
