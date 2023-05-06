@@ -18,8 +18,8 @@ from Sentence import Sentence
 __author__ = "David S. Batista"
 __email__ = "dsbatista@inesc-id.pt"
 
-bad_tokens = [",", "(", ")", ";", "''",  "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
-stopwords_list = stopwords.words('english')
+bad_tokens = [",", "(", ")", ";", "''", "``", "'s", "-", "vs.", "v", "'", ":", ".", "--"]
+stopwords_list = stopwords.words("english")
 not_valid = bad_tokens + stopwords_list
 
 
@@ -31,11 +31,12 @@ def timecall(f):
         end = time.time()
         print("%s %.2f seconds" % (f.__name__, end - start))
         return result
+
     return wrapper
 
 
 def create_index():
-    regex_tokenize = re.compile('\w+(?:-\w+)+|<[A-Z]+>[^<]+</[A-Z]+>|\w+', re.U)
+    regex_tokenize = re.compile("\w+(?:-\w+)+|<[A-Z]+>[^<]+</[A-Z]+>|\w+", re.U)
     tokenizer = RegexTokenizer(regex_tokenize)
     schema = Schema(sentence=TEXT(stored=True, analyzer=tokenizer))
     if not os.path.exists("index_full"):

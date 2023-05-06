@@ -20,19 +20,27 @@ class ExtractedFact(object):
         self.passive_voice = _passive_voice
 
     def __hash__(self):
-        sig = hash(self.ent1) ^ hash(self.ent2) ^ hash(self.bef_words) ^ \
-              hash(self.bet_words) ^ hash(self.aft_words) ^ \
-              hash(self.score) ^ hash(self.sentence)
+        sig = (
+            hash(self.ent1)
+            ^ hash(self.ent2)
+            ^ hash(self.bef_words)
+            ^ hash(self.bet_words)
+            ^ hash(self.aft_words)
+            ^ hash(self.score)
+            ^ hash(self.sentence)
+        )
         return sig
 
     def __eq__(self, other):
-        if self.ent1 == other.ent1 and \
-           self.ent2 == other.ent2 and \
-           self.score == other.score and \
-           self.bef_words == other.bef_words and \
-           self.bet_words == other.bet_words and \
-           self.aft_words == other.aft_words and \
-           self.sentence == other.sentence:
+        if (
+            self.ent1 == other.ent1
+            and self.ent2 == other.ent2
+            and self.score == other.score
+            and self.bef_words == other.bef_words
+            and self.bet_words == other.bet_words
+            and self.aft_words == other.aft_words
+            and self.sentence == other.sentence
+        ):
             return True
         else:
             return False

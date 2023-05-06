@@ -1,14 +1,20 @@
 __author__ = "David S. Batista"
-__email__ = "dsbatista@inesc-id.pt"
+__email__ = "dsbatista@gmail.com"
 
 
-class Seed(object):
-    def __init__(self, _e1, _e2):
-        self.e1 = _e1
-        self.e2 = _e2
+class Seed:
+    """
+    Seed tuple class
+    """
 
-    def __hash__(self):
-        return hash(self.e1) ^ hash(self.e2)
+    def __init__(self, ent1: str, ent2: str) -> None:
+        self.ent1 = ent1
+        self.ent2 = ent2
 
-    def __eq__(self, other):
-        return self.e1 == other.e1 and self.e2 == other.e2
+    def __hash__(self) -> int:
+        return hash(self.ent1) ^ hash(self.ent2)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Seed):
+            return NotImplemented
+        return self.ent1 == other.ent1 and self.ent2 == other.ent2
