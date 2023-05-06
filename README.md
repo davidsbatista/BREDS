@@ -213,7 +213,7 @@ python3.9 -m pip install --user --upgrade pip
 python3.9 -m pip install virtualenv
 ```
 
-Clone the repository and prepare the development envoriment:
+Clone the repository and prepare the development environment:
 
 ```sh
 git clone git@github.com:davidsbatista/BREDS.git
