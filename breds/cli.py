@@ -66,10 +66,10 @@ def main() -> None:  # pylint: disable=missing-function-docstring
     if args.parallel:
         print("Running in parallel")
         breads = BREDSParallel(
-            args.parameters, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence, args.num_cores
+            args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence, args.num_cores
         )
     else:
-        breads = BREDS(args.parameters, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)
+        breads = BREDS(args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)
 
     if args.sentences.endswith(".pkl"):
         print("Loading pre-processed sentences", args.sentences)

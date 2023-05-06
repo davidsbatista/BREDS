@@ -33,8 +33,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
     def __init__(
         self, config_file: Optional[str], positive_seeds: str, negative_seeds: str, similarity: float, confidence: float
     ) -> None:  # noqa: C901
+        self.word2vec_model_path: str
         if config_file is None:
-            # if config_file is None set default values
             self.context_window_size: int = 2
             self.min_tokens_away: int = 1
             self.max_tokens_away: int = 6
@@ -62,7 +62,6 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
         self.reverb = Reverb()
-        self.word2vec_model_path: str
         self.word2vec: Any
         self.vec_dim: int
         self.read_seeds(positive_seeds, self.positive_seed_tuples)
