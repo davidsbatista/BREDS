@@ -191,14 +191,6 @@ class BREDS:
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
 
-        print(len(self.patterns), "clusters generated")
-
-        for p in self.patterns:
-            print(len(p.tuples))
-            for t in p.tuples:
-                print(t.bet_words)
-            print("========")
-
     def debug_patterns_1(self) -> None:
         """
         Prints the patterns to the console
