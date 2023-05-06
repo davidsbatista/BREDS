@@ -15,16 +15,15 @@
 # BREDS
 
 BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
-seed examples, i.e.: pairs of examples of named-entities representing relationship to be extracted. The algorithm 
-expands  the initial  set of seed relationships using distributional semantics to generalize the relationship while 
+of examples of named-entities representing relationship to be extracted, i.e.:, seeds. 
+
+The algorithm expands the initial set of seeds using distributional semantics to generalize the relationship while 
 limiting the semantic drift.
 
 
-## Example: extracting companies headquarters:
+## Extracting companies headquarters:
 
-We need the text from where we want to extract relationships with the named-entities tagged, like show in the 
-example bellow, an input file `sentences.txt` should contain thousands of sentences with named-entities 
-tagged, e.g.:
+The input text needs to have the named-entities tagged, like show in the example bellow:
  
 ```
 The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
@@ -39,8 +38,8 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 ...
 ```
 
-We also need to give example seeds to boostrap the extraction process, specifying the type of each  named-entity and 
-examples that should also be present in the `sentences.txt`, snippet shows an example:
+We need to give seeds to boostrap the extraction process, specifying the type of each named-entity and 
+relationships examples that should also be present in the input text:
 
 ```   
 e1:ORG
@@ -52,43 +51,39 @@ Google;Mountain View
 Microsoft;Redmond
 ```   
 
-Save this in a file as `seeds.txt`. BREDS also needs a word embedding model to compute the similarities, you can 
-download an already pre-trained model, generated from a subset of the English Gigaword Collection:
+To run a simple example, [download](https://drive.google.com/drive/folders/0B0CbnDgKi0PyQ1plbHo0cG5tV2M?resourcekey=0-h_UaGhD4dLfoYITP3pvvUA) the following files
+
 
 ```
-wget http://data.davidsbatista.net/afp_apw_xin_embeddings.bin
+- afp_apw_xin_embeddings.bin
+- sentences.txt.bz2
+- seeds_positive.txt
+- seeds_negative.txt
 ```
 
-You can also download a sentences files from the example above and decompress it:
+Next install BREDS using pip
 
 ```
-wget http://data.davidsbatista.net/sentences.txt.bz2
-bzip -d sentences.txt.bz2
+pip install breads
 ```
 
-Next you can run BREDS with the following command:
+Run the following command:
 
 ```
-python runner.py --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences.txt --positive_seeds=seeds.txt --similarity=0.6 --confidence=0.6
+breds --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
+
 ```
 
-The parameters `--similarity=0.6` and `--confidence=0.6` are used to control the semantic drift and the confidence 
-of the extracted relationships.
+After the  process is terminated an output file `relationships.jsonl` is generated containing the extracted  relationships. 
 
-Running the whole bootstrap process, depending on your hardware, sentences input size and number of iterations, 
-can take from a few minutes to a few hours. 
-
-After the  process is terminated an output file `relationships.jsonl` is generated containing the extracted 
-relationships. You can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`, 
-
-This is an example of `relationships.jsonl` output file:
+You can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`: 
 
 ```
 {
   "entity_1": "Medtronic",
   "entity_2": "Minneapolis",
   "confidence": 0.9982486865148862,
-  "sentence": "<ORG>Medtronic</ORG> , based in <LOC>Minneapolis</LOC> , is the nation 's largest independent medical device maker . Last month , when it reported revenue of $ 10 billion for the fiscal year , <ORG>Medtronic</ORG> also said that it had set up a business unit to pursue applications of its heart and brain stimulation technology in the obesity market .",
+  "sentence": "<ORG>Medtronic</ORG> , based in <LOC>Minneapolis</LOC> , is the nation 's largest independent medical device maker . ",
   "bef_words": "",
   "bet_words": ", based in",
   "aft_words": ", is",
@@ -117,11 +112,10 @@ This is an example of `relationships.jsonl` output file:
   "passive_voice": false
 }
 ```
-
 <br>
 
-BREDS has more parameters that can be tuned to improve the extraction process, in the example above it falls
-back to the default values, but these can be set in the configuration file: `parameters.cfg`
+BREDS has more parameters to tune the extraction process, in the example above it uses the default values, but these can 
+be set in the configuration file: `parameters.cfg`
 
     max_tokens_away=6           # maximum number of tokens between the two entities
     min_tokens_away=1           # minimum number of tokens between the two entities
@@ -138,7 +132,7 @@ back to the default values, but these can be set in the configuration file: `par
     min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
 
 
-and then be passed with the argument `--config=parameters.cfg` to the runner script.
+and passed with the argument `--config=parameters.cfg`
 
 It also supports negative seeds, that is, pairs of entities in a potential relationship that should not be extracted.
 The negative seeds also help control the semantic drift of the extraction process. Negative seeds are specified in a 
@@ -153,7 +147,6 @@ without having to repeat the process of generating word vectors representations.
 
 ---
 
-<br>
 
 
 # References and Citations
@@ -191,16 +184,11 @@ without having to repeat the process of generating word vectors representations.
 
 ---
 
-<br>
-
 
 # Contributing to BREDS
 
-Improvements, adding new features and bug fixes are more than welcome. If you wish to participate in the development 
-of BREDS, please read the following guidelines.
-
-Small fixes and additions can be submitted directly as pull requests, but larger changes should be discussed in 
-an issue first.
+Improvements, adding new features and bug fixes are welcome. If you wish to participate in the development of BREDS, 
+please read the following guidelines.
 
 ## The contribution process at a glance
 
@@ -209,14 +197,26 @@ an issue first.
 3. Continuous Integration
 4. Submit your changes by opening a pull request
 
-You can expect a reply within a few days, but please be patient if it takes a bit longer.
+Small fixes and additions can be submitted directly as pull requests, but larger changes should be discussed in 
+an issue first. You can expect a reply within a few days, but please be patient if it takes a bit longer. 
+
 
 ## Preparing the development environment
 
+Make sure you have Python3.9 installed on your system
+
+macOs
+```
+brew install python@3.9
+python3.9 -m pip install --user --upgrade pip
+python3.9 -m pip install virtualenv
+```
+
+Clone the repository and prepare the development envoriment:
+
 ```sh
 git clone git@github.com:davidsbatista/BREDS.git
-cd BREDS
-pip3.9 install virtualenv            # make sure you have python3.9 installed + python3.9-virtualenv if you don't have it
+cd BREDS            
 python3.9 -m virtualenv venv         # create a new virtual environment for development using python3.9 
 source venv/bin/activate             # activate the virtual environment
 pip install -r requirements_dev.txt  # install the development requirements
@@ -235,9 +235,7 @@ test suite is run on your PR:
 - Type checking is done using `mypy`
 - Tests are run using `pytest`
 
-This frees you up to ignore all local setup on your side, focus on the code and rely on the CI to fix everything and 
-point you to the places that need fixing. Nevertheless, if you prefer to run the tests & formatting locally, it's 
-possible too. 
+Nevertheless, if you prefer to run the tests & formatting locally, it's possible too. 
 
 ```sh
 make all
