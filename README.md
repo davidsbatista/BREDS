@@ -14,8 +14,8 @@
 
 # BREDS
 
-BREDS extracts relationships from text using a bootstrapping/semi-supervised approach, it relies on an initial set of 
-of examples of named-entities representing relationship to be extracted, i.e.:, seeds. 
+BREDS extracts relationships using a bootstrapping/semi-supervised approach, it relies on an initial set of 
+seeds, i.e. paris of named-entities representing relationship type to be extracted.  
 
 The algorithm expands the initial set of seeds using distributional semantics to generalize the relationship while 
 limiting the semantic drift.
@@ -32,10 +32,7 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 <LOC>Switzerland</LOC> and <LOC>South Africa</LOC> are co-chairing the meeting.
 <LOC>Ireland</LOC> beat <LOC>Italy</LOC> , then lost 43-31 to <LOC>France</LOC>.
 <ORG>Pfizer</ORG>, based in <LOC>New York City</LOC> , employs about 90,000 workers.
-<ORG>Botafogo</ORG> leads Group B of the <LOC>Rio de Janeiro</LOC> state championship with six points from two matches.
 <PER>Burton</PER> 's engine passed <ORG>NASCAR</ORG> inspection following the qualifying session.
-<ORG>Associated Press</ORG> writer <ORG>Gene Johnson</ORG> contributed from <LOC>Seattle</LOC>, <LOC>Washington</LOC>.
-...
 ```
 
 We need to give seeds to boostrap the extraction process, specifying the type of each named-entity and 
@@ -45,10 +42,11 @@ relationships examples that should also be present in the input text:
 e1:ORG
 e2:LOC
 
+Lufthansa;Cologne
 Nokia;Espoo
-Pfizer;New York
 Google;Mountain View
-Microsoft;Redmond
+DoubleClick;New York
+SAP;Walldorf
 ```   
 
 To run a simple example, [download](https://drive.google.com/drive/folders/0B0CbnDgKi0PyQ1plbHo0cG5tV2M?resourcekey=0-h_UaGhD4dLfoYITP3pvvUA) the following files
@@ -56,12 +54,11 @@ To run a simple example, [download](https://drive.google.com/drive/folders/0B0Cb
 
 ```
 - afp_apw_xin_embeddings.bin
-- sentences.txt.bz2
+- sentences_short.txt.bz2
 - seeds_positive.txt
-- seeds_negative.txt
 ```
 
-Next install BREDS using pip
+Install BREDS using pip
 
 ```
 pip install breads
@@ -70,7 +67,7 @@ pip install breads
 Run the following command:
 
 ```
-breds --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
+breds --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences_short.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
 
 ```
 
@@ -114,8 +111,8 @@ You can pretty print it's content to the terminal with: `jq '.' < relationships.
 ```
 <br>
 
-BREDS has more parameters to tune the extraction process, in the example above it uses the default values, but these can 
-be set in the configuration file: `parameters.cfg`
+BREDS has several parameters to tune the extraction process, in the example above it uses the default values, but these 
+can be set in the configuration file: `parameters.cfg`
 
     max_tokens_away=6           # maximum number of tokens between the two entities
     min_tokens_away=1           # minimum number of tokens between the two entities
@@ -132,22 +129,38 @@ be set in the configuration file: `parameters.cfg`
     min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
 
 
-and passed with the argument `--config=parameters.cfg`
+and passed with the argument `--config=parameters.cfg`.
 
-It also supports negative seeds, that is, pairs of entities in a potential relationship that should not be extracted.
-The negative seeds also help control the semantic drift of the extraction process. Negative seeds are specified in a 
-file and passed with the argument `--negative_seeds=negative_seeds.txt`.
+The full command line parameters are:
+
+```
+  -h, --help            show this help message and exit
+  --config CONFIG       file with bootstrapping configuration parameters
+  --word2vec WORD2VEC   an embedding model based on word2vec, in the format of a .bin file
+  --sentences SENTENCES
+                        a text file with a sentence per line, and with at least two entities per sentence
+  --positive_seeds POSITIVE_SEEDS
+                        a text file with a seed per line, in the format, e.g.: 'Nokia;Espoo'
+  --negative_seeds NEGATIVE_SEEDS
+                        a text file with a seed per line, in the format, e.g.: 'Microsoft;San Francisco'
+  --similarity SIMILARITY
+                        the minimum similarity between tuples and patterns to be considered a match
+  --confidence CONFIDENCE
+                        the minimum confidence score for a match to be considered a true positive
+  --number_iterations NUMBER_ITERATIONS
+                        the minimum confidence score for a match to be considered a true positive
+```
+
+Please, refer to the section [References and Citations](#references-and-citations) for details on the parameters.
 
 In the first step BREDS pre-processes the input file `sentences.txt` generating word vector representations of  
-relationships (i.e.: `processed_tuples.pkl`). This is done so that then you can experiment with different seed examples
-without having to repeat the process of generating word vectors representations. Just pass the argument 
-`--sentences=processed_tuples.pkl` instead to skip this generation step.
+relationships (i.e.: `processed_tuples.pkl`). 
 
-<br>
+This is done so that then you can experiment with different seed examples without having to repeat the process of 
+generating word vectors representations. Just pass the argument `--sentences=processed_tuples.pkl` instead to skip 
+this generation step.
 
 ---
-
-<br>
 
 # References and Citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
@@ -174,7 +187,6 @@ without having to repeat the process of generating word vectors representations.
   year = {2016}
 }
 ```
-
 
 # Presenting BREDS at PyData Berlin 2017
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)

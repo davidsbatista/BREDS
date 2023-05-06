@@ -22,8 +22,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
     - Initializes the lemmatizer and the stopwords list.
     - Set the weights for the unknown and negative instances.
     - Set the POS tags to be filtered out.
-        # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
-        # select everything except stopwords, ADJ and ADV
+        http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
+        select everything except stopwords, ADJ and ADV
     - Set the regex to clean the text.
     - Set the threshold for the similarity between the patterns and the instances.
     - Set the threshold for the confidence of the patterns.
@@ -31,9 +31,15 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
     """
 
     def __init__(
-        self, config_file: Optional[str], positive_seeds: str, negative_seeds: str, similarity: float, confidence: float
+        self,
+        config_file: Optional[str],
+        word2vec_model_path: str,
+        positive_seeds: str,
+        negative_seeds: str,
+        similarity: float,
+        confidence: float,
+        number_iterations: int,
     ) -> None:  # noqa: C901
-        self.word2vec_model_path: str
         if config_file is None:
             self.context_window_size: int = 2
             self.min_tokens_away: int = 1
@@ -42,9 +48,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
             self.alpha: float = 0.0
             self.beta: float = 1.0
             self.gamma: float = 0.0
-            self.min_pattern_support: int = 2
-            self.number_iterations: int = 2
-            self.w_neg: float = 0.0
+            self.min_pattern_support: int = 4
+            self.w_neg: float = 2
             self.w_unk: float = 0.0
             self.w_updt: float = 0.5
         else:
@@ -61,6 +66,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.e2_type: str
         self.threshold_similarity = similarity
         self.instance_confidence = confidence
+        self.number_iterations = number_iterations
+        self.word2vec_model_path = word2vec_model_path
         self.reverb = Reverb()
         self.word2vec: Any
         self.vec_dim: int
@@ -70,7 +77,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
 
     def print_config(self) -> None:  # pragma: no cover
         # pylint: disable=expression-not-assigned
-        """Prints the configuration parameters."""
+        """
+        Prints the configuration parameters.
+        """
         print("Configuration parameters")
         print("========================\n")
         print("e1 type              :", self.e1_type)
@@ -114,9 +123,6 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
 
             if line.startswith("wNeg"):
                 self.w_neg = float(line.split("=")[1])
-
-            if line.startswith("number_iterations"):
-                self.number_iterations = int(line.split("=")[1])
 
             if line.startswith("min_pattern_support"):
                 self.min_pattern_support = int(line.split("=")[1])

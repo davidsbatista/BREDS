@@ -1,3 +1,4 @@
+import sys
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from breds.bootstrapping import BREDS
@@ -45,16 +46,34 @@ def create_args() -> ArgumentParser:  # pylint: disable=missing-function-docstri
         type=float,
         required=True,
     )
+    parser.add_argument(
+        "--iterations",
+        help="the minimum confidence score for a match to be considered a true positive",
+        type=int,
+        required=False,
+        default=2,
+    )
 
     return parser
 
 
 def main() -> None:  # pylint: disable=missing-function-docstring
     parser = create_args()
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     args = parser.parse_args()
     breads: BREDS
 
-    breads = BREDS(args.config, args.positive_seeds, args.negative_seeds, args.similarity, args.confidence)
+    breads = BREDS(
+        args.word2vec,
+        args.config,
+        args.positive_seeds,
+        args.negative_seeds,
+        args.similarity,
+        args.confidence,
+        args.iterations,
+    )
 
     if args.sentences.endswith(".pkl"):
         print("Loading pre-processed sentences", args.sentences)

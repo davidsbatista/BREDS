@@ -30,13 +30,24 @@ class BREDS:
     BREDS is a system that extracts relationships between named entities from text.
     """
 
-    def __init__(self, config_file: str, seeds_file: str, negative_seeds: str, similarity: float, confidence: float):
+    def __init__(
+        self,
+        word2vec_model_path: str,
+        config_file: str,
+        seeds_file: str,
+        negative_seeds: str,
+        similarity: float,
+        confidence: float,
+        number_iterations: int,
+    ):
         # pylint: disable=too-many-arguments
         self.curr_iteration = 0
         self.patterns: List[Pattern] = []
         self.processed_tuples: List[BREDSTuple] = []
         self.candidate_tuples: Dict[BREDSTuple, List[Tuple[Pattern, float]]] = defaultdict(list)
-        self.config = Config(config_file, seeds_file, negative_seeds, similarity, confidence)
+        self.config = Config(
+            config_file, word2vec_model_path, seeds_file, negative_seeds, similarity, confidence, number_iterations
+        )
         self.config.print_config()
 
     def generate_tuples(self, sentences_file: str) -> None:
@@ -58,7 +69,7 @@ class BREDS:
             with open(sentences_file, "r", encoding="utf8") as f_in:
                 total = sum(bl.count("\n") for bl in blocks(f_in))
 
-            print("\nGenerating relationship instances from sentences")
+            print("\nProcessing input sentences")
             with open(sentences_file, encoding="utf-8") as f_sentences:
                 for line in tqdm(f_sentences, total=total):
                     sentence = Sentence(
@@ -135,10 +146,7 @@ class BREDS:
             for sent in self.config.positive_seed_tuples:
                 if tpl.ent1 == sent.ent1 and tpl.ent2 == sent.ent2:
                     matched_tuples.append(tpl)
-                    try:
-                        count_matches[(tpl.ent1, tpl.ent2)] += 1
-                    except KeyError:
-                        count_matches[(tpl.ent1, tpl.ent2)] = 1
+                    count_matches[(tpl.ent1, tpl.ent2)] += 1
 
         return count_matches, matched_tuples
 
@@ -161,12 +169,7 @@ class BREDS:
         if len(self.patterns) == 0:
             self.patterns.append(Pattern(matched_tuples[0]))
 
-        count = 0
-        for tpl in matched_tuples:
-            count += 1
-            if count % 1000 == 0:
-                sys.stdout.write(".")
-                sys.stdout.flush()
+        for tpl in tqdm(matched_tuples):
             max_similarity: float = 0.0
             max_similarity_cluster_index = 0
 
@@ -174,6 +177,7 @@ class BREDS:
             for i in range(0, len(self.patterns), 1):
                 extraction_pattern = self.patterns[i]
                 accept, score = self.similarity_all(tpl, extraction_pattern)
+
                 if accept is True and score > max_similarity:
                     max_similarity = score
                     max_similarity_cluster_index = i
@@ -186,6 +190,14 @@ class BREDS:
             # if max_similarity >= min_degree_match add to the cluster with the highest similarity
             else:
                 self.patterns[max_similarity_cluster_index].add_tuple(tpl)
+
+        print(len(self.patterns), "clusters generated")
+
+        for p in self.patterns:
+            print(len(p.tuples))
+            for t in p.tuples:
+                print(t.bet_words)
+            print("========")
 
     def debug_patterns_1(self) -> None:
         """
@@ -291,8 +303,7 @@ class BREDS:
             print("\nStarting iteration", self.curr_iteration)
             print("\nLooking for seed matches of:")
             for sent in self.config.positive_seed_tuples:
-                # ToDo: replace with f-strings
-                print(sent.ent1, "\t", sent.ent2)
+                print(f"{sent.ent1}\t{sent.ent2}")
 
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
@@ -310,11 +321,12 @@ class BREDS:
                 # Cluster the matched instances, to generate patterns/update patterns
                 print("\nClustering matched instances to generate patterns")
                 self.cluster_tuples(matched_tuples)
+
                 # Eliminate patterns supported by less than 'min_pattern_support' tuples
-                new_patterns = [p for p in self.patterns if len(p.tuples) > self.config.min_pattern_support]
+                new_patterns = [p for p in self.patterns if len(p.tuples) >= self.config.min_pattern_support]
                 self.patterns = new_patterns
 
-                print("\n", len(self.patterns), "patterns generated")
+                print(f"\n{len(self.patterns)} patterns generated")
                 if PRINT_PATTERNS is True:
                     self.debug_patterns_1()
 
@@ -322,17 +334,14 @@ class BREDS:
                     print("No patterns generated")
                     sys.exit(0)
 
-                # Look for sentences with occurrence of seeds
-                # semantic types (e.g., ORG - LOC)
-                # This was already collect and it's stored in:
-                # self.processed_tuples
+                # Look for sentences with occurrence of seeds semantic types (e.g., ORG - LOC)
+                # This was already collect, and it's stored in: self.processed_tuples
                 #
-                # Measure the similarity of each occurrence with each
-                # extraction pattern and store each pattern that has a
-                # similarity higher than a given threshold
+                # Measure the similarity of each occurrence with each extraction pattern and store each pattern that
+                # has a similarity higher than a given threshold
                 #
-                # Each candidate tuple will then have a number of patterns
-                # that extracted it each with an associated degree of match.
+                # Each candidate tuple will then have a number of patterns that extracted it each with an associated
+                # degree of match.
                 print("Number of tuples to be analyzed:", len(self.processed_tuples))
                 print("\nCollecting instances based on extraction patterns")
                 self.generate_candidate_tuples()
