@@ -75,7 +75,7 @@ After the  process is terminated an output file `relationships.jsonl` is generat
 
 You can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`: 
 
-```
+```json
 {
   "entity_1": "Medtronic",
   "entity_2": "Minneapolis",
@@ -164,7 +164,7 @@ this generation step.
 
 # References and Citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
-```
+```BibTeX
 @inproceedings{batista-etal-2015-semi,
     title = "Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics",
     author = "Batista, David S.  and Martins, Bruno  and Silva, M{\'a}rio J.",
@@ -179,7 +179,7 @@ this generation step.
 }
 ```
 ["Large-Scale Semantic Relationship Extraction for Information Discovery" - Chapter 5, David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
-```
+```BibTeX
 @incollection{phd-dsbatista2016
   title = {Large-Scale Semantic Relationship Extraction for Information Discovery},
     author = {Batista, David S.},
