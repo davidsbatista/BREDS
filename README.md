@@ -25,7 +25,7 @@ limiting the semantic drift.
 
 The input text needs to have the named-entities tagged, like show in the example bellow:
  
-```
+```yaml
 The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
 <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
 <ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion.
@@ -38,7 +38,7 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 We need to give seeds to boostrap the extraction process, specifying the type of each named-entity and 
 relationships examples that should also be present in the input text:
 
-```   
+```yaml
 e1:ORG
 e2:LOC
 
@@ -60,13 +60,13 @@ To run a simple example, [download](https://drive.google.com/drive/folders/0B0Cb
 
 Install BREDS using pip
 
-```
+```bash
 pip install breads
 ```
 
 Run the following command:
 
-```
+```bash
 breds --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences_short.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
 
 ```
@@ -114,6 +114,7 @@ You can pretty print it's content to the terminal with: `jq '.' < relationships.
 BREDS has several parameters to tune the extraction process, in the example above it uses the default values, but these 
 can be set in the configuration file: `parameters.cfg`
 
+```yaml
     max_tokens_away=6           # maximum number of tokens between the two entities
     min_tokens_away=1           # minimum number of tokens between the two entities
     context_window_size=2       # number of tokens to the left and right of each entity
@@ -127,7 +128,7 @@ can be set in the configuration file: `parameters.cfg`
     wUnk=0.1                    # weight given to unknown extracted relationship instances
     wNeg=2                      # weight given to extracted relationship instances
     min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
-
+```
 
 and passed with the argument `--config=parameters.cfg`.
 
