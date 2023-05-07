@@ -148,7 +148,7 @@ The full command line parameters are:
   --confidence CONFIDENCE
                         the minimum confidence score for a match to be considered a true positive
   --number_iterations NUMBER_ITERATIONS
-                        the minimum confidence score for a match to be considered a true positive
+                        the number of iterations the run
 ```
 
 Please, refer to the section [References and Citations](#references-and-citations) for details on the parameters.
