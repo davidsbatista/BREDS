@@ -191,12 +191,7 @@ this generation step.
 # Presenting BREDS at PyData Berlin 2017
 [![Presentation at PyData Berlin 2017](https://img.youtube.com/vi/Ra15lX-wojg/hqdefault.jpg)](https://www.youtube.com/watch?v=Ra15lX-wojg)
 
-
-<br>
-
 ---
-
-<br>
 
 # Contributing to BREDS
 
