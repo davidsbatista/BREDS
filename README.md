@@ -8,9 +8,10 @@
 &nbsp;
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 &nbsp;
-[![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
-&nbsp;
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+&nbsp;
+[![Pull Requests Welcome](https://img.shields.io/badge/pull%20requests-welcome-brightgreen.svg)](https://github.com/davidsbatista/BREDS/blob/main/CONTRIBUTING.md)
+
 
 # BREDS
 
@@ -25,7 +26,7 @@ limiting the semantic drift.
 
 The input text needs to have the named-entities tagged, like show in the example bellow:
  
-```
+```yaml
 The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of Germany.
 <ORG>Pfizer</ORG> says it has hired <ORG>Morgan Stanley</ORG> to conduct the review.
 <ORG>Allianz</ORG>, based in <LOC>Munich</LOC>, said net income rose to EUR 1.32 billion.
@@ -38,7 +39,7 @@ The tech company <ORG>Soundcloud</ORG> is based in <LOC>Berlin</LOC>, capital of
 We need to give seeds to boostrap the extraction process, specifying the type of each named-entity and 
 relationships examples that should also be present in the input text:
 
-```   
+```yaml
 e1:ORG
 e2:LOC
 
@@ -60,22 +61,21 @@ To run a simple example, [download](https://drive.google.com/drive/folders/0B0Cb
 
 Install BREDS using pip
 
-```
+```sh
 pip install breads
 ```
 
 Run the following command:
 
-```
+```sh
 breds --word2vec=afp_apw_xin_embeddings.bin --sentences=sentences_short.txt --positive_seeds=seeds_positive.txt --similarity=0.6 --confidence=0.6
-
 ```
 
 After the  process is terminated an output file `relationships.jsonl` is generated containing the extracted  relationships. 
 
 You can pretty print it's content to the terminal with: `jq '.' < relationships.jsonl`: 
 
-```
+```json
 {
   "entity_1": "Medtronic",
   "entity_2": "Minneapolis",
@@ -114,26 +114,27 @@ You can pretty print it's content to the terminal with: `jq '.' < relationships.
 BREDS has several parameters to tune the extraction process, in the example above it uses the default values, but these 
 can be set in the configuration file: `parameters.cfg`
 
-    max_tokens_away=6           # maximum number of tokens between the two entities
-    min_tokens_away=1           # minimum number of tokens between the two entities
-    context_window_size=2       # number of tokens to the left and right of each entity
+```yaml
+max_tokens_away=6           # maximum number of tokens between the two entities
+min_tokens_away=1           # minimum number of tokens between the two entities
+context_window_size=2       # number of tokens to the left and right of each entity
 
-    alpha=0.2                   # weight of the BEF context in the similarity function
-    beta=0.6                    # weight of the BET context in the similarity function
-    gamma=0.2                   # weight of the AFT context in the similarity function
+alpha=0.2                   # weight of the BEF context in the similarity function
+beta=0.6                    # weight of the BET context in the similarity function
+gamma=0.2                   # weight of the AFT context in the similarity function
 
-    wUpdt=0.5                   # < 0.5 trusts new examples less on each iteration
-    number_iterations=4         # number of bootstrap iterations
-    wUnk=0.1                    # weight given to unknown extracted relationship instances
-    wNeg=2                      # weight given to extracted relationship instances
-    min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
-
+wUpdt=0.5                   # < 0.5 trusts new examples less on each iteration
+number_iterations=4         # number of bootstrap iterations
+wUnk=0.1                    # weight given to unknown extracted relationship instances
+wNeg=2                      # weight given to extracted relationship instances
+min_pattern_support=2       # minimum number of instances in a cluster to be considered a pattern
+```
 
 and passed with the argument `--config=parameters.cfg`.
 
 The full command line parameters are:
 
-```
+```sh
   -h, --help            show this help message and exit
   --config CONFIG       file with bootstrapping configuration parameters
   --word2vec WORD2VEC   an embedding model based on word2vec, in the format of a .bin file
@@ -164,7 +165,7 @@ this generation step.
 
 # References and Citations
 [Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics, EMNLP'15](https://aclanthology.org/D15-1056/)
-```
+```BibTeX
 @inproceedings{batista-etal-2015-semi,
     title = "Semi-Supervised Bootstrapping of Relationship Extractors with Distributional Semantics",
     author = "Batista, David S.  and Martins, Bruno  and Silva, M{\'a}rio J.",
@@ -179,7 +180,7 @@ this generation step.
 }
 ```
 ["Large-Scale Semantic Relationship Extraction for Information Discovery" - Chapter 5, David S Batista, Ph.D. Thesis](http://davidsbatista.net/assets/documents/publications/dsbatista-phd-thesis-2016.pdf)
-```
+```BibTeX
 @incollection{phd-dsbatista2016
   title = {Large-Scale Semantic Relationship Extraction for Information Discovery},
     author = {Batista, David S.},
@@ -214,7 +215,7 @@ an issue first. You can expect a reply within a few days, but please be patient 
 Make sure you have Python3.9 installed on your system
 
 macOs
-```
+```sh
 brew install python@3.9
 python3.9 -m pip install --user --upgrade pip
 python3.9 -m pip install virtualenv
