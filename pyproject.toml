@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "breds"
-version = "1.0.0"
+version = "1.0.1"
 authors = [{name = "David S. Batista", email = "dsbatista@gmail.com"}]
 description = "Bootstrapping Relationship Extraction with Distributional Semantics"
 readme = "README.md"
