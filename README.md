@@ -16,7 +16,7 @@
 # BREDS
 
 BREDS extracts relationships using a bootstrapping/semi-supervised approach, it relies on an initial set of 
-seeds, i.e. paris of named-entities representing relationship type to be extracted.  
+seeds, i.e. pairs of named-entities representing relationship type to be extracted.  
 
 The algorithm expands the initial set of seeds using distributional semantics to generalize the relationship while 
 limiting the semantic drift.
