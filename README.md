@@ -154,7 +154,7 @@ The full command line parameters are:
 
 Please, refer to the section [References and Citations](#references-and-citations) for details on the parameters.
 
-In the first step BREDS pre-processes the input file `sentences.txt` generating word vector representations of  
+In the first step, BREDS pre-processes the input file `sentences.txt` generating word vector representations of  
 relationships (i.e.: `processed_tuples.pkl`). 
 
 This is done so that then you can experiment with different seed examples without having to repeat the process of 
