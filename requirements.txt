@@ -1,5 +1,5 @@
 gensim>=3.7.3
-numpy>=1.16.3
 nltk>=3.8.1
-tqdm~=4.66.3
+numpy>=1.16.3
 scipy==1.10.1
+tqdm==4.66.3
