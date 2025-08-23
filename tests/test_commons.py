@@ -1,5 +1,5 @@
 import tempfile
-
+import os
 import pytest
 
 from breds.commons import blocks
@@ -8,11 +8,13 @@ from breds.commons import blocks
 @pytest.fixture
 def tmp_file():
     """Create a temporary file with 100 lines, each containing a single byte"""
-    with tempfile.NamedTemporaryFile(mode="wt") as f:
+    with tempfile.NamedTemporaryFile(mode="wt", delete=False) as f:
         for _ in range(100):
             f.write("\n")
         f.flush()
-        yield f.name
+        tmp_path = f.name  # store path before file is closed
+    yield tmp_path
+    os.remove(tmp_path)  # clean up after the test
 
 
 def test_blocks(tmp_file):
