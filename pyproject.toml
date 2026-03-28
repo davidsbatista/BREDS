@@ -60,7 +60,7 @@ select = [
     "N",
     "PL",
 ]
-ignore = ["E203"]
+ignore = ["E203", "PLR0913", "PLR0912", "PLW1641", "PLR2004"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/__init__.py" = ["F401"]

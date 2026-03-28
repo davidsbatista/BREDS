@@ -2,7 +2,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import re
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from nltk import word_tokenize
 from nltk.corpus import stopwords
@@ -14,7 +14,7 @@ not_valid = bad_tokens + stopwords
 regex_clean_tags = re.compile("</?[A-Z]+>", re.U)
 
 
-def tokenize_entity(entity: str) -> List[str]:
+def tokenize_entity(entity: str) -> list[str]:
     """Simple poor man's tokenization of an entity string"""
     parts = word_tokenize(entity)
     if parts[-1] == ".":
@@ -25,7 +25,7 @@ def tokenize_entity(entity: str) -> List[str]:
     return parts
 
 
-def find_locations(entity_string: str, text_tokens: List[str]) -> Tuple[List[str], List[int]]:
+def find_locations(entity_string: str, text_tokens: list[str]) -> tuple[list[str], list[int]]:
     """Find the locations of an entity in a text."""
     locations = []
     ent_parts = tokenize_entity(entity_string)
@@ -39,7 +39,7 @@ class Entity:
     """Entity class to hold information about an entity extracted from a sentence."""
 
     def __init__(
-        self, surface_string: str, surface_string_parts: List[str], ent_type: str, locations: List[int]
+        self, surface_string: str, surface_string_parts: list[str], ent_type: str, locations: list[int]
     ) -> None:
         self.string = surface_string
         self.parts = surface_string_parts
@@ -61,9 +61,9 @@ class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-att
     def __init__(
         self,
         sentence: str,
-        before: List[Tuple[str, str]],
-        between: List[Tuple[str, str]],
-        after: List[Tuple[str, str]],
+        before: list[tuple[str, str]],
+        between: list[tuple[str, str]],
+        after: list[tuple[str, str]],
         ent1_str: str,
         ent2_str: str,
         e1_type: str,
@@ -117,7 +117,7 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
             # extract information about the entity, create an Entity instance
             # and store in a structure to hold information collected about
             # all the entities in the sentence
-            entities_info: Set[Entity] = set()
+            entities_info: set[Entity] = set()
             for ent in entities:
                 entity = ent.group()
                 e_string = re.findall("<[A-Z]+>([^<]+)</[A-Z]+>", entity)[0]
@@ -128,7 +128,7 @@ class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-
             # create a hash table:
             #   key: is the starting index in the tokenized sentence of an entity
             #   value: the corresponding Entity instance
-            locations: Dict[int, Entity] = {
+            locations: dict[int, Entity] = {
                 start: entity_obj for entity_obj in entities_info for start in entity_obj.locations
             }
 

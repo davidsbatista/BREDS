@@ -1,7 +1,7 @@
 __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from numpy import zeros
 
@@ -28,9 +28,9 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         ent1: str,
         ent2: str,
         sentence: str,
-        before: List[Tuple[str, str]],
-        between: List[Tuple[str, str]],
-        after: List[Tuple[str, str]],
+        before: list[tuple[str, str]],
+        between: list[tuple[str, str]],
+        after: list[tuple[str, str]],
         config: Config,
     ):
         self.ent1 = ent1
@@ -41,7 +41,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.bef_tags = before
         self.bet_tags = between
         self.aft_tags = after
-        self.bet_filtered: List[str] = []
+        self.bet_filtered: list[str] = []
         self.bef_words = " ".join([x[0] for x in self.bef_tags])
         self.bet_words = " ".join([x[0] for x in self.bet_tags])
         self.aft_words = " ".join([x[0] for x in self.aft_tags])
@@ -109,7 +109,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
         self.aft_vector = self.pattern2vector_sum(aft_no_tags, config)
 
     @staticmethod
-    def pattern2vector_sum(tokens: List[str], config: Config) -> Any:
+    def pattern2vector_sum(tokens: list[str], config: Config) -> Any:
         """
         Compute the vector for a given pattern, by summing the vectors of the words in the pattern.
         """
@@ -129,7 +129,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
 
         return pattern_vector
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """
         Return a JSON representation of the tuple.
         """

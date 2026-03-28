@@ -3,7 +3,7 @@ __email__ = "dsbatista@gmail.com"
 
 import fileinput
 import re
-from typing import Any, Optional, Set
+from typing import Any
 
 from gensim.models import KeyedVectors
 from nltk import WordNetLemmatizer
@@ -32,7 +32,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
 
     def __init__(
         self,
-        config_file: Optional[str],
+        config_file: str | None,
         word2vec_model_path: str,
         positive_seeds: str,
         negative_seeds: str,
@@ -60,8 +60,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         self.lemmatizer = WordNetLemmatizer()
         self.regex_clean_simple = re.compile("</?[A-Z]+>", re.U)
         self.tags_regex = re.compile("</?[A-Z]+>", re.U)
-        self.positive_seed_tuples: Set[Any] = set()
-        self.negative_seed_tuples: Set[Any] = set()
+        self.positive_seed_tuples: set[Any] = set()
+        self.negative_seed_tuples: set[Any] = set()
         self.e1_type: str
         self.e2_type: str
         self.threshold_similarity = similarity
@@ -164,7 +164,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
         print(self.vec_dim, "dimensions")
         return word2vec
 
-    def read_seeds(self, seeds_file: str, holder: Set[Any]) -> None:
+    def read_seeds(self, seeds_file: str, holder: set[Any]) -> None:
         """
         Reads the seeds file and adds the seeds to the holder.
         """

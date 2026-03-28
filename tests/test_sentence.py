@@ -3,7 +3,7 @@ from breds.sentence import Entity
 
 def test_entity():
     ent1 = Entity("Paris", ["Paris"], "Location", [2, 4])
-    ent2 = Entity("France", ["France"], "Country", [2, 4])
+    Entity("France", ["France"], "Country", [2, 4])
     ent3 = Entity("Paris", ["Paris"], "Location", [2, 4])
 
     assert ent1 == ent3
