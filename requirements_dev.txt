@@ -5,7 +5,7 @@ gensim==4.4.0
 isort==5.13.2
 mypy==1.19.1
 nltk==3.9.1
-numpy==2.2.3
+numpy==2.2.6
 pycln==2.6.0
 pylint==3.3.3
 pytest==8.3.4
