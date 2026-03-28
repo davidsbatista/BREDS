@@ -1,7 +1,7 @@
 .PHONY:	test lint virtualenv dist
 
 lint:
-	black -t py39 -l 120 breds tests
+	black -t py310 -l 120 breds tests
 	pycln -a breds tests
 	isort --profile black breds tests
 	PYTHONPATH=. pylint --rcfile=pylint.cfg breds

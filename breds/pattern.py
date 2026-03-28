@@ -46,7 +46,7 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
             self.confidence = float(self.positive) / float(
                 self.positive + self.unknown * config.w_unk + self.negative * config.w_neg
             )
-        elif self.positive == 0:
+        elif not self.positive:
             self.confidence = 0
 
     def add_tuple(self, tpl: BREDSTuple) -> None:
