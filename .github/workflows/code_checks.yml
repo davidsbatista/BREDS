@@ -6,11 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -31,7 +31,7 @@ jobs:
         mkdir -p coverage
 
     - name: Coverage Badge
-      uses: tj-actions/coverage-badge-py@v1.8
+      uses: tj-actions/coverage-badge-py@v2
       with:
         output: coverage/coverage.svg
 

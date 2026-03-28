@@ -98,7 +98,7 @@ class BREDS:
         """
         Calculates the cosine similarity between the context vectors of a pattern and a tuple.
         """
-        (bef, bet, aft) = (0, 0, 0)
+        bef, bet, aft = (0, 0, 0)
 
         if tpl.bef_vector is not None and pattern.bef_vector is not None:
             bef = dot(matutils.unitvec(tpl.bef_vector), matutils.unitvec(pattern.bef_vector))

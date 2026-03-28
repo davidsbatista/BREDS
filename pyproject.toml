@@ -8,18 +8,24 @@ version = "1.0.1"
 authors = [{name = "David S. Batista", email = "dsbatista@gmail.com"}]
 description = "Bootstrapping Relationship Extraction with Distributional Semantics"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["nlp", "semantic relationship extraction", "bootstrapping", "emnlp",
     "vector representations", "word embeddings", "word2vec", "phrase embeddings"]
 license = {text = "GNU GPLv3"}
 classifiers = [
     "Topic :: Text Processing :: Linguistic",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "gensim >= 3.7.3",
-    "nltk >= 3.4.1",
-    "numpy >= 1.16.3",
+    "gensim >= 4.3.0",
+    "nltk >= 3.8.1",
+    "numpy >= 1.26.0",
+    "scipy >= 1.11.0",
+    "tqdm >= 4.66.0",
 ]
 
 [project.urls]
