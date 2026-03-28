@@ -10,4 +10,4 @@ pycln==2.6.0
 pylint==3.3.3
 pytest==8.3.4
 scipy==1.15.2
-tqdm==4.67.1
+tqdm==4.67.3
