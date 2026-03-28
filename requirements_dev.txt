@@ -8,6 +8,6 @@ nltk==3.9.1
 numpy==2.2.3
 pycln==2.6.0
 pylint==3.3.3
-pytest==8.3.4
+pytest==9.0.2
 scipy==1.15.2
 tqdm==4.67.1
