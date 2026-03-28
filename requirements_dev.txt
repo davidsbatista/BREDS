@@ -6,7 +6,7 @@ isort==5.13.2
 mypy==1.14.1
 nltk==3.9.4
 numpy==2.2.3
-pycln==2.4.0
+pycln==2.6.0
 pylint==3.3.3
 pytest==8.3.4
 scipy==1.15.2
