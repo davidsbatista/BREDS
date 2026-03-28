@@ -33,5 +33,65 @@ homepage = "https://github.com/davidsbatista/BREDS"
 documentation = "https://www.davidsbatista.net/assets/documents/publications/breds-emnlp_15.pdf"
 repository = "https://github.com/davidsbatista/BREDS"
 
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "genbadge[coverage]",
+    "mypy",
+    "pytest",
+    "ruff",
+]
+
 [project.scripts]
 breds = "breds.cli:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = [".git", "__pycache__", "build", "dist", "automatic_evaluation"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",
+    "F",
+    "I",
+    "C90",
+    "UP",
+    "N",
+    "PL",
+]
+ignore = ["E203"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/__init__.py" = ["F401"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+profile = "black"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+disallow_any_unimported = true
+disallow_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[tool.coverage.run]
+source = ["breds"]
+omit = ["*__init__*", "breds/cli.py"]
+
+[tool.coverage.report]
+show_missing = true
+precision = 2
+sort = "Miss"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

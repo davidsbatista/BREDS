@@ -1,5 +1,8 @@
 name: CI Code Checks
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [master]
 jobs:
   build:
     name: Code Check
@@ -17,22 +20,27 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements_dev.txt
+        pip install -e ".[dev]"
         python -m nltk.downloader wordnet stopwords
 
-    - name: Checking formatting and analysing the code with pylint and flake8
-      run: make lint
+    - name: Lint and format check
+      run: |
+        ruff check breds tests
+        ruff format --check breds tests
+
+    - name: Type checking
+      run: mypy -p breds
 
     - name: Running tests
-      run: make test
+      run: |
+        PYTHONPATH=. coverage run --source=./breds -m pytest
+        PYTHONPATH=. coverage report
 
     - name: Creating coverage folder
-      run: |
-        mkdir -p coverage
+      run: mkdir -p coverage
 
     - name: Coverage Badge
       run: |
-        pip install genbadge[coverage]
         coverage xml
         genbadge coverage -i coverage.xml -o coverage/coverage.svg
 
@@ -41,6 +49,3 @@ jobs:
       with:
         branch: coverage-badge
         folder: coverage
-
-    - name: Type checking with mypy
-      run: mypy --config mypy.ini -p breds
