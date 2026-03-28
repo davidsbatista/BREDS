@@ -2,7 +2,7 @@ name: CI Code Checks
 on: [pull_request]
 jobs:
   build:
-    name: code checks
+    name: Code Check
     runs-on: ubuntu-latest
     strategy:
       matrix:

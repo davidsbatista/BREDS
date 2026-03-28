@@ -124,8 +124,7 @@ class BREDS:
 
         for pattern in list(extraction_pattern.tuples):
             score = self.similarity_3_contexts(tpl, pattern)
-            if score > max_similarity:
-                max_similarity = score
+            max_similarity = max(max_similarity, score)
             if score >= self.config.threshold_similarity:
                 good += 1
             else:
@@ -166,7 +165,7 @@ class BREDS:
         Cluster the matched tuples to generate patterns
         """
         # Initialize: if no patterns exist, first tuple goes to first cluster
-        if len(self.patterns) == 0:
+        if not self.patterns:
             self.patterns.append(Pattern(matched_tuples[0]))
 
         for tpl in tqdm(matched_tuples):
@@ -256,6 +255,7 @@ class BREDS:
         """
         for tpl in tqdm(self.processed_tuples):
             sim_best: float = 0.0
+            pattern_best: Optional[Pattern] = None
             for extraction_pattern in self.patterns:
                 accept, score = self.similarity_all(tpl, extraction_pattern)
                 if accept is True:
@@ -264,7 +264,7 @@ class BREDS:
                         sim_best = score
                         pattern_best = extraction_pattern
 
-            if sim_best >= self.config.threshold_similarity:
+            if sim_best >= self.config.threshold_similarity and pattern_best is not None:
                 # if this tuple was already extracted, check if this
                 # extraction pattern is already associated with it,
                 # if not, associate this pattern with it and store the
@@ -300,7 +300,7 @@ class BREDS:
             # Looks for sentences matching the seed instances
             count_matches, matched_tuples = self.match_seeds_tuples()
 
-            if len(matched_tuples) == 0:
+            if not matched_tuples:
                 print("\nNo seed matches found")
                 sys.exit(0)
 
@@ -322,7 +322,7 @@ class BREDS:
                 if PRINT_PATTERNS is True:
                     self.debug_patterns_1()
 
-                if self.curr_iteration == 0 and len(self.patterns) == 0:
+                if not self.curr_iteration and not self.patterns:
                     print("No patterns generated")
                     sys.exit(0)
 
