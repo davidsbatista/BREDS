@@ -3,8 +3,8 @@ coverage==7.6.10
 flake8==7.3.0
 gensim==4.4.0
 isort==5.13.2
-mypy==1.14.1
-nltk==3.9.4
+mypy==1.19.1
+nltk==3.9.1
 numpy==2.2.3
 pycln==2.6.0
 pylint==3.3.3
