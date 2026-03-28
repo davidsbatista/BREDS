@@ -1,4 +1,5 @@
-from typing import Generator, TextIO
+from collections.abc import Generator
+from typing import TextIO
 
 
 def blocks(files: TextIO, size: int = 65536) -> Generator[str, None, None]:

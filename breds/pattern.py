@@ -2,7 +2,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import uuid
-from typing import Any, Optional, Set
+from typing import Any
 
 from breds.breds_tuple import BREDSTuple
 from breds.config import Config
@@ -13,15 +13,15 @@ class Pattern:  # pylint: disable=too-many-instance-attributes
     A pattern is a set of tuples that is used to extract relationships between named-entities.
     """
 
-    def __init__(self, tpl: Optional[BREDSTuple] = None):
+    def __init__(self, tpl: BREDSTuple | None = None):
         self.uuid = uuid.uuid4()
         self.positive = 0
         self.negative = 0
         self.unknown = 0
         self.confidence: float = 0.0
         self.tuples = set()
-        self.bet_uniques_vectors: Set[Any] = set()
-        self.bet_uniques_words: Set[Any] = set()
+        self.bet_uniques_vectors: set[Any] = set()
+        self.bet_uniques_words: set[Any] = set()
         if tpl is not None:
             self.tuples.add(tpl)
 

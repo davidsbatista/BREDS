@@ -1,32 +1,28 @@
-.PHONY:	test lint virtualenv dist
+.PHONY:	test lint typing clean publish all
 
 lint:
-	black -t py310 -l 120 breds tests
-	pycln -a breds tests
-	isort --profile black breds tests
-	PYTHONPATH=. pylint --rcfile=pylint.cfg breds
-	PYTHONPATH=. flake8 --config=setup.cfg breds
+	ruff check breds tests
+	ruff format breds tests
 
 
 typing:
-	mypy --config mypy.ini -p breds
+	mypy -p breds
 
 
 test:
-	PYTHONPATH=. coverage run --rcfile=setup.cfg --source=./breds -m pytest
-	PYTHONPATH=. coverage report --rcfile=setup.cfg
+	PYTHONPATH=. coverage run --source=./breds -m pytest
+	PYTHONPATH=. coverage report
 
 
 clean:
-	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache .pytest_cache src/*.egg-info
+	rm -rf build dist *.egg-info .coverage .pytest_cache .mypy_cache src/*.egg-info
 
 
 publish:
-	make all
-	python -m pip install --upgrade build
+	make clean
+	python -m pip install --upgrade build twine
 	python -m build
-	python -m pip install --upgrade twine
-	python -m twine upload --repository testpypi dist/*
+	python -m twine upload dist/*
 
 
 all:

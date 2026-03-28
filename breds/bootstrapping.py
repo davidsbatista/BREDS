@@ -7,7 +7,6 @@ import os
 import pickle
 import sys
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
 
 from gensim import matutils
 from nltk.data import load
@@ -42,9 +41,9 @@ class BREDS:
     ):
         # pylint: disable=too-many-arguments
         self.curr_iteration = 0
-        self.patterns: List[Pattern] = []
-        self.processed_tuples: List[BREDSTuple] = []
-        self.candidate_tuples: Dict[BREDSTuple, List[Tuple[Pattern, float]]] = defaultdict(list)
+        self.patterns: list[Pattern] = []
+        self.processed_tuples: list[BREDSTuple] = []
+        self.candidate_tuples: dict[BREDSTuple, list[tuple[Pattern, float]]] = defaultdict(list)
         self.config = Config(
             config_file, word2vec_model_path, seeds_file, negative_seeds, similarity, confidence, number_iterations
         )
@@ -66,7 +65,7 @@ class BREDS:
             self.config.word2vec = self.config.read_word2vec(self.config.word2vec_model_path)
             tagger = load("taggers/maxent_treebank_pos_tagger/english.pickle")
 
-            with open(sentences_file, "r", encoding="utf8") as f_in:
+            with open(sentences_file, encoding="utf8") as f_in:
                 total = sum(bl.count("\n") for bl in blocks(f_in))
 
             print("\nProcessing input sentences")
@@ -111,7 +110,7 @@ class BREDS:
 
         return self.config.alpha * bef + self.config.beta * bet + self.config.gamma * aft
 
-    def similarity_all(self, tpl: BREDSTuple, extraction_pattern: Pattern) -> Tuple[bool, float]:
+    def similarity_all(self, tpl: BREDSTuple, extraction_pattern: Pattern) -> tuple[bool, float]:
         """
         Calculates the cosine similarity between all patterns part of a cluster (i.e., extraction pattern) and the
         vector of a ReVerb pattern extracted from a sentence.
@@ -135,12 +134,12 @@ class BREDS:
 
         return False, 0.0
 
-    def match_seeds_tuples(self) -> Tuple[Dict[Tuple[str, str], int], List[BREDSTuple]]:
+    def match_seeds_tuples(self) -> tuple[dict[tuple[str, str], int], list[BREDSTuple]]:
         """
         Checks if the extracted tuples match the seeds tuples.
         """
-        matched_tuples: List[BREDSTuple] = []
-        count_matches: Dict[Tuple[str, str], int] = defaultdict(int)
+        matched_tuples: list[BREDSTuple] = []
+        count_matches: dict[tuple[str, str], int] = defaultdict(int)
         for tpl in self.processed_tuples:
             for sent in self.config.positive_seed_tuples:
                 if tpl.ent1 == sent.ent1 and tpl.ent2 == sent.ent2:
@@ -155,11 +154,11 @@ class BREDS:
         The output file is a JSONL file with one relationship per line.
         """
         print("\nWriting extracted relationships to disk")
-        with open("relationships.jsonl", "wt", encoding="utf8") as f_out:
+        with open("relationships.jsonl", "w", encoding="utf8") as f_out:
             for tpl in sorted(list(self.candidate_tuples.keys()), reverse=True):
                 f_out.write(json.dumps(tpl.to_json()) + "\n")
 
-    def cluster_tuples(self, matched_tuples: List[BREDSTuple]) -> None:
+    def cluster_tuples(self, matched_tuples: list[BREDSTuple]) -> None:
         """
         Single Pass Clustering Algorithm
         Cluster the matched tuples to generate patterns
@@ -255,7 +254,7 @@ class BREDS:
         """
         for tpl in tqdm(self.processed_tuples):
             sim_best: float = 0.0
-            pattern_best: Optional[Pattern] = None
+            pattern_best: Pattern | None = None
             for extraction_pattern in self.patterns:
                 accept, score = self.similarity_all(tpl, extraction_pattern)
                 if accept is True:
@@ -280,7 +279,7 @@ class BREDS:
                 else:
                     self.candidate_tuples[tpl].append((pattern_best, sim_best))
 
-    def init_bootstrap(self, processed_tuples: Optional[str] = None) -> None:  # noqa: C901
+    def init_bootstrap(self, processed_tuples: str | None = None) -> None:  # noqa: C901
         """Initializes the bootstrap process"""
         if processed_tuples is not None:
             print("\nLoading processed tuples from disk...")

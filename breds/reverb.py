@@ -2,7 +2,7 @@ __author__ = "David S. Batista"
 __email__ = "dsbatista@gmail.com"
 
 import io
-from typing import Any, List, Tuple
+from typing import Any
 
 from nltk import pos_tag, word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -23,7 +23,7 @@ class Reverb:
         self.aux_verbs = ["be"]
 
     @staticmethod
-    def extract_reverb_patterns(text: str) -> Tuple[List[str], List[List[Tuple[Any, Any]]]]:
+    def extract_reverb_patterns(text: str) -> tuple[list[str], list[list[tuple[Any, Any]]]]:
         """
         Extract ReVerb relational patterns
         http://homes.cs.washington.edu/~afader/bib_pdf/emnlp11.pdf
@@ -105,7 +105,7 @@ class Reverb:
         return patterns, patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_tagged_ptb(tagged_text: List[Tuple[Any, Any]]) -> List[Tuple[Any, Any]]:
+    def extract_reverb_patterns_tagged_ptb(tagged_text: list[tuple[Any, Any]]) -> list[tuple[Any, Any]]:
         # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns
@@ -189,7 +189,7 @@ class Reverb:
         return merged_patterns_tags
 
     @staticmethod
-    def extract_reverb_patterns_ptb(text: str) -> List[Tuple[Any, Any]]:  # pylint: disable=too-many-locals
+    def extract_reverb_patterns_ptb(text: str) -> list[tuple[Any, Any]]:  # pylint: disable=too-many-locals
         """
         Extract ReVerb relational patterns from raw text.
 
@@ -280,7 +280,7 @@ class Reverb:
         merged_patterns_tags = [item for sublist in patterns_tags for item in sublist]
         return merged_patterns_tags
 
-    def detect_passive_voice(self, pattern: List[Tuple[Any, Any]]) -> bool:
+    def detect_passive_voice(self, pattern: list[tuple[Any, Any]]) -> bool:
         """Detect if the passive voice is present in a pattern"""
         passive_voice = False
 
