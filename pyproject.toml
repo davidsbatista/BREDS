@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "gensim >= 4.3.0",
+    "gensim >= 4.4.0",
     "nltk >= 3.8.1",
     "numpy >= 1.26.0",
     "scipy >= 1.11.0",
