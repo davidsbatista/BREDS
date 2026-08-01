@@ -30,7 +30,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-many-argument
     - Initialize the Reverb object.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         config_file: str | None,
         word2vec_model_path: str,

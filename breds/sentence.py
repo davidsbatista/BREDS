@@ -58,7 +58,7 @@ class Entity:
 class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-attributes
     """Relationship class to hold information about a relationship extracted from a sentence."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         sentence: str,
         before: list[tuple[str, str]],
@@ -95,7 +95,7 @@ class Relationship:  # pylint: disable=too-many-arguments, too-many-instance-att
 class Sentence:  # pylint: disable=too-few-public-methods, too-many-locals, too-many-arguments
     """Holds information about a sentence extracted from a document."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         sentence: str,
         e1_type: str,

@@ -23,7 +23,7 @@ class BREDSTuple:  # pylint: disable=too-many-instance-attributes,too-many-argum
     # http://www.ling.upenn.edu/courses/Fall_2007/ling001/penn_treebank_pos.html
     filter_pos = ["JJ", "JJR", "JJS", "RB", "RBR", "RBS", "WRB"]
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         ent1: str,
         ent2: str,
