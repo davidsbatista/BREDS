@@ -29,7 +29,7 @@ class BREDS:
     BREDS is a system that extracts relationships between named entities from text.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0917
         self,
         word2vec_model_path: str,
         config_file: str,
